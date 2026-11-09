@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fresh directions</title>
+<script>
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('pre');
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Libre+Caslon+Text:wght@400;700&family=Hanken+Grotesk:wght@400;500;600;700&family=Archivo:wdth,wght@62..125,400..900&family=Atkinson+Hyperlegible+Next:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --page: #e6e8ea; --page-ink: #1b2229; --page-muted: #59636c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--page-ink); font: 16px/1.5 "Hanken Grotesk", system-ui, sans-serif; }
+  .intro { max-width: 1200px; margin: 0 auto; padding: 40px 16px 8px; }
+  .intro h1 { font-size: 28px; font-weight: 700; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .intro p { margin: 0; max-width: 64ch; color: var(--page-muted); }
+  .grid { max-width: 1200px; margin: 0 auto; padding: 28px 16px 64px; display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 40px 28px; }
+  .dir > h2 { font-size: 20px; margin: 0; font-weight: 700; }
+  .dir > .idea { margin: 4px 0 18px; color: var(--page-muted); max-width: 44ch; min-height: 72px; }
+  .phone { max-width: 360px; margin: 0 auto; padding: 9px; border-radius: 40px; background: #20262c; }
+  .screen { border-radius: 31px; overflow: hidden; height: 720px; display: flex; flex-direction: column; position: relative; }
+  .tokens { max-width: 360px; margin: 18px auto 0; }
+  .sw { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .sw div { font-size: 11px; color: var(--page-muted); line-height: 1.3; }
+  .sw div::before { content: ""; display: block; height: 34px; border-radius: 8px; margin-bottom: 4px; background: var(--c); box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+  .type { margin: 10px 0 0; font-size: 13px; color: var(--page-muted); }
+  :focus-visible { outline: 2px solid #2b6cb0; outline-offset: 2px; }
+
+  /* shared load moment: one orchestrated draw per screen */
+  .reveal-y, .reveal-x { transition: clip-path 1100ms var(--ease-out); transition-delay: var(--d, 0ms); clip-path: inset(0); }
+  .pre .reveal-y { clip-path: inset(0 0 100% 0); }
+  .pre .reveal-x { clip-path: inset(0 100% 0 0); }
+  .draw { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 1300ms var(--ease-out); transition-delay: var(--d, 0ms); }
+  .pre .draw { stroke-dashoffset: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal-y, .reveal-x, .draw { transition: none; }
+  }
+
+  /* ---------- 1  Heirloom ---------- */
+  .h { --mist: #edf0ee; --slate: #1d2b33; --green: #1f5c46; --protea: #c93d6d; --lichen: #a9b8ae; background: var(--mist); color: var(--slate); font-family: "Hanken Grotesk", sans-serif; }
+  .h-top { display: flex; justify-content: space-between; align-items: center; padding: 26px 22px 6px; }
+  .h-brand { font-family: "Libre Caslon Display", serif; font-size: 26px; letter-spacing: 0.01em; }
+  .h-me { width: 34px; height: 34px; border-radius: 50%; background: var(--green); color: var(--mist); display: grid; place-items: center; font-size: 13px; font-weight: 600; }
+  .h-list { position: relative; margin: 10px 0 0; padding: 0 22px 0 58px; list-style: none; flex: 1; }
+  .h-rail { position: absolute; left: 32px; width: 2px; top: 10px; }
+  .h-rail.past { height: 86px; background: var(--green); }
+  .h-rail.future { top: 96px; bottom: 6px; background: var(--lichen); }
+  .h-list li { position: relative; padding: 6px 0 10px; }
+  .h-list li::before { content: ""; position: absolute; left: -31px; top: 12px; width: 10px; height: 10px; border-radius: 50%; background: var(--mist); box-shadow: 0 0 0 2px var(--lichen); }
+  .h-list li.anc::before { background: var(--green); box-shadow: 0 0 0 2px var(--green); }
+  .h-list li.you::before { width: 18px; height: 18px; left: -35px; top: 9px; background: var(--protea); box-shadow: 0 0 0 4px var(--mist), 0 0 0 6px var(--protea); }
+  .h-anc { font-size: 14px; color: #4c5d55; }
+  .h-anc b { color: var(--slate); font-weight: 600; }
+  .h-you { font-family: "Libre Caslon Text", serif; font-size: 17px; line-height: 1.45; margin: 0; max-width: 26ch; }
+  .h-num { font-family: "Libre Caslon Display", serif; font-size: 58px; line-height: 1; margin: 8px 0 2px; letter-spacing: -0.01em; color: var(--green); }
+  .h-chart { margin: 8px 0 4px; }
+  .h-chart-l { display: flex; justify-content: space-between; font-size: 12px; color: #5d6d65; }
+  .h-task { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+  .h-when { font-size: 13px; color: #5d6d65; white-space: nowrap; }
+  .h-when.now { color: var(--protea); font-weight: 600; }
+  .h-list li.land::before { box-shadow: 0 0 0 2px var(--green); }
+  .h-nav { display: flex; justify-content: space-around; padding: 12px 8px 20px; font-size: 13px; color: #5d6d65; border-top: 1px solid #d5dcd7; }
+  .h-nav b { color: var(--green); font-weight: 600; }
+
+  /* ---------- 2  Hemisphere ---------- */
+  .m { --chalk: #f4f6f7; --ink: #16202b; --sun: #f4b63f; --atlantic: #0f5277; --drizzle: #8e9ba6; --brick: #a2432f; background: var(--chalk); color: var(--ink); font-family: "Archivo", sans-serif; font-variation-settings: "wdth" 100; }
+  .m-cape { background: var(--sun); padding: 24px 22px 54px; }
+  .m-uk { background: var(--atlantic); color: #e9f1f5; padding: 66px 22px 18px; }
+  .m-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .m-brand { font-weight: 800; font-size: 15px; font-variation-settings: "wdth" 125; letter-spacing: 0.02em; }
+  .m-city { font-size: 30px; font-weight: 800; font-variation-settings: "wdth" 70; line-height: 1; margin: 18px 0 6px; }
+  .m-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; font-size: 13px; }
+  .m-facts span:nth-child(odd) { opacity: 1; }
+  .m-seam { position: relative; height: 0; z-index: 2; }
+  .m-seam-in { position: absolute; left: 14px; right: 14px; top: -42px; background: var(--chalk); border-radius: 18px; padding: 14px 16px 12px; box-shadow: 0 1px 0 rgba(0,0,0,.06), 0 10px 24px -12px rgba(15,82,119,.45); }
+  .m-num { font-size: clamp(36px, 12.5vw, 46px); font-weight: 900; font-variation-settings: "wdth" 125; line-height: 0.95; letter-spacing: -0.02em; }
+  .m-sub { font-size: 13.5px; color: #3c4a57; margin: 6px 0 0; line-height: 1.4; }
+  .m-bars { display: flex; align-items: flex-end; gap: 5px; height: 64px; margin: 14px 0 6px; }
+  .m-bars i { flex: 1; border-radius: 3px 3px 0 0; background: #8fc3dc; }
+  .m-bars i.low { background: var(--sun); }
+  .m-bars i.pay { background: #e9f1f5; }
+  .m-bl { display: flex; justify-content: space-between; font-size: 12px; color: #b9d3e0; }
+  .m-tasks { padding: 14px 22px 0; flex: 1; }
+  .m-tasks h3 { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
+  .m-t { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #dde3e7; font-size: 14.5px; gap: 10px; }
+  .m-t span:last-child { color: #5b6976; font-size: 13px; white-space: nowrap; }
+  .m-t span.now { color: var(--brick); font-weight: 700; }
+  .m-nav { display: flex; justify-content: space-around; padding: 12px 8px 20px; font-size: 13px; color: #5b6976; }
+  .m-nav b { color: var(--atlantic); }
+
+  /* ---------- 3  Interchange ---------- */
+  .r { --plat: #f5f6f8; --navy: #15204a; --pw: #c2185b; --money: #00875a; --move: #e8a200; --rail: #c9cdd6; background: var(--plat); color: var(--navy); font-family: "Atkinson Hyperlegible Next", sans-serif; }
+  .r-sign { background: var(--navy); color: #fff; padding: 22px 20px 16px; }
+  .r-brand { font-weight: 800; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+  .r-roundel { width: 22px; height: 22px; border-radius: 50%; border: 5px solid var(--pw); position: relative; }
+  .r-roundel::after { content: ""; position: absolute; left: -9px; right: -9px; top: 3px; height: 6px; background: #fff; border-radius: 1px; }
+  .r-next { margin: 16px 0 0; font-size: 13px; color: #b9c0dc; }
+  .r-next b { display: block; color: #fff; font-size: 19px; font-weight: 700; line-height: 1.25; margin-top: 2px; }
+  .r-fare { padding: 16px 20px 6px; display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; }
+  .r-fare p { margin: 0; font-size: 13px; color: #4a5378; }
+  .r-num { font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; margin-top: 4px; }
+  .r-run { text-align: right; }
+  .r-meter { display: flex; gap: 3px; margin-top: 6px; justify-content: flex-end; }
+  .r-meter i { width: 14px; height: 8px; border-radius: 2px; background: var(--money); }
+  .r-meter i.off { background: var(--rail); }
+  .r-map { padding: 4px 8px 0 8px; flex: 1; }
+  .r-map svg { display: block; width: 100%; height: auto; }
+  .r-map text { font-family: "Atkinson Hyperlegible Next", sans-serif; fill: var(--navy); }
+  .r-key { display: flex; gap: 14px; padding: 0 20px 6px; font-size: 12px; color: #4a5378; }
+  .r-key span::before { content: ""; display: inline-block; width: 14px; height: 4px; border-radius: 2px; margin-right: 6px; vertical-align: middle; background: var(--k); }
+  .r-nav { display: flex; justify-content: space-around; padding: 12px 8px 20px; font-size: 13px; color: #4a5378; border-top: 1px solid #e0e3ea; }
+  .r-nav b { color: var(--navy); }
+</style>
+</head>
+<body>
+
+<header class="intro">
+  <h1>Three fresh directions</h1>
+  <p>Each one is built around a different true thing about your move: the family line that makes it possible, the two places you're moving between, and the move as a route with stops. The numbers are placeholders. Reload the page to replay the opening animation.</p>
+</header>
+
+<main class="grid">
+
+  <!-- 1 -->
+  <section class="dir" aria-labelledby="d1">
+    <h2 id="d1">Heirloom</h2>
+    <p class="idea">Your gran's birthplace is the reason you can go. The whole app hangs off one line that starts with her, runs through your dad and you, then carries on into every step of your move.</p>
+    <div class="phone"><div class="screen h">
+      <div class="h-top"><span class="h-brand">Heirloom</span><span class="h-me" aria-label="Your profile">E</span></div>
+      <ol class="h-list">
+        <div class="h-rail past reveal-y" style="--d:150ms"></div>
+        <div class="h-rail future reveal-y" style="--d:700ms"></div>
+        <li class="anc"><span class="h-anc"><b>Gran</b>, born in England</span></li>
+        <li class="anc"><span class="h-anc"><b>Dad</b>, born in Cape Town</span></li>
+        <li class="you">
+          <p class="h-you">To land in Manchester on 1 March 2029 with four months to find work, you need</p>
+          <p class="h-num">R312,000</p>
+          <svg class="h-chart" viewBox="0 0 260 64" width="100%" aria-label="Your savings fall for four months after landing, then recover after your first payday">
+            <path d="M0 6 C40 14, 80 30, 120 50 L140 54 C165 46, 200 34, 260 22" fill="none" stroke="#1f5c46" stroke-width="2.5" stroke-linecap="round" pathLength="1" class="draw" style="--d:500ms"/>
+            <circle cx="140" cy="54" r="4" fill="#c93d6d"/>
+          </svg>
+          <div class="h-chart-l"><span>Land</span><span>Lowest point</span><span>First payday</span></div>
+        </li>
+        <li><div class="h-task"><span>Order your and Dad's unabridged birth certificates</span><span class="h-when now">Now</span></div></li>
+        <li><div class="h-task"><span>Gran's birth certificate from the GRO</span><span class="h-when now">Now</span></div></li>
+        <li><div class="h-task"><span>TB test in Cape Town</span><span class="h-when">Nov 2028</span></div></li>
+        <li class="land"><div class="h-task"><span>Land in Manchester</span><span class="h-when">1 Mar 2029</span></div></li>
+        <li><div class="h-task"><span>Settle in the UK</span><span class="h-when">2034</span></div></li>
+      </ol>
+      <nav class="h-nav" aria-label="Main"><b>Your line</b><span>Money</span><span>Life</span><span>Compare</span></nav>
+    </div></div>
+    <div class="tokens">
+      <div class="sw">
+        <div style="--c:#edf0ee">Mist</div><div style="--c:#1d2b33">Slate</div><div style="--c:#1f5c46">Heritage green</div><div style="--c:#c93d6d">Protea</div><div style="--c:#a9b8ae">Lichen</div><div style="--c:#ffffff">Paper</div>
+      </div>
+      <p class="type">Libre Caslon, the classic English typeface, for the number and your story. Hanken Grotesk for everything you tap.</p>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="dir" aria-labelledby="d2">
+    <h2 id="d2">Hemisphere</h2>
+    <p class="idea">You're moving from summer into winter and from rand into pounds. The screen splits between Cape Town and Manchester, and your number sits on the join. That's the gap you're closing.</p>
+    <div class="phone"><div class="screen m">
+      <div class="m-cape">
+        <div class="m-row"><span class="m-brand">hemisphere</span><span style="font-size:13px">Today</span></div>
+        <div class="m-city">Cape Town</div>
+        <div class="m-facts"><span>27°, sunny</span><span>Light until 19:58</span><span>Rent R9,800</span><span>Earning R24,500</span></div>
+      </div>
+      <div class="m-seam"><div class="m-seam-in">
+        <div class="m-num">R312,000</div>
+        <p class="m-sub">gets you across, with four months to find work. At R23.10 to the pound that's £13,500.</p>
+      </div></div>
+      <div class="m-uk">
+        <div class="m-row"><span class="m-city" style="margin-top:20px">Manchester</span><span style="font-size:13px">From 1 Mar 2029</span></div>
+        <div class="m-facts"><span>7°, drizzle</span><span>Dark by 17:56</span><span>Rent £850</span><span>Earning £28,000</span></div>
+        <div class="m-bars reveal-x" style="--d:250ms" aria-label="Savings by month after landing">
+          <i style="height:100%"></i><i style="height:84%"></i><i style="height:67%"></i><i style="height:51%"></i><i class="low" style="height:36%"></i><i class="pay" style="height:45%"></i><i class="pay" style="height:55%"></i><i class="pay" style="height:65%"></i>
+        </div>
+        <div class="m-bl"><span>Land</span><span>Lowest, month 5</span><span>Payday onwards</span></div>
+      </div>
+      <div class="m-tasks">
+        <h3>Before you go</h3>
+        <div class="m-t"><span>Unabridged birth certificates</span><span class="now">Order now</span></div>
+        <div class="m-t"><span>Gran's GRO certificate</span><span class="now">Order now</span></div>
+        <div class="m-t"><span>TB test</span><span>Nov 2028</span></div>
+      </div>
+      <nav class="m-nav" aria-label="Main"><b>Home</b><span>Steps</span><span>Money</span><span>Compare</span></nav>
+    </div></div>
+    <div class="tokens">
+      <div class="sw">
+        <div style="--c:#f4b63f">Cape sun</div><div style="--c:#0f5277">Atlantic</div><div style="--c:#8e9ba6">Drizzle</div><div style="--c:#a2432f">Mill brick</div><div style="--c:#f4f6f7">Chalk</div><div style="--c:#16202b">Ink</div>
+      </div>
+      <p class="type">Archivo throughout, using its width axis: stretched wide for the number, squeezed narrow for city names.</p>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="dir" aria-labelledby="d3">
+    <h2 id="d3">Interchange</h2>
+    <p class="idea">The move drawn as a transit map. Paperwork, money and the move itself run as three lines that meet at your visa decision, then continue as one line to Manchester and settling.</p>
+    <div class="phone"><div class="screen r">
+      <div class="r-sign">
+        <div class="r-brand"><span class="r-roundel" aria-hidden="true"></span>Interchange</div>
+        <p class="r-next">Next stop<b>Order your unabridged birth certificates</b></p>
+      </div>
+      <div class="r-fare">
+        <div><p>Fare to Manchester</p><div class="r-num">R312,000</div></div>
+        <div class="r-run"><p>Runway, 4 months</p><div class="r-meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="off"></i><i class="off"></i></div></div>
+      </div>
+      <div class="r-key"><span style="--k:#c2185b">Paperwork</span><span style="--k:#00875a">Money</span><span style="--k:#e8a200">Move</span></div>
+      <div class="r-map">
+        <svg viewBox="0 0 340 380" role="img" aria-label="Transit-style map of your move: three lines join at the visa decision, then run to Manchester and settlement">
+          <g fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M30 14 V150 Q30 176 56 176 H74" stroke="#c2185b" pathLength="1" class="draw" style="--d:100ms"/>
+            <path d="M50 14 V150 Q50 166 66 168 H74" stroke="#00875a" pathLength="1" class="draw" style="--d:200ms"/>
+            <path d="M70 14 V168" stroke="#e8a200" pathLength="1" class="draw" style="--d:300ms"/>
+            <path d="M70 182 V368" stroke="#15204a" pathLength="1" class="draw" style="--d:800ms"/>
+          </g>
+          <g stroke="#15204a" stroke-width="3" fill="#fff">
+            <circle cx="30" cy="40" r="6" stroke="#c2185b"/><circle cx="30" cy="82" r="6" stroke="#c2185b"/>
+            <circle cx="50" cy="60" r="6" stroke="#00875a"/><circle cx="50" cy="122" r="6" stroke="#00875a"/>
+            <circle cx="70" cy="104" r="6" stroke="#e8a200"/>
+            <rect x="56" y="164" width="28" height="22" rx="11"/>
+            <circle cx="70" cy="240" r="7"/><circle cx="70" cy="290" r="6"/><circle cx="70" cy="356" r="9" stroke-width="4"/>
+          </g>
+          <g font-size="13.5">
+            <text x="98" y="44">Birth certificates</text><text x="244" y="44" fill="#c2185b" font-weight="700">Now</text>
+            <text x="98" y="64">Start saving R9,400 a month</text>
+            <text x="98" y="86">Gran's GRO certificate</text><text x="244" y="86" fill="#c2185b" font-weight="700">Now</text>
+            <text x="98" y="108">Flights and first room</text>
+            <text x="98" y="126">Proof of funds</text>
+            <text x="98" y="180" font-weight="700" font-size="15">Visa decision</text><text x="244" y="180">Jan 2029</text>
+            <text x="98" y="244" font-weight="700" font-size="15">Land in Manchester</text><text x="244" y="244">1 Mar 2029</text>
+            <text x="98" y="294">First payday</text><text x="244" y="294">Jul 2029</text>
+            <text x="98" y="360" font-weight="700" font-size="15">Settle</text><text x="244" y="360">Mar 2034</text>
+          </g>
+        </svg>
+      </div>
+      <nav class="r-nav" aria-label="Main"><b>Map</b><span>Money</span><span>Life</span><span>Compare</span></nav>
+    </div></div>
+    <div class="tokens">
+      <div class="sw">
+        <div style="--c:#15204a">Night navy</div><div style="--c:#c2185b">Paperwork</div><div style="--c:#00875a">Money</div><div style="--c:#e8a200">Move</div><div style="--c:#c9cdd6">Rail grey</div><div style="--c:#f5f6f8">Platform</div>
+      </div>
+      <p class="type">Atkinson Hyperlegible, a typeface designed for signs and instant reading, in heavy weights for the number.</p>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove('pre')));
+</script>
+</body>
+</html>

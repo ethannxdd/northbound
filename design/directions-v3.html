@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northbound system</title>
+<script>
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('pre');
+  try { const t = localStorage.getItem('hemi-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+  /* ---------- tokens: light (day) ---------- */
+  :root {
+    color-scheme: light;
+    --page: #e3e7ea; --frame: #20262c;
+    --bg: #f4f6f7; --surface: #ffffff; --text: #16202b; --muted: #5b6976; --hair: #dde3e7;
+    --cape-bg: #f4b63f; --cape-text: #16202b; --cape-city: #16202b;
+    --uk-bg: #0f5277; --uk-text: #e9f1f5; --uk-muted: #b9d3e0;
+    --bar: #8fc3dc; --bar-low: #f4b63f; --bar-pay: #e9f1f5;
+    --seam-bg: #f4f6f7; --seam-sub: #3c4a57; --seam-shadow: 0 10px 24px -12px rgba(15,82,119,.45);
+    --sign-bg: #16202b; --sign-text: #ffffff; --sign-muted: #aab6c2;
+    --head-bg: #16202b; --head-text: #ffffff; --head-muted: #aab6c2;
+    --now: #a2432f; --accent: #0f5277;
+    --l-paper: #a2432f; --l-money: #f4b63f; --l-move: #0f5277; --l-trunk: #16202b; --station: #ffffff;
+    --man-bg: #0f5277; --man-muted: #b9d3e0; --lon-bg: #16202b; --lon-muted: #aab6c2;
+    --meter-man: #0f5277; --meter-lon: #16202b; --meter-off: #d3dae0;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  /* ---------- tokens: dark (night) ---------- */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #070c11; --frame: #2a323a;
+    --bg: #0e1822; --surface: #16222e; --text: #e6ecf0; --muted: #93a3b0; --hair: #223140;
+    --cape-bg: #2a1f0e; --cape-text: #e9dcc0; --cape-city: #f4b63f;
+    --uk-bg: #0b2b40; --uk-text: #e6ecf0; --uk-muted: #8fb3c7;
+    --bar: #3f86ad; --bar-low: #f4b63f; --bar-pay: #e6ecf0;
+    --seam-bg: #16222e; --seam-sub: #b4c1cb; --seam-shadow: 0 0 0 1px #24384a, 0 12px 28px -10px rgba(0,0,0,.7);
+    --sign-bg: #e6ecf0; --sign-text: #16202b; --sign-muted: #4a5866;
+    --head-bg: #0a121a; --head-text: #e6ecf0; --head-muted: #8a9aa7;
+    --now: #e88a70; --accent: #6cb8de;
+    --l-paper: #e07a5f; --l-money: #f4b63f; --l-move: #4fa3d1; --l-trunk: #e6ecf0; --station: #0e1822;
+    --man-bg: #0b2b40; --man-muted: #8fb3c7; --lon-bg: #1c2935; --lon-muted: #8a9aa7;
+    --meter-man: #4fa3d1; --meter-lon: #e6ecf0; --meter-off: #2a3a48;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #070c11; --frame: #2a323a;
+      --bg: #0e1822; --surface: #16222e; --text: #e6ecf0; --muted: #93a3b0; --hair: #223140;
+      --cape-bg: #2a1f0e; --cape-text: #e9dcc0; --cape-city: #f4b63f;
+      --uk-bg: #0b2b40; --uk-text: #e6ecf0; --uk-muted: #8fb3c7;
+      --bar: #3f86ad; --bar-low: #f4b63f; --bar-pay: #e6ecf0;
+      --seam-bg: #16222e; --seam-sub: #b4c1cb; --seam-shadow: 0 0 0 1px #24384a, 0 12px 28px -10px rgba(0,0,0,.7);
+      --sign-bg: #e6ecf0; --sign-text: #16202b; --sign-muted: #4a5866;
+      --head-bg: #0a121a; --head-text: #e6ecf0; --head-muted: #8a9aa7;
+      --now: #e88a70; --accent: #6cb8de;
+      --l-paper: #e07a5f; --l-money: #f4b63f; --l-move: #4fa3d1; --l-trunk: #e6ecf0; --station: #0e1822;
+      --man-bg: #0b2b40; --man-muted: #8fb3c7; --lon-bg: #1c2935; --lon-muted: #8a9aa7;
+      --meter-man: #4fa3d1; --meter-lon: #e6ecf0; --meter-off: #2a3a48;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text); font: 16px/1.5 Archivo, system-ui, sans-serif; }
+  .intro { max-width: 1200px; margin: 0 auto; padding: 40px 16px 8px; }
+  .intro h1 { font-size: 30px; font-weight: 800; font-variation-settings: "wdth" 70; margin: 0 0 8px; line-height: 1.1; }
+  .intro p { margin: 0 0 10px; max-width: 66ch; color: var(--muted); }
+  .switch { display: inline-flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--hair); margin-top: 8px; }
+  .switch button { font: inherit; font-size: 14px; border: 0; background: transparent; color: var(--muted); padding: 7px 12px; border-radius: 9px; cursor: pointer; transition: background-color 150ms ease, color 150ms ease; }
+  .switch button[aria-pressed="true"] { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 0 0 1px var(--hair); }
+  .switch button:active { transform: scale(0.97); }
+  .grid { max-width: 1200px; margin: 0 auto; padding: 24px 16px 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 40px 28px; }
+  .cap { font-size: 18px; font-weight: 800; font-variation-settings: "wdth" 70; margin: 0; }
+  .cap + p { margin: 2px 0 16px; color: var(--muted); max-width: 44ch; min-height: 48px; font-size: 15px; }
+  .phone { max-width: 360px; margin: 0 auto; padding: 9px; border-radius: 40px; background: var(--frame); }
+  .screen { border-radius: 31px; overflow: hidden; height: 720px; display: flex; flex-direction: column; background: var(--bg); color: var(--text); position: relative; }
+  .tokens { max-width: 1200px; margin: 0 auto; padding: 0 16px 64px; display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 28px; }
+  .tokens h2 { font-size: 18px; font-weight: 800; font-variation-settings: "wdth" 70; margin: 0 0 10px; }
+  .tokens h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 12px 0 6px; }
+  .sw { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .sw div { font-size: 11.5px; color: var(--muted); line-height: 1.3; }
+  .sw div::before { content: ""; display: block; height: 34px; border-radius: 8px; margin-bottom: 4px; background: var(--c); box-shadow: inset 0 0 0 1px rgba(128,128,128,.25); }
+  .tokens p, .tokens li { color: var(--muted); font-size: 14.5px; margin: 0 0 6px; }
+  .tokens ul { padding-left: 18px; margin: 0; }
+  .specimen { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* motion: one load moment per screen */
+  .reveal-x { clip-path: inset(0); transition: clip-path 1100ms var(--ease-out); transition-delay: var(--d, 0ms); }
+  .pre .reveal-x { clip-path: inset(0 100% 0 0); }
+  .draw { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 1300ms var(--ease-out); transition-delay: var(--d, 0ms); }
+  .pre .draw { stroke-dashoffset: 1; }
+  @media (prefers-reduced-motion: reduce) { .reveal-x, .draw, .switch button { transition: none; } }
+
+  /* shared pieces */
+  .wide { font-variation-settings: "wdth" 125; }
+  .narrow { font-variation-settings: "wdth" 70; }
+  .brand { font-weight: 800; font-size: 15px; font-variation-settings: "wdth" 125; letter-spacing: 0.02em; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; font-size: 13px; }
+  .nav { margin-top: auto; display: flex; justify-content: space-around; padding: 12px 8px 20px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--hair); background: var(--bg); }
+  .nav b { color: var(--accent); }
+  .sign { display: flex; gap: 10px; align-items: center; background: var(--sign-bg); color: var(--sign-text); border-radius: 14px; padding: 10px 12px; text-decoration: none; }
+  .sign .stop { width: 14px; height: 14px; flex: none; border-radius: 50%; border: 4px solid var(--now); background: var(--sign-bg); }
+  .sign small { display: block; color: var(--sign-muted); font-size: 12px; }
+  .sign b { font-size: 14.5px; font-weight: 700; line-height: 1.25; }
+
+  /* home */
+  .cape { background: var(--cape-bg); color: var(--cape-text); padding: 22px 22px 56px; }
+  .cape .city { color: var(--cape-city); }
+  .city { font-size: 30px; font-weight: 800; font-variation-settings: "wdth" 70; line-height: 1; margin: 16px 0 6px; }
+  .seam { position: relative; height: 0; z-index: 2; }
+  .seam-in { position: absolute; left: 14px; right: 14px; top: -44px; background: var(--seam-bg); border-radius: 18px; padding: 14px 16px 12px; box-shadow: var(--seam-shadow); }
+  .num { font-size: clamp(36px, 12.5vw, 46px); font-weight: 900; font-variation-settings: "wdth" 125; line-height: .95; letter-spacing: -0.02em; }
+  .sub { font-size: 13.5px; color: var(--seam-sub); margin: 6px 0 0; line-height: 1.4; }
+  .uk { background: var(--uk-bg); color: var(--uk-text); padding: 64px 22px 16px; }
+  .bars { display: flex; align-items: flex-end; gap: 5px; height: 58px; margin: 12px 0 6px; }
+  .bars i { flex: 1; border-radius: 3px 3px 0 0; background: var(--bar); }
+  .bars i.low { background: var(--bar-low); }
+  .bars i.pay { background: var(--bar-pay); }
+  .bl { display: flex; justify-content: space-between; font-size: 12px; color: var(--uk-muted); }
+  .home-next { padding: 14px 14px 0; }
+
+  /* map */
+  .map-top { background: var(--head-bg); color: var(--head-text); padding: 22px 20px 16px; }
+  .map-top h3 { font-size: 26px; font-weight: 800; font-variation-settings: "wdth" 70; margin: 14px 0 2px; line-height: 1.05; }
+  .map-top p, .map-top .meta { margin: 0; font-size: 13px; color: var(--head-muted); }
+  .key { display: flex; gap: 14px; padding: 12px 20px 2px; font-size: 12px; color: var(--muted); }
+  .key span::before { content: ""; display: inline-block; width: 14px; height: 4px; border-radius: 2px; margin-right: 6px; vertical-align: middle; background: var(--k); }
+  .map { padding: 0 8px; }
+  .map svg { display: block; width: 100%; height: auto; }
+  .map text { font-family: Archivo, sans-serif; fill: var(--text); }
+  .map text.done { fill: var(--muted); }
+  .map text.now { fill: var(--now); font-weight: 700; }
+  .map .lp { stroke: var(--l-paper); } .map .lm { stroke: var(--l-money); } .map .lv { stroke: var(--l-move); } .map .lt { stroke: var(--l-trunk); }
+  .map .st { fill: var(--station); }
+  .map .st.fp { fill: var(--l-paper); } .map .st.fm { fill: var(--l-money); }
+
+  /* compare */
+  .cmp-top { padding: 22px 22px 10px; }
+  .cmp-top h3 { font-size: 26px; font-weight: 800; font-variation-settings: "wdth" 70; margin: 12px 0 0; line-height: 1.05; }
+  .halves { display: grid; grid-template-columns: 1fr 1fr; margin: 8px 14px 0; border-radius: 18px; overflow: hidden; }
+  .half { padding: 14px 14px 16px; color: #e9f1f5; }
+  .half.man { background: var(--man-bg); }
+  .half.lon { background: var(--lon-bg); }
+  .half .city { font-size: 24px; margin: 0 0 10px; }
+  .half dl { margin: 0; font-size: 13px; }
+  .half dt { color: var(--man-muted); font-size: 12px; margin-top: 8px; }
+  .half.lon dt { color: var(--lon-muted); }
+  .half dd { margin: 0; font-weight: 700; font-size: 18px; font-variation-settings: "wdth" 110; }
+  .verdict { margin: 14px 14px 0; padding: 14px 16px; border-radius: 16px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); font-size: 14.5px; line-height: 1.45; }
+  .verdict b { font-weight: 800; }
+  .runways { padding: 14px 22px 0; }
+  .runways h4 { font-size: 14px; margin: 0 0 8px; font-weight: 700; }
+  .rw { display: grid; grid-template-columns: 82px 1fr auto; white-space: nowrap; align-items: center; gap: 10px; font-size: 13px; margin-bottom: 8px; }
+  .meter { display: flex; gap: 3px; }
+  .meter i { flex: 1; height: 10px; border-radius: 2px; background: var(--meter-man); }
+  .meter.lon i { background: var(--meter-lon); }
+  .meter i.off { background: var(--meter-off); }
+</style>
+</head>
+<body>
+
+<header class="intro">
+  <h1>Hemisphere and Interchange, as one app</h1>
+  <p>Hemisphere becomes the home screen and the overall look. Interchange becomes the plan: your move as a transit map. Money lines are Cape sun yellow because the money comes from Cape Town, paperwork is mill brick, and the move itself is Atlantic blue.</p>
+  <p>Dark mode is night in both places: Cape Town turns to dusk, Manchester to a deep Atlantic blue, and the station sign lights up like a real one after dark. The numbers are placeholders.</p>
+  <div class="switch" role="group" aria-label="Colour mode">
+    <button type="button" data-set="auto">Match my device</button>
+    <button type="button" data-set="light">Light</button>
+    <button type="button" data-set="dark">Dark</button>
+  </div>
+</header>
+
+<main class="grid">
+
+  <!-- Home -->
+  <section aria-labelledby="s1">
+    <h2 class="cap" id="s1">Home</h2>
+    <p>Two places with the gap between them. The station sign at the bottom links to your next stop on the map.</p>
+    <div class="phone"><div class="screen">
+      <div class="cape">
+        <div class="row"><span class="brand">northbound</span><span style="font-size:13px">Today</span></div>
+        <div class="city">Cape Town</div>
+        <div class="facts"><span>27°, sunny</span><span>Light until 19:58</span><span>Rent R9,800</span><span>Earning R24,500</span></div>
+      </div>
+      <div class="seam"><div class="seam-in">
+        <div class="num">R312,000</div>
+        <p class="sub">gets you across, with four months to find work. At R23.10 to the pound that's £13,500.</p>
+      </div></div>
+      <div class="uk">
+        <div class="row"><span class="city" style="margin-top:6px">Manchester</span><span style="font-size:13px">From 1 Mar 2029</span></div>
+        <div class="facts"><span>7°, drizzle</span><span>Dark by 17:56</span><span>Rent £850</span><span>Earning £28,000</span></div>
+        <div class="bars reveal-x" style="--d:250ms" aria-label="Savings by month after landing">
+          <i style="height:100%"></i><i style="height:84%"></i><i style="height:67%"></i><i style="height:51%"></i><i class="low" style="height:36%"></i><i class="pay" style="height:45%"></i><i class="pay" style="height:55%"></i><i class="pay" style="height:65%"></i>
+        </div>
+        <div class="bl"><span>Land</span><span>Lowest, month 5</span><span>Payday onwards</span></div>
+      </div>
+      <div class="home-next">
+        <a class="sign" href="#s2"><span class="stop" aria-hidden="true"></span><span><small>Next stop</small><b>Order your unabridged birth certificates</b></span></a>
+      </div>
+      <nav class="nav" aria-label="Main"><b>Home</b><span>Map</span><span>Money</span><span>Compare</span></nav>
+    </div></div>
+  </section>
+
+  <!-- Map -->
+  <section aria-labelledby="s2">
+    <h2 class="cap" id="s2">Map</h2>
+    <p>Interchange's transit map in Hemisphere's colours. Tap a stop to see what it takes, what it costs and when it's due.</p>
+    <div class="phone"><div class="screen">
+      <div class="map-top">
+        <div class="row"><span class="brand">northbound</span><span class="meta">2 of 14 stops done</span></div>
+        <h3>Cape Town to Manchester</h3>
+        <p>Three lines meet at your visa decision</p>
+      </div>
+      <div class="key"><span style="--k:var(--l-paper)">Paperwork</span><span style="--k:var(--l-money)">Money</span><span style="--k:var(--l-move)">Move</span></div>
+      <div class="map">
+        <svg viewBox="0 0 340 420" role="img" aria-label="Transit-style map: paperwork, money and move lines join at the visa decision, then run to Manchester, first payday and settlement">
+          <g fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M30 14 V160 Q30 186 56 186 H74" class="lp draw" pathLength="1" style="--d:100ms"/>
+            <path d="M50 14 V160 Q50 176 66 178 H74" class="lm draw" pathLength="1" style="--d:200ms"/>
+            <path d="M70 14 V178" class="lv draw" pathLength="1" style="--d:300ms"/>
+            <path d="M70 192 V404" class="lt draw" pathLength="1" style="--d:800ms"/>
+          </g>
+          <g stroke-width="3">
+            <circle cx="30" cy="40" r="6" class="lp st fp"/>
+            <circle cx="50" cy="62" r="6" class="lm st fm"/>
+            <circle cx="30" cy="86" r="6" class="lp st"/>
+            <circle cx="70" cy="110" r="6" class="lv st"/>
+            <circle cx="50" cy="134" r="6" class="lm st"/>
+            <rect x="56" y="174" width="28" height="22" rx="11" class="lt st"/>
+            <circle cx="70" cy="252" r="8" class="lt st"/>
+            <circle cx="70" cy="300" r="6" class="lt st"/>
+            <circle cx="70" cy="340" r="6" class="lt st"/>
+            <circle cx="70" cy="392" r="9" class="lt st" stroke-width="4"/>
+          </g>
+          <g font-size="13.5">
+            <text x="98" y="44" class="done">Birth certificates ordered</text>
+            <text x="98" y="66" class="done">Saving R9,400 a month</text>
+            <text x="98" y="90" font-weight="700">Gran's GRO certificate</text><text x="330" text-anchor="end" y="90" class="now">Now</text>
+            <text x="98" y="114">Book TB test</text><text x="330" text-anchor="end" y="114">Nov 2028</text>
+            <text x="98" y="138">Proof of funds</text><text x="330" text-anchor="end" y="138">Dec 2028</text>
+            <text x="98" y="190" font-weight="800" font-size="15">Visa decision</text><text x="330" text-anchor="end" y="190">Jan 2029</text>
+            <text x="98" y="256" font-weight="800" font-size="15">Land in Manchester</text><text x="330" text-anchor="end" y="256">1 Mar 2029</text>
+            <text x="98" y="304">NI number, bank, GP</text><text x="330" text-anchor="end" y="304">Mar 2029</text>
+            <text x="98" y="344">First payday</text><text x="330" text-anchor="end" y="344">Jul 2029</text>
+            <text x="98" y="396" font-weight="800" font-size="15">Settle</text><text x="330" text-anchor="end" y="396">Mar 2034</text>
+          </g>
+        </svg>
+      </div>
+      <nav class="nav" aria-label="Main"><span>Home</span><b>Map</b><span>Money</span><span>Compare</span></nav>
+    </div></div>
+  </section>
+
+  <!-- Compare -->
+  <section aria-labelledby="s3">
+    <h2 class="cap" id="s3">Compare</h2>
+    <p>The split screen comes back for scenarios: the same move, side by side, with the difference said in plain words.</p>
+    <div class="phone"><div class="screen">
+      <div class="cmp-top">
+        <div class="row"><span class="brand">northbound</span><span style="font-size:13px;color:var(--muted)">Solo, house share</span></div>
+        <h3>Manchester or London?</h3>
+      </div>
+      <div class="halves">
+        <div class="half man">
+          <div class="city">Manchester</div>
+          <dl>
+            <dt>Save before you go</dt><dd>R312,000</dd>
+            <dt>Rent, room in a share</dt><dd>£850</dd>
+            <dt>Typical IT support pay</dt><dd>£28,000</dd>
+            <dt>Left each month</dt><dd>£410</dd>
+          </dl>
+        </div>
+        <div class="half lon">
+          <div class="city">London</div>
+          <dl>
+            <dt>Save before you go</dt><dd>R428,000</dd>
+            <dt>Rent, room in a share</dt><dd>£1,150</dd>
+            <dt>Typical IT support pay</dt><dd>£33,000</dd>
+            <dt>Left each month</dt><dd>£290</dd>
+          </dl>
+        </div>
+      </div>
+      <p class="verdict">London needs <b>R116,000 more</b> up front and leaves you <b>£120 less</b> each month, even with the higher pay.</p>
+      <div class="runways">
+        <h4>Runway before money runs out</h4>
+        <div class="rw"><span>Manchester</span><div class="meter reveal-x" style="--d:200ms"><i></i><i></i><i></i><i></i><i class="off"></i><i class="off"></i></div><span>4 months</span></div>
+        <div class="rw"><span>London</span><div class="meter lon reveal-x" style="--d:320ms"><i></i><i></i><i></i><i class="off"></i><i class="off"></i><i class="off"></i></div><span>3 months</span></div>
+      </div>
+      <nav class="nav" aria-label="Main"><span>Home</span><span>Map</span><span>Money</span><b>Compare</b></nav>
+    </div></div>
+  </section>
+
+</main>
+
+<section class="tokens" aria-label="Design tokens">
+  <div>
+    <h2>Palette</h2>
+    <h3>Day</h3>
+    <div class="sw">
+      <div style="--c:#f4b63f">Cape sun</div><div style="--c:#0f5277">Atlantic</div><div style="--c:#a2432f">Mill brick</div><div style="--c:#8e9ba6">Drizzle</div><div style="--c:#f4f6f7">Chalk</div><div style="--c:#16202b">Ink</div>
+    </div>
+    <h3>Night</h3>
+    <div class="sw">
+      <div style="--c:#2a1f0e">Cape dusk</div><div style="--c:#0b2b40">Deep Atlantic</div><div style="--c:#e07a5f">Lit brick</div><div style="--c:#4fa3d1">Harbour light</div><div style="--c:#0e1822">Night</div><div style="--c:#e6ecf0">Moon</div>
+    </div>
+    <p style="margin-top:10px">The meanings never change between modes: yellow is Cape Town and money, blue is the UK and the move, brick is paperwork and anything due now. At night the colours are lifted so they stay readable on dark backgrounds.</p>
+  </div>
+  <div>
+    <h2>Type</h2>
+    <div class="specimen"><span class="wide" style="font-size:32px;font-weight:900;letter-spacing:-0.02em">R312,000</span><span class="narrow" style="font-size:28px;font-weight:800">Manchester</span></div>
+    <p>Archivo only, using its width axis. Wide and heavy for money, narrow for places and headings, regular width for reading.</p>
+  </div>
+  <div>
+    <h2>Rules</h2>
+    <ul>
+      <li>One big number per screen.</li>
+      <li>One opening animation per screen, nothing else moves on its own.</li>
+      <li>Next stop is always one tap from home.</li>
+      <li>Dark mode follows your device unless you pick one.</li>
+    </ul>
+  </div>
+</section>
+
+<script>
+  const root = document.documentElement;
+  const buttons = document.querySelectorAll('.switch button');
+  function show() {
+    const t = root.dataset.theme || 'auto';
+    buttons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.set === t)));
+  }
+  buttons.forEach(b => b.addEventListener('click', () => {
+    const t = b.dataset.set;
+    if (t === 'auto') delete root.dataset.theme; else root.dataset.theme = t;
+    try { t === 'auto' ? localStorage.removeItem('hemi-theme') : localStorage.setItem('hemi-theme', t); } catch (e) {}
+    show();
+  }));
+  show();
+  requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('pre')));
+</script>
+</body>
+</html>

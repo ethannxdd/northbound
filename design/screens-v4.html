@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northbound screens</title>
+<script>
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('pre');
+  try { const t = localStorage.getItem('hemi-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --page: #e3e7ea; --frame: #20262c;
+    --bg: #f4f6f7; --surface: #ffffff; --text: #16202b; --muted: #5b6976; --hair: #dde3e7; --track: #e3e8ec;
+    --cape-bg: #f4b63f; --cape-text: #16202b; --cape-city: #16202b;
+    --uk-bg: #0f5277; --uk-text: #e9f1f5; --uk-muted: #b9d3e0;
+    --bar: #8fc3dc; --bar-low: #f4b63f; --bar-pay: #e9f1f5;
+    --seam-bg: #f4f6f7; --seam-sub: #3c4a57; --seam-shadow: 0 10px 24px -12px rgba(15,82,119,.45);
+    --sign-bg: #16202b; --sign-text: #ffffff; --sign-muted: #aab6c2;
+    --head-bg: #16202b; --head-text: #ffffff; --head-muted: #aab6c2;
+    --now: #a2432f; --accent: #0f5277; --on-accent: #ffffff;
+    --l-paper: #a2432f; --l-money: #f4b63f; --l-move: #0f5277; --l-trunk: #16202b; --station: #ffffff;
+    --scrim: rgba(22,32,43,.45);
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #070c11; --frame: #2a323a;
+    --bg: #0e1822; --surface: #16222e; --text: #e6ecf0; --muted: #93a3b0; --hair: #223140; --track: #22313f;
+    --cape-bg: #2a1f0e; --cape-text: #e9dcc0; --cape-city: #f4b63f;
+    --uk-bg: #0b2b40; --uk-text: #e6ecf0; --uk-muted: #8fb3c7;
+    --bar: #3f86ad; --bar-low: #f4b63f; --bar-pay: #e6ecf0;
+    --seam-bg: #16222e; --seam-sub: #b4c1cb; --seam-shadow: 0 0 0 1px #24384a, 0 12px 28px -10px rgba(0,0,0,.7);
+    --sign-bg: #e6ecf0; --sign-text: #16202b; --sign-muted: #4a5866;
+    --head-bg: #0a121a; --head-text: #e6ecf0; --head-muted: #8a9aa7;
+    --now: #e88a70; --accent: #6cb8de; --on-accent: #0b1a26;
+    --l-paper: #e07a5f; --l-money: #f4b63f; --l-move: #4fa3d1; --l-trunk: #e6ecf0; --station: #0e1822;
+    --scrim: rgba(0,0,0,.6);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #070c11; --frame: #2a323a;
+      --bg: #0e1822; --surface: #16222e; --text: #e6ecf0; --muted: #93a3b0; --hair: #223140; --track: #22313f;
+      --cape-bg: #2a1f0e; --cape-text: #e9dcc0; --cape-city: #f4b63f;
+      --uk-bg: #0b2b40; --uk-text: #e6ecf0; --uk-muted: #8fb3c7;
+      --bar: #3f86ad; --bar-low: #f4b63f; --bar-pay: #e6ecf0;
+      --seam-bg: #16222e; --seam-sub: #b4c1cb; --seam-shadow: 0 0 0 1px #24384a, 0 12px 28px -10px rgba(0,0,0,.7);
+      --sign-bg: #e6ecf0; --sign-text: #16202b; --sign-muted: #4a5866;
+      --head-bg: #0a121a; --head-text: #e6ecf0; --head-muted: #8a9aa7;
+      --now: #e88a70; --accent: #6cb8de; --on-accent: #0b1a26;
+      --l-paper: #e07a5f; --l-money: #f4b63f; --l-move: #4fa3d1; --l-trunk: #e6ecf0; --station: #0e1822;
+      --scrim: rgba(0,0,0,.6);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text); font: 16px/1.5 Archivo, system-ui, sans-serif; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .intro, .band { max-width: 1200px; margin: 0 auto; padding: 40px 16px 8px; }
+  .intro h1, .band > h2 { font-size: 30px; font-weight: 800; font-variation-settings: "wdth" 70; margin: 0 0 8px; line-height: 1.1; }
+  .band > h2 { font-size: 24px; }
+  .intro p, .band > p { margin: 0 0 10px; max-width: 66ch; color: var(--muted); }
+  .switch { display: inline-flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--hair); margin-top: 8px; }
+  .switch button { font: inherit; font-size: 14px; border: 0; background: transparent; color: var(--muted); padding: 7px 12px; border-radius: 9px; cursor: pointer; transition: background-color 150ms ease, color 150ms ease; }
+  .switch button[aria-pressed="true"] { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 0 0 1px var(--hair); }
+  .grid { max-width: 1200px; margin: 0 auto; padding: 20px 16px 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 40px 28px; align-items: start; }
+  .cap { font-size: 18px; font-weight: 800; font-variation-settings: "wdth" 70; margin: 0; }
+  .cap + p { margin: 2px 0 16px; color: var(--muted); max-width: 44ch; min-height: 48px; font-size: 15px; }
+  .phone { max-width: 360px; margin: 0 auto; padding: 9px; border-radius: 40px; background: var(--frame); }
+  .screen { border-radius: 31px; overflow: hidden; height: 720px; display: flex; flex-direction: column; background: var(--bg); color: var(--text); position: relative; }
+  .screen.tall { height: auto; min-height: 720px; }
+
+  .reveal-x { clip-path: inset(0); transition: clip-path 1100ms var(--ease-out); transition-delay: var(--d, 0ms); }
+  .pre .reveal-x { clip-path: inset(0 100% 0 0); }
+  .draw { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 1300ms var(--ease-out); transition-delay: var(--d, 0ms); }
+  .pre .draw { stroke-dashoffset: 1; }
+  @media (prefers-reduced-motion: reduce) { .reveal-x, .draw, .switch button, .seg button, .chip { transition: none; } }
+
+  .brand { font-weight: 800; font-size: 15px; font-variation-settings: "wdth" 125; letter-spacing: 0.02em; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .h3 { font-size: 26px; font-weight: 800; font-variation-settings: "wdth" 70; margin: 12px 0 0; line-height: 1.05; }
+  .city { font-size: 30px; font-weight: 800; font-variation-settings: "wdth" 70; line-height: 1; margin: 16px 0 6px; }
+  .num { font-weight: 900; font-variation-settings: "wdth" 125; line-height: .95; letter-spacing: -0.02em; font-size: clamp(34px, 11.5vw, 44px); }
+  .muted { color: var(--muted); }
+  .nav { margin-top: auto; display: flex; justify-content: space-around; padding: 12px 8px 20px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--hair); background: var(--bg); }
+  .nav b { color: var(--accent); }
+  .top { padding: 22px 22px 6px; }
+  .sec { padding: 14px 22px 4px; }
+  .sec h4 { font-size: 15px; margin: 0 0 8px; font-weight: 700; }
+  .btn { font: inherit; font-weight: 700; font-size: 15px; border: 0; border-radius: 14px; padding: 13px 16px; cursor: pointer; transition: transform 140ms var(--ease-out), background-color 150ms ease; }
+  .btn:active { transform: scale(0.97); }
+  .btn.primary { background: var(--accent); color: var(--on-accent); }
+  .btn.quiet { background: transparent; color: var(--text); box-shadow: inset 0 0 0 1px var(--hair); }
+  .seg { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--track); }
+  .seg button { flex: 1; font: inherit; font-size: 14px; border: 0; background: transparent; color: var(--muted); padding: 8px 6px; border-radius: 9px; cursor: pointer; transition: background-color 150ms ease, color 150ms ease; }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+
+  /* money */
+  .stack { display: flex; height: 14px; border-radius: 7px; overflow: hidden; gap: 2px; margin: 12px 0 4px; }
+  .stack i { display: block; }
+  .group { margin-top: 14px; }
+  .group-h { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14.5px; }
+  .group-h::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--k); }
+  .group-h span:last-child { margin-left: auto; }
+  .line-item { display: flex; justify-content: space-between; font-size: 14px; padding: 5px 0 5px 18px; color: var(--muted); border-bottom: 1px solid var(--hair); }
+  .line-item:last-child { border-bottom: 0; }
+  .line-item b { color: var(--text); font-weight: 500; }
+  .pay-lede { font-size: 14.5px; margin: 0 0 10px; color: var(--muted); }
+  .pay-lede b { color: var(--text); }
+  .spend { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; font-size: 14px; margin-bottom: 7px; }
+  .spend .bar { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+  .spend .bar i { display: block; height: 100%; background: var(--l-move); border-radius: 3px; }
+  .spend.left { font-weight: 800; font-size: 16px; }
+  .spend.left .bar i { background: var(--l-money); }
+
+  /* life */
+  .chart text { font-family: Archivo, sans-serif; font-size: 11px; fill: var(--muted); }
+  .chart .lab { font-size: 12px; font-weight: 700; }
+  .chart .grid-l { stroke: var(--hair); }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 6px 14px 14px; }
+  .tile { background: var(--surface); border-radius: 16px; padding: 12px 13px; box-shadow: inset 0 0 0 1px var(--hair); }
+  .tile small { display: block; font-size: 12px; color: var(--muted); }
+  .tile b { display: block; font-size: 19px; font-weight: 800; font-variation-settings: "wdth" 110; margin: 2px 0 2px; line-height: 1.15; }
+  .tile p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+
+  /* editor */
+  .field { padding: 10px 22px 6px; }
+  .field label, .field .lbl { display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 700; margin-bottom: 6px; }
+  .field label output { font-weight: 800; color: var(--accent); }
+  .datechip { display: flex; justify-content: space-between; align-items: center; background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); border-radius: 12px; padding: 10px 12px; font-size: 15px; font-weight: 600; }
+  input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height: 28px; }
+  .result { margin: auto 12px 12px; background: var(--sign-bg); color: var(--sign-text); border-radius: 18px; padding: 14px 14px 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .result small { display: block; font-size: 12px; color: var(--sign-muted); }
+  .result .num { font-size: 30px; }
+  .result .btn { padding: 11px 14px; font-size: 14px; }
+  .note { font-size: 12px; color: var(--muted); padding: 2px 22px 0; }
+
+  /* sheet */
+  .behind { position: absolute; inset: 0; background: var(--bg); }
+  .behind .fake-head { background: var(--head-bg); height: 128px; }
+  .behind svg { display: block; width: 100%; }
+  .scrim { position: absolute; inset: 0; background: var(--scrim); }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg); border-radius: 24px 24px 0 0; padding: 10px 22px 22px; }
+  .handle { width: 40px; height: 5px; border-radius: 3px; background: var(--hair); margin: 0 auto 12px; }
+  .linechip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--l-paper); }
+  .linechip::before { content: ""; width: 16px; height: 4px; border-radius: 2px; background: var(--l-paper); }
+  .sheet h3 { font-size: 26px; font-weight: 800; font-variation-settings: "wdth" 70; margin: 6px 0 2px; line-height: 1.05; }
+  .facts3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+  .facts3 div { background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); border-radius: 12px; padding: 9px 10px; }
+  .facts3 small { display: block; font-size: 11.5px; color: var(--muted); }
+  .facts3 b { font-size: 15px; font-weight: 800; }
+  .steps { margin: 0 0 16px; padding: 0; list-style: none; counter-reset: s; }
+  .steps li { counter-increment: s; position: relative; padding: 0 0 10px 34px; font-size: 14.5px; line-height: 1.4; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: -1px; width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--l-paper); color: var(--l-paper); font-size: 12px; font-weight: 800; display: grid; place-items: center; }
+  .sheet .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* first run */
+  .fr-cape { background: var(--cape-bg); color: var(--cape-text); padding: 22px 22px 34px; flex: 0 0 auto; }
+  .fr-cape .h3 { color: var(--cape-city); font-size: 34px; margin-top: 70px; }
+  .fr-cape p { margin: 8px 0 0; font-size: 15px; max-width: 30ch; }
+  .fr-uk { background: var(--uk-bg); color: var(--uk-text); padding: 22px; flex: 1; display: flex; flex-direction: column; }
+  .fr-uk .q { font-size: 21px; font-weight: 800; font-variation-settings: "wdth" 85; line-height: 1.2; margin: 6px 0 14px; }
+  .progress { display: flex; gap: 4px; }
+  .progress i { flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,.22); }
+  .progress i.on { background: var(--l-money); }
+  .chip { display: block; width: 100%; text-align: left; font: inherit; font-size: 15px; color: var(--uk-text); background: rgba(255,255,255,.08); border: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); border-radius: 14px; padding: 13px 14px; margin-bottom: 8px; cursor: pointer; transition: background-color 150ms ease; }
+  .chip[aria-pressed="true"] { background: var(--uk-text); color: var(--uk-bg); font-weight: 700; box-shadow: none; }
+  .chip small { display: block; font-size: 12.5px; opacity: .8; font-weight: 400; }
+  .fr-uk .btn { margin-top: auto; background: var(--l-money); color: #16202b; }
+  .fr-cape .h3 { margin-top: 40px; }
+
+  /* progress */
+  .pg-top { background: var(--head-bg); color: var(--head-text); padding: 22px 20px 14px; }
+  .pg-top .h3 { margin-top: 12px; }
+  .pg-top p { margin: 2px 0 0; font-size: 13px; color: var(--head-muted); }
+  .pg-route { padding: 6px 12px 0; }
+  .pg-route svg { display: block; width: 100%; height: 300px; }
+  .pg-route .track { stroke: var(--track); }
+  .pg-route .gone { stroke: var(--l-money); }
+  .pg-route .you { fill: var(--l-money); stroke: var(--text); }
+  .pg-route .stn { fill: var(--bg); stroke: var(--track); }
+  .pg-route .end { fill: var(--bg); stroke: var(--l-move); }
+  .pg-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 0 14px; }
+  .pg-stats div { background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); border-radius: 12px; padding: 9px 10px; }
+  .pg-stats small { display: block; font-size: 11.5px; color: var(--muted); }
+  .pg-stats b { font-size: 15px; white-space: nowrap; font-weight: 800; font-variation-settings: "wdth" 110; }
+  .pg-warn { margin: 10px 14px 0; padding: 11px 13px; border-radius: 14px; background: var(--sign-bg); color: var(--sign-text); font-size: 13.5px; line-height: 1.4; display: flex; gap: 10px; }
+  .pg-warn .stop { width: 14px; height: 14px; flex: none; border-radius: 50%; border: 4px solid var(--now); margin-top: 2px; }
+  .pg-warn small { display: block; color: var(--sign-muted); font-size: 12px; }
+  .synced { display: flex; align-items: center; gap: 8px; padding: 8px 20px 0; white-space: nowrap; font-size: 12.5px; color: var(--muted); }
+  .synced::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #3fae6d; box-shadow: 0 0 0 3px rgba(63,174,109,.2); }
+
+  /* link loot */
+  .lk { padding: 6px 22px 0; }
+  .lk p { margin: 6px 0 14px; color: var(--muted); font-size: 14.5px; }
+  .lk-step { font-size: 13px; font-weight: 700; color: var(--muted); margin: 14px 0 8px; }
+  .lk-done { display: flex; align-items: center; gap: 10px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); border-radius: 14px; padding: 11px 13px; font-size: 14.5px; }
+  .lk-done .tick { width: 22px; height: 22px; border-radius: 50%; background: #3fae6d; color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 800; flex: none; }
+  .goal { display: grid; grid-template-columns: 22px 1fr; gap: 4px 10px; align-items: center; width: 100%; text-align: left; font: inherit; color: var(--text); background: var(--surface); border: 0; box-shadow: inset 0 0 0 1px var(--hair); border-radius: 14px; padding: 9px 13px; margin-bottom: 7px; cursor: pointer; }
+  .goal[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
+  .goal .radio { width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--hair); }
+  .goal[aria-pressed="true"] .radio { box-shadow: inset 0 0 0 5px var(--accent); }
+  .goal b { font-size: 15px; }
+  .goal small { grid-column: 2; font-size: 12.5px; color: var(--muted); }
+  .goal .gbar { grid-column: 2; height: 5px; border-radius: 3px; background: var(--track); overflow: hidden; }
+  .goal .gbar i { display: block; height: 100%; background: var(--l-money); }
+  .toggle-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; margin-top: 6px; }
+  .toggle { width: 46px; height: 28px; border-radius: 14px; background: var(--accent); position: relative; flex: none; border: 0; cursor: pointer; }
+  .toggle::after { content: ""; position: absolute; top: 3px; left: 21px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform 200ms var(--ease-out); }
+  .toggle[aria-pressed="false"] { background: var(--track); }
+  .toggle[aria-pressed="false"]::after { transform: translateX(-18px); }
+
+  /* desktop */
+  .desk-wrap { max-width: 1200px; margin: 0 auto; padding: 16px 16px 24px; }
+  .desk-scroll { overflow-x: auto; border-radius: 18px; }
+  .desk { min-width: 1060px; height: 700px; display: grid; grid-template-columns: 220px 1fr 340px; background: var(--bg); border-radius: 18px; overflow: hidden; box-shadow: 0 0 0 9px var(--frame); margin: 9px; }
+  .side { border-right: 1px solid var(--hair); padding: 22px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .side .brand { margin: 0 8px 18px; }
+  .side a { display: block; padding: 8px 10px; border-radius: 10px; text-decoration: none; font-size: 14.5px; color: var(--muted); }
+  .side a.on { background: var(--surface); color: var(--text); font-weight: 700; box-shadow: inset 0 0 0 1px var(--hair); }
+  .side .sh { font-size: 12.5px; color: var(--muted); margin: 18px 10px 6px; font-weight: 600; }
+  .side .sc { display: flex; justify-content: space-between; font-size: 13.5px; padding: 7px 10px; border-radius: 10px; }
+  .side .sc.on { box-shadow: inset 0 0 0 1px var(--hair); background: var(--surface); }
+  .side .sc span:last-child { color: var(--muted); }
+  .side .add { margin-top: auto; }
+  .dmain { display: grid; grid-template-rows: 1fr 1fr; position: relative; }
+  .dcape { background: var(--cape-bg); color: var(--cape-text); padding: 24px 36px; }
+  .dcape .city, .duk .city { font-size: 44px; margin: 4px 0 10px; }
+  .dcape .city { color: var(--cape-city); }
+  .dfacts { display: flex; gap: 32px; font-size: 14.5px; }
+  .dfacts b { display: block; font-size: 20px; font-weight: 800; font-variation-settings: "wdth" 110; }
+  .duk { background: var(--uk-bg); color: var(--uk-text); padding: 64px 36px 22px; display: flex; flex-direction: column; justify-content: flex-end; gap: 14px; }
+  .dseam { position: absolute; left: 36px; right: 36px; top: calc(50% - 62px); background: var(--seam-bg); border-radius: 20px; padding: 16px 22px; box-shadow: var(--seam-shadow); }
+  .dseam .num { font-size: 56px; }
+  .dseam p { margin: 6px 0 0; color: var(--seam-sub); font-size: 15px; }
+  .duk .bars { display: flex; align-items: flex-end; gap: 6px; height: 64px; }
+  .duk .bars i { flex: 1; border-radius: 3px 3px 0 0; background: var(--bar); }
+  .duk .bars i.low { background: var(--bar-low); } .duk .bars i.pay { background: var(--bar-pay); }
+  .dmap { border-left: 1px solid var(--hair); display: flex; flex-direction: column; }
+  .dmap .mh { background: var(--head-bg); color: var(--head-text); padding: 22px 20px 16px; }
+  .dmap .mh small { color: var(--head-muted); font-size: 13px; }
+  .dmap .mh b { display: block; font-size: 22px; font-weight: 800; font-variation-settings: "wdth" 70; }
+
+  /* shared map svg styling */
+  .mapsvg text { font-family: Archivo, sans-serif; fill: var(--text); }
+  .mapsvg text.done { fill: var(--muted); }
+  .mapsvg text.now { fill: var(--now); font-weight: 700; }
+  .lp { stroke: var(--l-paper); } .lm { stroke: var(--l-money); } .lv { stroke: var(--l-move); } .lt { stroke: var(--l-trunk); }
+  .st { fill: var(--station); } .st.fp { fill: var(--l-paper); } .st.fm { fill: var(--l-money); }
+
+  /* icon and names */
+  .icons { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end; }
+  .icons figure { margin: 0; text-align: center; font-size: 12.5px; color: var(--muted); }
+  .icons figcaption { margin-top: 6px; }
+  .homescreen { display: inline-flex; gap: 18px; padding: 18px 22px; border-radius: 22px; background: #31495c; }
+  .homescreen figure { color: #e9f1f5; }
+  .names { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin-top: 8px; }
+  .name { background: var(--surface); border-radius: 18px; padding: 18px; box-shadow: inset 0 0 0 1px var(--hair); }
+  .name .wm { font-size: 28px; font-weight: 900; font-variation-settings: "wdth" 125; letter-spacing: -0.01em; }
+  .name p { margin: 6px 0 0; font-size: 14.5px; color: var(--muted); }
+  .name.pick { box-shadow: inset 0 0 0 2px var(--accent); }
+  .name .tag { display: inline-block; font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+  footer { max-width: 1200px; margin: 0 auto; padding: 24px 16px 64px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<header class="intro">
+  <h1>Every remaining screen</h1>
+  <p>Money, Life, the scenario editor, a stop's detail sheet, the first-run screen, the desktop layout, the app icon and name options. Home, Map and Compare are in directions-v3.html. All numbers are placeholders but add up to each other: R312,000 is £13,500 at R23.10.</p>
+  <div class="switch" role="group" aria-label="Colour mode">
+    <button type="button" data-set="auto">Match my device</button>
+    <button type="button" data-set="light">Light</button>
+    <button type="button" data-set="dark">Dark</button>
+  </div>
+</header>
+
+<main class="grid">
+
+  <!-- Money -->
+  <section aria-labelledby="money">
+    <h2 class="cap" id="money">Money</h2>
+    <p>Where the R312,000 goes, coloured by the same three lines as the map. Switch it between rand and pounds. Below that, a normal month once you're paid, always in pounds.</p>
+    <div class="phone"><div class="screen tall">
+      <div class="top">
+        <div class="row"><span class="brand">northbound</span><span class="muted" style="font-size:13px">Manchester, solo</span></div>
+        <div class="row" style="align-items:center;margin-top:12px">
+          <h3 class="h3" style="margin:0">Money</h3>
+          <div class="seg" style="width:116px" role="group" aria-label="Currency"><button type="button" data-cur="ZAR" aria-pressed="true">R</button><button type="button" data-cur="GBP" aria-pressed="false">£</button></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="muted" style="font-size:13.5px">Save before you go</div>
+        <div class="num amt" data-gbp="13501" data-round="1000">R312,000</div>
+        <div class="stack reveal-x" style="--d:200ms" aria-hidden="true"><i style="flex:6051;background:var(--l-paper)"></i><i style="flex:3100;background:var(--l-move)"></i><i style="flex:4350;background:var(--l-money)"></i></div>
+
+        <div class="group">
+          <div class="group-h" style="--k:var(--l-paper)"><span>Paperwork and visa</span><span class="amt" data-gbp="6051">R139,780</span></div>
+          <div class="line-item"><span>Visa fee</span><b class="amt" data-gbp="726"></b></div>
+          <div class="line-item"><span>Health surcharge, 5 years</span><b class="amt" data-gbp="5175"></b></div>
+          <div class="line-item"><span>TB test and certificates</span><b class="amt" data-gbp="150"></b></div>
+        </div>
+        <div class="group">
+          <div class="group-h" style="--k:var(--l-move)"><span>Getting there</span><span class="amt" data-gbp="3100"></span></div>
+          <div class="line-item"><span>Flight</span><b class="amt" data-gbp="520"></b></div>
+          <div class="line-item"><span>First 10 nights</span><b class="amt" data-gbp="450"></b></div>
+          <div class="line-item"><span>Deposit and first month's rent</span><b class="amt" data-gbp="1830"></b></div>
+          <div class="line-item"><span>Bedding, SIM, basics</span><b class="amt" data-gbp="300"></b></div>
+        </div>
+        <div class="group">
+          <div class="group-h" style="--k:var(--l-money)"><span>Runway, 4 months</span><span class="amt" data-gbp="4350"></span></div>
+          <div class="line-item"><span>Month 1, rent already paid</span><b class="amt" data-gbp="600"></b></div>
+          <div class="line-item"><span>Months 2 to 4</span><b class="amt" data-gbp="3750"></b></div>
+        </div>
+      </div>
+      <div class="sec" style="border-top:8px solid var(--track);margin-top:12px;padding-top:16px">
+        <h4>Once you're paid</h4>
+        <p class="pay-lede">£28,000 a year becomes <b class="gbp">£1,973</b> a month after tax and National Insurance.</p>
+        <div class="spend"><span>Rent, room in a share</span><span class="gbp">£850</span><div class="bar"><i style="width:43%"></i></div></div>
+        <div class="spend"><span>Food</span><span class="gbp">£250</span><div class="bar"><i style="width:12.7%"></i></div></div>
+        <div class="spend"><span>Bills and council tax share</span><span class="gbp">£120</span><div class="bar"><i style="width:6.1%"></i></div></div>
+        <div class="spend"><span>Bus and tram</span><span class="gbp">£80</span><div class="bar"><i style="width:4.1%"></i></div></div>
+        <div class="spend"><span>Phone</span><span class="gbp">£15</span><div class="bar"><i style="width:0.8%"></i></div></div>
+        <div class="spend"><span>Everything else</span><span class="gbp">£248</span><div class="bar"><i style="width:12.6%"></i></div></div>
+        <div class="spend left"><span>Left each month</span><span class="gbp">£410</span><div class="bar"><i style="width:20.8%"></i></div></div>
+      </div>
+      <nav class="nav" aria-label="Main"><span>Home</span><span>Map</span><b>Money</b><span>Life</span><span>Compare</span></nav>
+    </div></div>
+  </section>
+
+  <!-- Life -->
+  <section aria-labelledby="life">
+    <h2 class="cap" id="life">Life</h2>
+    <p>What a normal month will feel like. The chart is the hemisphere idea in data: your daylight flips when you move.</p>
+    <div class="phone"><div class="screen">
+      <div class="top">
+        <div class="row"><span class="brand">northbound</span><span class="muted" style="font-size:13px">Manchester, solo</span></div>
+        <h3 class="h3">Life in Manchester</h3>
+      </div>
+      <div class="sec" style="padding-top:6px">
+        <h4>Hours of daylight</h4>
+        <svg class="chart" viewBox="0 0 316 150" width="100%" role="img" aria-label="Daylight hours by month. Cape Town peaks at about 14 hours in December, Manchester at about 17 in June. They are almost equal in March when you land.">
+          <line class="grid-l" x1="10" x2="306" y1="20" y2="20"/><line class="grid-l" x1="10" x2="306" y1="65" y2="65"/><line class="grid-l" x1="10" x2="306" y1="110" y2="110"/>
+          <text x="306" y="16" text-anchor="end">17h</text><text x="306" y="61" text-anchor="end">12h</text><text x="306" y="106" text-anchor="end">7h</text>
+          <line x1="64" x2="64" y1="4" y2="114" stroke="var(--text)" stroke-dasharray="3 3"/>
+          <text x="68" y="14" class="lab" style="fill:var(--text)">You land</text>
+          <path id="ctLine" fill="none" stroke="var(--l-money)" stroke-width="3.5" stroke-linecap="round" pathLength="1" class="draw" style="--d:150ms"/>
+          <path id="manLine" fill="none" stroke="var(--l-move)" stroke-width="3.5" stroke-linecap="round" pathLength="1" class="draw" style="--d:350ms"/>
+          <text id="mLabels"></text>
+        </svg>
+        <div class="row" style="font-size:12.5px;justify-content:flex-start;gap:16px;margin-top:2px">
+          <span><span style="display:inline-block;width:14px;height:4px;border-radius:2px;background:var(--l-money);vertical-align:middle;margin-right:6px"></span>Cape Town</span>
+          <span><span style="display:inline-block;width:14px;height:4px;border-radius:2px;background:var(--l-move);vertical-align:middle;margin-right:6px"></span>Manchester</span>
+        </div>
+        <p style="font-size:14px;margin:10px 0 0" class="muted">You land in March, when both get about 12 hours. By December Manchester has under 8.</p>
+      </div>
+      <div class="tiles">
+        <div class="tile"><small>Calling home</small><b>2 hours behind</b><p>1 hour in the UK summer</p></div>
+        <div class="tile"><small>A flat white</small><b>£3.40</b><p>R79, about double home</p></div>
+        <div class="tile"><small>Getting around</small><b>£2 bus cap</b><p>About £80 a month</p></div>
+        <div class="tile"><small>Wet days</small><b>About 150</b><p>A year, mostly light rain</p></div>
+      </div>
+      <nav class="nav" aria-label="Main"><span>Home</span><span>Map</span><span>Money</span><b>Life</b><span>Compare</span></nav>
+    </div></div>
+  </section>
+
+  <!-- Editor -->
+  <section aria-labelledby="edit">
+    <h2 class="cap" id="edit">Scenario editor</h2>
+    <p>Change one thing and the number updates live. Try the two sliders: in this mockup they're the ones wired up.</p>
+    <div class="phone"><div class="screen">
+      <div class="top">
+        <div class="row"><span class="muted" style="font-size:14px">Cancel</span><span class="brand">Edit scenario</span><span style="font-size:14px;font-weight:700;color:var(--accent)">Done</span></div>
+      </div>
+      <div class="field"><span class="lbl">Land</span><div class="seg" role="group" aria-label="When to land" style="margin-bottom:6px"><button type="button" aria-pressed="false">On a set date</button><button type="button" aria-pressed="true">When I've saved enough</button></div><div class="datechip"><span>Around May 2029</span><span class="muted" style="font-size:13px">at R9,400 a month</span></div></div>
+      <div class="field"><span class="lbl">City</span><div class="seg" role="group" aria-label="City"><button type="button" aria-pressed="true">Manchester</button><button type="button" aria-pressed="false">London</button></div></div>
+      <div class="field"><span class="lbl">Who's coming</span><div class="seg" role="group" aria-label="Household"><button type="button" aria-pressed="true">Just me</button><button type="button" aria-pressed="false">With a partner</button></div></div>
+      <div class="field"><span class="lbl">Home</span><div class="seg" role="group" aria-label="Housing"><button type="button" aria-pressed="true">Room</button><button type="button" aria-pressed="false">Studio</button><button type="button" aria-pressed="false">1-bed</button></div></div>
+      <div class="field"><label for="months">Time to find work <output id="monthsOut">4 months</output></label><input id="months" type="range" min="0" max="9" step="1" value="4"></div>
+      <div class="field"><label for="rate">Rand to the pound <output id="rateOut">R23.10</output></label><input id="rate" type="range" min="18" max="30" step="0.1" value="23.1"></div>
+      <div class="result" aria-live="polite">
+        <div><small>You'd need</small><div class="num" id="edNum">R312,000</div><small id="edGbp">£13,500</small></div>
+        <button class="btn primary" type="button">Save</button>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- Stop sheet -->
+  <section aria-labelledby="stop">
+    <h2 class="cap" id="stop">A stop on the map</h2>
+    <p>Tap any stop and this sheet slides up: what it is, what it costs, how long it takes, and the steps in order.</p>
+    <div class="phone"><div class="screen">
+      <div class="behind" aria-hidden="true">
+        <div class="fake-head"></div>
+        <svg class="mapsvg" viewBox="0 0 340 300">
+          <g fill="none" stroke-width="6" stroke-linecap="round"><path d="M30 14 V200" class="lp"/><path d="M50 14 V200" class="lm"/><path d="M70 14 V200" class="lv"/></g>
+          <g stroke-width="3"><circle cx="30" cy="40" r="6" class="lp st fp"/><circle cx="30" cy="90" r="9" class="lp st"/><circle cx="50" cy="130" r="6" class="lm st"/></g>
+        </svg>
+      </div>
+      <div class="scrim"></div>
+      <div class="sheet" role="dialog" aria-labelledby="sheetT">
+        <div class="handle"></div>
+        <span class="linechip">Paperwork line</span>
+        <h3 id="sheetT">Gran's birth certificate</h3>
+        <div style="color:var(--now);font-weight:700;font-size:14px">Due now</div>
+        <div class="facts3">
+          <div><small>Costs</small><b>£12.50</b></div>
+          <div><small>Arrives in</small><b>4 days</b></div>
+          <div><small>From</small><b>GRO</b></div>
+        </div>
+        <ol class="steps">
+          <li>Find her index reference on FreeBMD: year, quarter, district, volume and page.</li>
+          <li>Order a birth certificate on the GRO website using that reference.</li>
+          <li>Keep the original safe for your visa application.</li>
+        </ol>
+        <div class="btns"><button class="btn quiet" type="button">Open GRO website</button><button class="btn primary" type="button">Mark as done</button></div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- First run -->
+  <section aria-labelledby="first">
+    <h2 class="cap" id="first">First run</h2>
+    <p>Four quick questions get you to your number: when, where, who's coming, and what you've saved so far.</p>
+    <div class="phone"><div class="screen">
+      <div class="fr-cape">
+        <span class="brand">northbound</span>
+        <h3 class="h3">Let's find your number.</h3>
+        <p>How much you need saved to land in the UK on your Ancestry visa, with time to find work.</p>
+      </div>
+      <div class="fr-uk">
+        <div class="progress" aria-label="Question 1 of 4"><i class="on"></i><i></i><i></i><i></i></div>
+        <p class="q">When would you like to land in the UK?</p>
+        <div id="when">
+          <button type="button" class="chip" aria-pressed="true">When I've saved enough<small>The date moves with your savings in Loot</small></button>
+          <button type="button" class="chip" aria-pressed="false">Within a year<small>Tight, but doable if your papers are ready</small></button>
+          <button type="button" class="chip" aria-pressed="false">In about 2 years<small>Time to save and sort certificates</small></button>
+          <button type="button" class="chip" aria-pressed="false">Pick a date</button>
+        </div>
+        <button class="btn" type="button">Continue</button>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- Progress -->
+  <section aria-labelledby="prog">
+    <h2 class="cap" id="prog">How far you've come</h2>
+    <p>Your savings drawn as the flight north. Every rand you add to your Loot goal moves you up the route from Cape Town towards Manchester.</p>
+    <div class="phone"><div class="screen">
+      <div class="pg-top">
+        <div class="row"><span class="brand">northbound</span><span style="font-size:13px;color:var(--head-muted)">20% of the way</span></div>
+        <h3 class="h3">You're over Namibia</h3>
+        <p>R62,000 saved. R250,000 to go.</p>
+      </div>
+      <div class="synced">Synced with your Loot goal "UK move", 2 min ago</div>
+      <div class="pg-route">
+        <svg class="mapsvg" viewBox="0 0 320 320" role="img" aria-label="Route from Cape Town to Manchester. You have saved 20 percent, which puts you over Namibia.">
+          <line x1="40" x2="40" y1="300" y2="20" class="track" stroke-width="8" stroke-linecap="round"/>
+          <path d="M40 300 V244" class="gone draw" stroke-width="8" stroke-linecap="round" fill="none" pathLength="1" style="--d:200ms"/>
+          <g stroke-width="3">
+            <circle cx="40" cy="300" r="7" class="you"/>
+            <circle cx="40" cy="199" r="5" class="stn"/><circle cx="40" cy="140" r="5" class="stn"/><circle cx="40" cy="98" r="5" class="stn"/><circle cx="40" cy="58" r="5" class="stn"/>
+            <circle cx="40" cy="20" r="9" class="end" stroke-width="4"/>
+            <circle cx="40" cy="244" r="11" class="you" stroke-width="3"/>
+          </g>
+          <g font-size="13.5">
+            <text x="66" y="24" font-weight="800" font-size="15">Manchester</text><text x="310" y="24" text-anchor="end" class="done">R312,000</text>
+            <text x="66" y="62" class="done">Over the Mediterranean</text><text x="310" y="62" text-anchor="end" class="done">85%</text>
+            <text x="66" y="102" class="done">Sahara</text><text x="310" y="102" text-anchor="end" class="done">70%</text>
+            <text x="66" y="144" class="done">Lake Chad</text><text x="310" y="144" text-anchor="end" class="done">55%</text>
+            <text x="66" y="203" class="done">Congo River</text><text x="310" y="203" text-anchor="end" class="done">35%</text>
+            <text x="66" y="242" font-weight="800">You, over Namibia</text><text x="66" y="259" class="done" font-size="12.5">+R9,400 from Loot on 1 Nov</text>
+            <text x="66" y="304" class="done">Cape Town</text>
+          </g>
+        </svg>
+      </div>
+      <div class="pg-stats">
+        <div><small>Saving a month</small><b>R9,400</b></div>
+        <div><small>Ready by</small><b>Feb 2029</b></div>
+        <div><small>Months left</small><b>27</b></div>
+      </div>
+      <div class="pg-warn"><span class="stop" aria-hidden="true"></span><span>For a March landing, the money must be in your account by December 2028. Save R10,000 a month to make it.<small>Or land in May 2029 instead</small></span></div>
+      <nav class="nav" aria-label="Main"><b>Home</b><span>Map</span><span>Money</span><span>Life</span><span>Compare</span></nav>
+    </div></div>
+  </section>
+
+  <!-- Link Loot -->
+  <section aria-labelledby="link">
+    <h2 class="cap" id="link">Link your Loot savings</h2>
+    <p>Sign in with your Loot account once, pick the goal, and Northbound follows it from then on. No copying numbers across.</p>
+    <div class="phone"><div class="screen">
+      <div class="top">
+        <div class="row"><span class="muted" style="font-size:14px">Back</span><span class="brand">northbound</span><span style="width:30px"></span></div>
+        <h3 class="h3">Link your Loot savings</h3>
+      </div>
+      <div class="lk">
+        <p>See how far you are, updated every time you add money in Loot.</p>
+        <div class="lk-step">Step 1</div>
+        <div class="lk-done"><span class="tick" aria-hidden="true">✓</span><span>Signed in to Loot</span></div>
+        <div class="lk-step">Step 2: Pick your move goal</div>
+        <div id="goals">
+          <button type="button" class="goal" aria-pressed="true"><span class="radio"></span><b>UK move</b><small>R62,000 of R312,000</small><span class="gbar"><i style="width:20%"></i></span></button>
+          <button type="button" class="goal" aria-pressed="false"><span class="radio"></span><b>Emergency fund</b><small>R40,000 of R60,000</small><span class="gbar"><i style="width:67%"></i></span></button>
+          <button type="button" class="goal" aria-pressed="false"><span class="radio"></span><b>Create a new goal in Loot</b><small>Named "UK move", target R312,000</small></button>
+        </div>
+        <div class="toggle-row"><span>Keep the goal's target in Loot the same as your number</span><button type="button" class="toggle" aria-pressed="true" aria-label="Keep the target in sync"></button></div>
+        <p style="font-size:12.5px;margin-top:10px">Northbound reads this one goal and its deposits, and can update its target. It doesn't use anything else in Loot.</p>
+      </div>
+      <div style="padding:0 14px 16px;margin-top:auto"><button class="btn primary" type="button" style="width:100%">Link goal</button></div>
+    </div></div>
+  </section>
+
+</main>
+
+<!-- Desktop -->
+<section class="band" aria-labelledby="desk">
+  <h2 id="desk">Desktop</h2>
+  <p>On a big screen, Home and the Map sit side by side so you see the gap and the route at once. The sidebar holds your saved scenarios. Below about 900px wide it switches to the phone layout.</p>
+</section>
+<div class="desk-wrap"><div class="desk-scroll"><div class="desk">
+  <aside class="side">
+    <span class="brand">northbound</span>
+    <a class="on" href="#desk">Home</a><a href="#desk">Map</a><a href="#money">Money</a><a href="#life">Life</a><a href="#desk">Compare</a>
+    <div class="sh">Your scenarios</div>
+    <div class="sc on"><span>Manchester, solo</span><span>R312k</span></div>
+    <div class="sc"><span>London, solo</span><span>R428k</span></div>
+    <div class="sc"><span>Manchester, with partner</span><span>R561k</span></div>
+    <button class="btn quiet add" type="button">New scenario</button>
+  </aside>
+  <div class="dmain">
+    <div class="dcape">
+      <div class="row"><span style="font-size:14px">Today</span><span style="font-size:14px">27°, sunny, light until 19:58</span></div>
+      <div class="city">Cape Town</div>
+      <div class="dfacts"><span>Rent<b>R9,800</b></span><span>Earning<b>R24,500</b></span><span>Saving<b>R9,400 a month</b></span></div>
+    </div>
+    <div class="dseam">
+      <div class="num">R312,000</div>
+      <p>gets you across, with four months to find work. At R23.10 to the pound that's £13,500. You're on track for February 2029.</p>
+    </div>
+    <div class="duk">
+      <div>
+        <div class="row"><span style="font-size:14px">From 1 Mar 2029</span></div>
+        <div class="city">Manchester</div>
+        <div class="dfacts"><span>Rent<b>£850</b></span><span>Earning<b>£28,000</b></span><span>Left<b>£410 a month</b></span></div>
+      </div>
+      <div>
+        <div class="bars"><i style="height:100%"></i><i style="height:84%"></i><i style="height:67%"></i><i style="height:51%"></i><i class="low" style="height:36%"></i><i class="pay" style="height:45%"></i><i class="pay" style="height:55%"></i><i class="pay" style="height:65%"></i></div>
+        <div class="row" style="font-size:12.5px;color:var(--uk-muted);margin-top:6px"><span>Land</span><span>Lowest, month 5</span><span>Payday onwards</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="dmap">
+    <div class="mh"><small>Next stop</small><b>Gran's GRO certificate</b></div>
+    <svg class="mapsvg" viewBox="0 0 340 470" role="img" aria-label="Transit map of the move">
+      <g fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M30 24 V170 Q30 196 56 196 H74" class="lp"/><path d="M50 24 V170 Q50 186 66 188 H74" class="lm"/><path d="M70 24 V188" class="lv"/><path d="M70 202 V440" class="lt"/>
+      </g>
+      <g stroke-width="3">
+        <circle cx="30" cy="50" r="6" class="lp st fp"/><circle cx="50" cy="72" r="6" class="lm st fm"/><circle cx="30" cy="96" r="6" class="lp st"/><circle cx="70" cy="120" r="6" class="lv st"/><circle cx="50" cy="144" r="6" class="lm st"/>
+        <rect x="56" y="184" width="28" height="22" rx="11" class="lt st"/><circle cx="70" cy="270" r="8" class="lt st"/><circle cx="70" cy="320" r="6" class="lt st"/><circle cx="70" cy="365" r="6" class="lt st"/><circle cx="70" cy="428" r="9" class="lt st" stroke-width="4"/>
+      </g>
+      <g font-size="13.5">
+        <text x="98" y="54" class="done">Birth certificates ordered</text><text x="98" y="76" class="done">Saving R9,400 a month</text>
+        <text x="98" y="100" font-weight="700">Gran's GRO certificate</text><text x="330" y="100" text-anchor="end" class="now">Now</text>
+        <text x="98" y="124">Book TB test</text><text x="330" y="124" text-anchor="end">Nov 2028</text>
+        <text x="98" y="148">Proof of funds</text><text x="330" y="148" text-anchor="end">Dec 2028</text>
+        <text x="98" y="200" font-weight="800" font-size="15">Visa decision</text><text x="330" y="200" text-anchor="end">Jan 2029</text>
+        <text x="98" y="274" font-weight="800" font-size="15">Land in Manchester</text><text x="330" y="274" text-anchor="end">1 Mar 2029</text>
+        <text x="98" y="324">NI number, bank, GP</text><text x="330" y="324" text-anchor="end">Mar 2029</text>
+        <text x="98" y="369">First payday</text><text x="330" y="369" text-anchor="end">Jul 2029</text>
+        <text x="98" y="432" font-weight="800" font-size="15">Settle</text><text x="330" y="432" text-anchor="end">Mar 2034</text>
+      </g>
+    </svg>
+  </div>
+</div></div></div>
+
+<!-- Icon -->
+<section class="band" aria-labelledby="icon">
+  <h2 id="icon">App icon</h2>
+  <p>The two hemispheres with one line crossing the join, ending at a station: you, arriving. It works without the name, so it holds up whatever we call the app.</p>
+  <div class="icons" style="margin-top:14px">
+    <figure><svg width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="App icon, day"><use href="#icon-day"/></svg><figcaption>Day</figcaption></figure>
+    <figure><svg width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="App icon, night"><use href="#icon-night"/></svg><figcaption>Night</figcaption></figure>
+    <figure><svg width="64" height="64" viewBox="0 0 120 120" aria-hidden="true"><use href="#icon-day"/></svg><figcaption>64px</figcaption></figure>
+    <figure><svg width="32" height="32" viewBox="0 0 120 120" aria-hidden="true"><use href="#icon-day"/></svg><figcaption>32px</figcaption></figure>
+    <figure><svg width="20" height="20" viewBox="0 0 120 120" aria-hidden="true"><use href="#icon-day"/></svg><figcaption>Browser tab</figcaption></figure>
+    <div class="homescreen">
+      <figure><svg width="60" height="60" viewBox="0 0 120 120" aria-hidden="true"><use href="#icon-day"/></svg><figcaption>On your phone</figcaption></figure>
+    </div>
+  </div>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <clipPath id="sq"><rect width="120" height="120" rx="27"/></clipPath>
+      <g id="icon-day" clip-path="url(#sq)">
+        <rect width="120" height="60" fill="#f4b63f"/><rect y="60" width="120" height="60" fill="#0f5277"/>
+        <path d="M34 -4 V46 Q34 60 48 60 H60 Q74 60 74 74 V86" fill="none" stroke="#16202b" stroke-width="11" stroke-linecap="round"/>
+        <circle cx="74" cy="90" r="11" fill="#ffffff" stroke="#16202b" stroke-width="6"/>
+      </g>
+      <g id="icon-night" clip-path="url(#sq)">
+        <rect width="120" height="60" fill="#2a1f0e"/><rect y="60" width="120" height="60" fill="#0b2b40"/>
+        <path d="M34 -4 V46 Q34 60 48 60 H60 Q74 60 74 74 V86" fill="none" stroke="#f4b63f" stroke-width="11" stroke-linecap="round"/>
+        <circle cx="74" cy="90" r="11" fill="#0e1822" stroke="#e6ecf0" stroke-width="6"/>
+      </g>
+    </defs>
+  </svg>
+</section>
+
+<!-- Names -->
+<section class="band" aria-labelledby="names">
+  <h2 id="names">Name</h2>
+  <p>Hemisphere has been the working name. Here are the strongest options, all set in the app's wordmark style.</p>
+  <div class="names">
+    <div class="name pick"><span class="tag">My pick</span><div class="wm">northbound</div><p>Cape Town to the UK is due north, and "northbound" is what a platform sign says. It joins the transit map and the journey in one word.</p></div>
+    <div class="name"><div class="wm">hemisphere</div><p>Says the split-screen idea exactly. Slightly abstract as a name for a planning tool.</p></div>
+    <div class="name"><div class="wm">halfway</div><p>Friendly and short, and the number sits halfway between the two places. Could sound unfinished.</p></div>
+    <div class="name"><div class="wm">farside</div><p>The other side of the world. Distinctive, but leans more poetic than practical.</p></div>
+  </div>
+</section>
+
+<footer>Home, Map and Compare live in directions-v3.html. Motion: one opening animation per screen. The stop sheet slides up over 300ms when tapped, and back down the way it came.</footer>
+
+<script>
+  const root = document.documentElement;
+  const themeBtns = document.querySelectorAll('.switch button');
+  function showTheme() { const t = root.dataset.theme || 'auto'; themeBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.set === t))); }
+  themeBtns.forEach(b => b.addEventListener('click', () => {
+    const t = b.dataset.set;
+    if (t === 'auto') delete root.dataset.theme; else root.dataset.theme = t;
+    try { t === 'auto' ? localStorage.removeItem('hemi-theme') : localStorage.setItem('hemi-theme', t); } catch (e) {}
+    showTheme();
+  }));
+  showTheme();
+
+  // currency
+  const RATE = 23.1;
+  const fmtR = n => 'R' + Math.round(n).toLocaleString('en-ZA').replace(/ /g, ',').replace(/\s/g, ',');
+  const fmtG = n => '£' + Math.round(n).toLocaleString('en-GB');
+  let cur = 'ZAR';
+  function renderAmts() {
+    document.querySelectorAll('.amt').forEach(el => {
+      const g = +el.dataset.gbp, r = +(el.dataset.round || 10);
+      el.textContent = cur === 'GBP' ? fmtG(r >= 1000 ? Math.round(g / 100) * 100 : g) : fmtR(Math.round(g * RATE / r) * r);
+    });
+  }
+  document.querySelectorAll('[data-cur]').forEach(b => b.addEventListener('click', () => {
+    cur = b.dataset.cur;
+    document.querySelectorAll('[data-cur]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    renderAmts();
+  }));
+  renderAmts();
+
+  // segmented controls and chips (visual only)
+  document.querySelectorAll('.seg:not([aria-label="Currency"])').forEach(g => g.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    g.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  }));
+  document.getElementById('when').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    document.querySelectorAll('#when button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+
+  document.getElementById('goals').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    document.querySelectorAll('#goals button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+  document.querySelectorAll('.toggle').forEach(t => t.addEventListener('click', () => t.setAttribute('aria-pressed', String(t.getAttribute('aria-pressed') !== 'true'))));
+
+  // editor: fixed costs + runway, same model as the Money screen
+  const months = document.getElementById('months'), rate = document.getElementById('rate');
+  function renderEditor() {
+    const m = +months.value, r = +rate.value;
+    const gbp = 6051 + 3100 + (m > 0 ? 600 + (m - 1) * 1250 : 0);
+    document.getElementById('monthsOut').textContent = m === 0 ? 'Job lined up' : m + (m === 1 ? ' month' : ' months');
+    document.getElementById('rateOut').textContent = 'R' + r.toFixed(2);
+    document.getElementById('edNum').textContent = fmtR(Math.round(gbp * r / 1000) * 1000);
+    document.getElementById('edGbp').textContent = fmtG(Math.round(gbp / 100) * 100);
+  }
+  months.addEventListener('input', renderEditor); rate.addEventListener('input', renderEditor); renderEditor();
+
+  // daylight chart
+  const man = [7.9, 9.6, 11.7, 13.9, 15.8, 16.9, 16.4, 14.6, 12.5, 10.4, 8.5, 7.5];
+  const ct = [14.2, 13.2, 12.1, 11.0, 10.2, 9.8, 10.0, 10.8, 11.8, 12.9, 13.9, 14.4];
+  const X = i => 14 + i * (270 / 11), Y = h => 110 - (h - 7) * 9;
+  const path = a => a.map((h, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(h).toFixed(1)).join(' ');
+  document.getElementById('manLine').setAttribute('d', path(man));
+  document.getElementById('ctLine').setAttribute('d', path(ct));
+  const lbl = document.getElementById('mLabels'), svgNS = 'http://www.w3.org/2000/svg';
+  'JFMAMJJASOND'.split('').forEach((c, i) => { const t = document.createElementNS(svgNS, 'text'); t.setAttribute('x', X(i)); t.setAttribute('y', 126); t.setAttribute('text-anchor', 'middle'); t.textContent = c; lbl.parentNode.appendChild(t); });
+  document.querySelector('.chart line[stroke-dasharray]').setAttribute('x1', X(2)); document.querySelector('.chart line[stroke-dasharray]').setAttribute('x2', X(2));
+
+  requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('pre')));
+</script>
+</body>
+</html>

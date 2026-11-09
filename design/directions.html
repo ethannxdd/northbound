@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Look and feel directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Serif+4:wght@400;600&family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { --page:#ecebe7; --ink:#1d1d1b; --muted:#6b6a65; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--page); color:var(--ink); font-family: Manrope, system-ui, sans-serif; }
+  header.top { max-width:1180px; margin:0 auto; padding:32px 16px 8px; }
+  header.top h1 { margin:0 0 6px; font-size:26px; }
+  header.top p { margin:0; color:var(--muted); max-width:720px; line-height:1.5; }
+  .grid { max-width:1180px; margin:0 auto; padding:24px 16px 48px; display:grid; grid-template-columns:repeat(auto-fit,minmax(330px,1fr)); gap:28px; }
+  .dir h2 { margin:0 0 2px; font-size:18px; }
+  .dir .tag { color:var(--muted); font-size:14px; margin:0 0 14px; line-height:1.45; min-height:40px; }
+  .phone { width:100%; max-width:360px; border-radius:36px; padding:10px; background:#111; margin:0 auto; }
+  .screen { border-radius:28px; overflow:hidden; min-height:690px; display:flex; flex-direction:column; }
+  .swatches { display:flex; gap:6px; margin:16px auto 0; max-width:360px; }
+  .swatches span { flex:1; height:30px; border-radius:6px; border:1px solid rgba(0,0,0,.08); }
+  .fonts { max-width:360px; margin:8px auto 0; font-size:13px; color:var(--muted); }
+  .bar { display:flex; align-items:flex-end; gap:6px; height:84px; }
+  .bar i { flex:1; display:block; border-radius:3px 3px 0 0; }
+  .row { display:flex; justify-content:space-between; align-items:center; }
+
+  /* A: Homeward (paper and stamps) */
+  .a .screen { background:#f6f1e7; color:#1f2a44; font-family:"Source Serif 4", Georgia, serif; }
+  .a .bar-top { padding:22px 22px 10px; }
+  .a .brand { font-family:Fraunces, serif; font-weight:600; font-size:20px; letter-spacing:.2px; }
+  .a .stamp { border:1.5px solid #b23a2e; color:#b23a2e; font-family:"JetBrains Mono", monospace; font-size:10px; padding:3px 7px; border-radius:4px; transform:rotate(-4deg); letter-spacing:.5px; }
+  .a .hero { margin:8px 16px; padding:20px; border:1px solid #d9cfbd; border-radius:6px; background:#fbf8f1; }
+  .a .label { font-size:13px; color:#6d6a60; font-family:Manrope, sans-serif; }
+  .a .big { font-family:Fraunces, serif; font-size:44px; font-weight:600; margin:4px 0; line-height:1; }
+  .a .sub { font-size:15px; line-height:1.45; }
+  .a .bar i { background:#1f2a44; } .a .bar i.neg { background:#b23a2e; } .a .bar i.up { background:#3f7d5a; }
+  .a .sec { padding:14px 22px 0; }
+  .a .sec h3 { font-family:Fraunces, serif; font-size:17px; margin:0 0 8px; font-weight:600; }
+  .a .task { padding:10px 0; border-top:1px dashed #cdbfa6; font-size:15px; }
+  .a .task small { display:block; font-family:Manrope, sans-serif; color:#6d6a60; font-size:12px; margin-top:2px; }
+  .a .due { font-family:"JetBrains Mono", monospace; font-size:11px; color:#b23a2e; }
+  .a nav { margin-top:auto; display:flex; justify-content:space-around; padding:14px 0 18px; border-top:1px solid #d9cfbd; font-family:Manrope, sans-serif; font-size:11px; color:#6d6a60; }
+  .a nav b { color:#1f2a44; }
+
+  /* B: Landfall (two skies) */
+  .b .screen { background:#f4f7f8; color:#14232b; font-family:Manrope, sans-serif; }
+  .b .skies { display:flex; height:6px; } .b .skies span:first-child { flex:1; background:#2f8fb8; } .b .skies span:last-child { flex:1; background:#8a96a3; }
+  .b .bar-top { padding:18px 20px 8px; }
+  .b .brand { font-weight:800; font-size:19px; letter-spacing:-.3px; }
+  .b .brand em { font-style:normal; color:#e0694a; }
+  .b .chip { background:#e3eef3; color:#1d5f7d; font-size:12px; font-weight:500; padding:5px 10px; border-radius:99px; }
+  .b .hero { margin:10px 14px; padding:20px; border-radius:20px; background:#14232b; color:#f4f7f8; }
+  .b .label { font-size:13px; color:#9fb4bf; }
+  .b .big { font-size:42px; font-weight:800; letter-spacing:-1px; margin:4px 0 2px; }
+  .b .sub { font-size:14px; color:#cfdbe1; line-height:1.45; }
+  .b .bar i { background:#2f8fb8; } .b .bar i.neg { background:#e0694a; } .b .bar i.up { background:#5fb38a; }
+  .b .cards { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:4px 14px; }
+  .b .card { background:#fff; border-radius:16px; padding:12px 14px; }
+  .b .card b { display:block; font-size:20px; margin-top:2px; }
+  .b .card span { font-size:12px; color:#5d6f78; }
+  .b .sec { padding:12px 20px 0; }
+  .b .sec h3 { font-size:15px; margin:0 0 6px; }
+  .b .task { display:flex; gap:10px; align-items:center; padding:9px 0; font-size:14px; border-bottom:1px solid #e1e8eb; }
+  .b .dot { width:10px; height:10px; border-radius:50%; flex:none; }
+  .b nav { margin-top:auto; margin:auto 14px 14px; display:flex; justify-content:space-around; padding:12px 0; background:#fff; border-radius:18px; font-size:11px; color:#5d6f78; }
+  .b nav b { color:#14232b; }
+
+  /* C: Departures (airport board) */
+  .c .screen { background:#0f1114; color:#e9e6dc; font-family:"Space Grotesk", sans-serif; }
+  .c .bar-top { padding:20px 18px 10px; border-bottom:1px solid #2a2d33; }
+  .c .brand { font-weight:700; font-size:18px; letter-spacing:2px; text-transform:uppercase; }
+  .c .live { font-family:"JetBrains Mono", monospace; font-size:11px; color:#ffc531; }
+  .c .hero { margin:14px; padding:16px; border:1px solid #2a2d33; border-radius:8px; }
+  .c .label { font-family:"JetBrains Mono", monospace; font-size:11px; color:#8b8f97; letter-spacing:1px; text-transform:uppercase; }
+  .c .big { font-family:"JetBrains Mono", monospace; font-size:38px; font-weight:700; color:#ffc531; margin:6px 0; }
+  .c .flap { display:inline-block; background:#1c1f24; padding:2px 4px; margin-right:2px; border-radius:3px; }
+  .c .sub { font-size:14px; color:#c8c5bb; line-height:1.45; }
+  .c .bar i { background:#e9e6dc; } .c .bar i.neg { background:#ff5a4e; } .c .bar i.up { background:#ffc531; }
+  .c .sec { padding:4px 14px 0; }
+  .c .board { border:1px solid #2a2d33; border-radius:8px; overflow:hidden; }
+  .c .board .hd, .c .board .ln { display:grid; grid-template-columns:62px 1fr 74px; gap:8px; padding:9px 12px; font-size:13px; }
+  .c .board .hd { font-family:"JetBrains Mono", monospace; font-size:10px; color:#8b8f97; background:#16191d; letter-spacing:1px; }
+  .c .board .ln { border-top:1px solid #22252a; }
+  .c .mono { font-family:"JetBrains Mono", monospace; font-size:12px; }
+  .c .st-now { color:#ff5a4e; } .c .st-soon { color:#ffc531; } .c .st-ok { color:#7bd88f; }
+  .c nav { margin-top:auto; display:flex; justify-content:space-around; padding:14px 0 18px; border-top:1px solid #2a2d33; font-family:"JetBrains Mono", monospace; font-size:10px; color:#8b8f97; letter-spacing:1px; }
+  .c nav b { color:#ffc531; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Three directions for the look and feel</h1>
+  <p>Each one shows the same home screen: your number, runway and the next tasks. The figures are placeholders, not real calculations. Pick a direction, or mix parts (e.g. A's type with C's numbers). Names are interchangeable too.</p>
+</header>
+
+<main class="grid">
+
+  <!-- A -->
+  <section class="dir a">
+    <h2>A · Homeward</h2>
+    <p class="tag">Warm paper, serif type, passport stamps. Personal and calm: a story about going back to where your gran came from.</p>
+    <div class="phone"><div class="screen">
+      <div class="bar-top row"><span class="brand">Homeward</span><span class="stamp">MAN · 01 MAR 2029</span></div>
+      <div class="hero">
+        <div class="label">Your number</div>
+        <div class="big">R312,000</div>
+        <div class="sub">to land in Manchester with <b>4 months</b> of runway before your first UK payday.</div>
+        <div class="bar" style="margin-top:16px">
+          <i style="height:100%"></i><i style="height:86%"></i><i style="height:72%"></i><i style="height:58%"></i><i class="neg" style="height:44%"></i><i class="up" style="height:52%"></i><i class="up" style="height:61%"></i><i class="up" style="height:70%"></i>
+        </div>
+        <div class="row label" style="margin-top:6px"><span>Land</span><span>First payday</span><span>Month 8</span></div>
+      </div>
+      <div class="sec">
+        <h3>Next on your journey</h3>
+        <div class="task row"><div>Order unabridged birth certificates<small>Yours and your dad's · Home Affairs</small></div><span class="due">NOW</span></div>
+        <div class="task row"><div>Gran's birth certificate<small>GRO · £12.50</small></div><span class="due">NOW</span></div>
+        <div class="task row"><div>TB test<small>Approved clinic, Cape Town</small></div><span class="due" style="color:#6d6a60">NOV 28</span></div>
+      </div>
+      <nav><b>Home</b><span>Timeline</span><span>Money</span><span>Life</span><span>Compare</span></nav>
+    </div></div>
+    <div class="swatches"><span style="background:#f6f1e7"></span><span style="background:#1f2a44"></span><span style="background:#b23a2e"></span><span style="background:#3f7d5a"></span><span style="background:#d9cfbd"></span></div>
+    <p class="fonts">Fraunces (headings) · Source Serif (text) · JetBrains Mono (stamps)</p>
+  </section>
+
+  <!-- B -->
+  <section class="dir b">
+    <h2>B · Landfall</h2>
+    <p class="tag">Clean and modern, like a fintech app. Cape Town ocean blue and Manchester slate grey, with a coral accent. The closest to the Loot feel, but still its own thing.</p>
+    <div class="phone"><div class="screen">
+      <div class="skies"><span></span><span></span></div>
+      <div class="bar-top row"><span class="brand">land<em>fall</em></span><span class="chip">Manchester · solo</span></div>
+      <div class="hero">
+        <div class="label">Save before you go</div>
+        <div class="big">R312,000</div>
+        <div class="sub">Lands you on 1 Mar 2029 with 4 months of runway.</div>
+        <div class="bar" style="margin-top:16px; height:70px">
+          <i style="height:100%"></i><i style="height:86%"></i><i style="height:72%"></i><i style="height:58%"></i><i class="neg" style="height:44%"></i><i class="up" style="height:52%"></i><i class="up" style="height:61%"></i><i class="up" style="height:70%"></i>
+        </div>
+      </div>
+      <div class="cards">
+        <div class="card"><span>Monthly left over</span><b>£410</b></div>
+        <div class="card"><span>Settlement</span><b>Mar 2034</b></div>
+      </div>
+      <div class="sec">
+        <h3>Up next</h3>
+        <div class="task"><span class="dot" style="background:#e0694a"></span>Order unabridged birth certificates</div>
+        <div class="task"><span class="dot" style="background:#e0694a"></span>Gran's GRO birth certificate</div>
+        <div class="task"><span class="dot" style="background:#2f8fb8"></span>TB test · in 3 weeks</div>
+      </div>
+      <nav><b>Home</b><span>Plan</span><span>Money</span><span>Life</span><span>Compare</span></nav>
+    </div></div>
+    <div class="swatches"><span style="background:#f4f7f8"></span><span style="background:#14232b"></span><span style="background:#2f8fb8"></span><span style="background:#8a96a3"></span><span style="background:#e0694a"></span></div>
+    <p class="fonts">Manrope throughout, heavy weights for numbers</p>
+  </section>
+
+  <!-- C -->
+  <section class="dir c">
+    <h2>C · Departures</h2>
+    <p class="tag">Dark airport-board style: monospace numbers, amber signage and task statuses like flight boards. Bold, data-dense, and a bit of fun.</p>
+    <div class="phone"><div class="screen">
+      <div class="bar-top row"><span class="brand">Departures</span><span class="live">CPT → MAN</span></div>
+      <div class="hero">
+        <div class="label">Required savings</div>
+        <div class="big"><span class="flap">R</span><span class="flap">312</span><span class="flap">000</span></div>
+        <div class="sub">Departs 01 Mar 2029 · runway 4 months</div>
+        <div class="bar" style="margin-top:14px; height:64px">
+          <i style="height:100%"></i><i style="height:86%"></i><i style="height:72%"></i><i style="height:58%"></i><i class="neg" style="height:44%"></i><i class="up" style="height:52%"></i><i class="up" style="height:61%"></i><i class="up" style="height:70%"></i>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="board">
+          <div class="hd"><span>DUE</span><span>TASK</span><span>STATUS</span></div>
+          <div class="ln"><span class="mono">NOW</span><span>Unabridged certificates</span><span class="mono st-now">BOARDING</span></div>
+          <div class="ln"><span class="mono">NOW</span><span>Gran's GRO certificate</span><span class="mono st-now">BOARDING</span></div>
+          <div class="ln"><span class="mono">28 NOV</span><span>TB test</span><span class="mono st-soon">ON TIME</span></div>
+          <div class="ln"><span class="mono">DEC 28</span><span>Visa application</span><span class="mono st-ok">SCHEDULED</span></div>
+        </div>
+      </div>
+      <nav><b>HOME</b><span>BOARD</span><span>MONEY</span><span>LIFE</span><span>COMPARE</span></nav>
+    </div></div>
+    <div class="swatches"><span style="background:#0f1114"></span><span style="background:#e9e6dc"></span><span style="background:#ffc531"></span><span style="background:#ff5a4e"></span><span style="background:#7bd88f"></span></div>
+    <p class="fonts">Space Grotesk (text) · JetBrains Mono (numbers and labels)</p>
+  </section>
+
+</main>
+</body>
+</html>
