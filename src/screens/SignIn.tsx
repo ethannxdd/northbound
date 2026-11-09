@@ -59,7 +59,12 @@ export default function SignIn() {
   }
 
   return (
-    <div className="center-screen" style={{ background: 'var(--uk-bg)', color: 'var(--uk-text)' }}>
+    <div className="signin-screen">
+      <div className="signin-art" aria-hidden="true">
+        <span className="brand">northbound</span>
+        <p className="signin-big">Cape Town to the UK, one step at a time.</p>
+      </div>
+      <div className="signin-side">
       <form className="signin" onSubmit={submit} noValidate>
         <img src="/icon.svg" width="56" height="56" alt="" />
         <h1 className="h1" style={{ color: 'var(--uk-text)' }}>
@@ -107,6 +112,7 @@ export default function SignIn() {
           </button>
         </div>
       </form>
+      </div>
     </div>
   )
 }

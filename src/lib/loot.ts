@@ -100,7 +100,17 @@ export function lootPace(deposits: LootDeposit[]): number | null {
 export async function createLootGoal(userId: string, targetZar: number, targetDate: string): Promise<LootGoal> {
   const { data, error } = await supabase
     .from('savings_goals')
-    .insert({ user_id: userId, name: 'UK move', category: 'travel', target_amount: Math.round(targetZar), current_amount: 0, target_date: targetDate, is_completed: false, completed_at: null })
+    .insert({
+      user_id: userId,
+      name: 'UK move',
+      category: 'travel',
+      target_amount: Math.round(targetZar / 1000) * 1000,
+      current_amount: 0,
+      target_date: targetDate,
+      note: 'Target set by Northbound. It updates when your plan changes; your savings are never touched.',
+      is_completed: false,
+      completed_at: null,
+    })
     .select(GOAL_COLUMNS)
     .single()
   if (error) throw new Error("Couldn't create the goal in Loot. Try again.")

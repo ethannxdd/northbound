@@ -4,8 +4,8 @@ import { CITIES, HOUSING_LABEL } from '@shared/cities'
 import { monthYear, monthsBetween } from '@shared/dates'
 import { monthlyBudget, salaryFor } from '@shared/engine'
 import type { ScenarioInput } from '@shared/types'
-import { TopBar } from '../components/Shell'
-import { toInput, useApp } from '../lib/app'
+import { PageHead } from '../components/Shell'
+import { toInput, useActions, useApp } from '../lib/app'
 import { gbp, zar } from '../lib/format'
 import { useOpening } from '../lib/ui'
 
@@ -17,6 +17,8 @@ interface Option {
 
 export default function Compare() {
   const { scenarios, active, planFor, overrides, today } = useApp()
+  const { saveScenario } = useActions()
+  const [savedNote, setSavedNote] = useState<string | null>(null)
   useOpening()
 
   // Your saved scenarios, plus a ready-made "same, but the other city" for a quick look.
@@ -24,7 +26,7 @@ export default function Compare() {
     const own = scenarios.map((s) => ({ id: s._id as string, label: s.name, input: toInput(s) }))
     const base = toInput(active)
     const other = base.city === 'manchester' ? 'london' : 'manchester'
-    own.push({ id: 'other-city', label: `${active.name}, but in ${CITIES[other].name}`, input: { ...base, city: other, name: `${CITIES[other].name} version` } })
+    own.push({ id: 'other-city', label: `${active.name}, but in ${CITIES[other].name}`, input: { ...base, city: other, name: active.name.replace(CITIES[base.city].name, CITIES[other].name) } })
     return own
   }, [scenarios, active])
 
@@ -46,13 +48,8 @@ export default function Compare() {
   const maxMonths = Math.max(A.monthsToSave ?? 0, B.monthsToSave ?? 0, 1)
 
   return (
-    <div className="narrow-page">
-      <div className="topbar" style={{ display: 'block' }}>
-        <TopBar right={<Link to="/scenario/new">New scenario</Link>} />
-        <h1 className="h1" style={{ marginTop: 12 }}>
-          Compare
-        </h1>
-      </div>
+    <div className="screen-compare">
+      <PageHead title="Compare" sub={<>Pick two scenarios. <Link to="/scenario/new">Make a new one</Link> to try something else.</>} />
       <div className="pickers">
         <Picker label="First" value={a.id} options={options} onChange={setA} />
         <Picker label="Second" value={b.id} options={options} onChange={setB} />
@@ -96,6 +93,27 @@ export default function Compare() {
         )}
         .
       </p>
+      {[a, b].some((o) => o.id === 'other-city') && (
+        <div className="verdict" style={{ marginTop: 10 }}>
+          {savedNote ? (
+            <span className="ok-text">{savedNote}</span>
+          ) : (
+            <button
+              type="button"
+              className="btn quiet small"
+              onClick={async () => {
+                const o = [a, b].find((x) => x.id === 'other-city')!
+                const id = await saveScenario({ scenario: o.input })
+                setSavedNote(`Saved as "${o.input.name}". It's in your scenarios now.`)
+                if (bId === 'other-city') setB(id)
+                else setA(id)
+              }}
+            >
+              Save the {CITIES[[a, b].find((x) => x.id === 'other-city')!.input.city].name} version as a scenario
+            </button>
+          )}
+        </div>
+      )}
       <section className="sec">
         <h2>Time left to save</h2>
         {[

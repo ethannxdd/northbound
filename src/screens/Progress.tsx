@@ -1,8 +1,7 @@
-import { Link } from 'react-router-dom'
 import { CITIES } from '@shared/cities'
 import { dayMonthYear, longMonthYear, monthYear, monthsBetween } from '@shared/dates'
 import { progress, ROUTE_PLACES } from '@shared/engine'
-import { TopBar } from '../components/Shell'
+import { LootCard, PageHead } from '../components/Shell'
 import { useApp } from '../lib/app'
 import { pct, zar } from '../lib/format'
 import { useOpening } from '../lib/ui'
@@ -27,24 +26,19 @@ export default function Progress() {
   const lastDeposit = deposits[0]
 
   return (
-    <div className="narrow-page">
-      <div className="head">
-        <TopBar dark right={`${pct(prog.pct)} of the way`} />
-        <h1 className="h1">{prog.pct >= 1 ? 'You have it all' : `You're ${prog.place.over}`}</h1>
-        <p>
-          {zar(savings.savedZar, 100)} saved. {zar(plan.remainingZar, 1000)} to go.
-        </p>
-      </div>
+    <div className="screen-progress">
+      <PageHead dark title={prog.pct >= 1 ? 'You have it all' : `You're ${prog.place.over}`} sub={`${pct(prog.pct)} of the way. ${zar(savings.savedZar, 100)} saved, ${zar(plan.remainingZar, 1000)} to go.`} />
       {savingsSource === 'loot' && goal ? (
         <div className="synced">
           Synced with your Loot goal "{goal.name}", {ago(goalUpdatedAt)}
         </div>
       ) : (
-        <div className="synced off">
-          {goalMissing ? "The linked Loot goal can't be found. " : 'Using the savings you entered. '}
-          <Link to="/link">Link your Loot goal</Link>
+        <div className="progress-link" style={{ padding: '12px 14px 0' }}>
+          {goalMissing && <p className="error" style={{ margin: '0 0 8px' }}>The linked Loot goal can't be found. It may have been deleted in Loot.</p>}
+          <LootCard />
         </div>
       )}
+      <div className="progress-grid">
       <div className="route" style={{ padding: '6px 12px 0' }}>
         <svg viewBox="0 0 320 320" role="img" aria-label={`Route from Cape Town to ${city}. You've saved ${pct(prog.pct)}, which puts you ${prog.place.over}.`}>
           <line x1="40" x2="40" y1={bottom} y2={top} className="track" strokeWidth="8" strokeLinecap="round" />
@@ -88,6 +82,7 @@ export default function Progress() {
           </g>
         </svg>
       </div>
+      <div className="progress-side">
       <div className="stats3">
         <div>
           <small>Saving a month</small>
@@ -121,6 +116,21 @@ export default function Progress() {
             </span>
           </div>
         )}
+      </div>
+      {deposits.length > 0 && (
+        <section className="sec" aria-labelledby="dep">
+          <h2 id="dep">Recent deposits in Loot</h2>
+          <ul className="list">
+            {deposits.slice(0, 5).map((d) => (
+              <li key={d.id} className="row">
+                <span>{dayMonthYear(d.created_at.slice(0, 10))}</span>
+                <b>{zar(Number(d.amount))}</b>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      </div>
       </div>
     </div>
   )

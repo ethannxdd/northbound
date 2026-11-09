@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { monthlyBudget, salaryFor, takeHome, upfrontCosts, type GroupId } from '@shared/engine'
-import { TopBar } from '../components/Shell'
+import { PageHead } from '../components/Shell'
 import { useApp } from '../lib/app'
 import { gbp, zar } from '../lib/format'
 import { Seg, useOpening } from '../lib/ui'
@@ -8,7 +8,7 @@ import { Seg, useOpening } from '../lib/ui'
 const GROUP_COLOR: Record<GroupId, string> = { paper: 'var(--l-paper)', move: 'var(--l-move)', runway: 'var(--l-money)' }
 
 export default function Money() {
-  const { input, plan, overrides, active } = useApp()
+  const { input, plan, overrides } = useApp()
   const [cur, setCur] = useState<'ZAR' | 'GBP'>('ZAR')
   useOpening()
   const costs = upfrontCosts(input, plan.landDate, overrides)
@@ -18,17 +18,16 @@ export default function Money() {
   const income = budget.takeHome + budget.partnerTakeHome
 
   return (
-    <div className="narrow-page">
-      <div className="topbar" style={{ display: 'block' }}>
-        <TopBar right={active.name} />
-        <div className="row" style={{ alignItems: 'center', marginTop: 12 }}>
-          <h1 className="h1">Money</h1>
+    <div className="screen-money">
+      <PageHead title="Money" sub="What to save before you go, and what a month looks like once you're paid." />
+      <div className="money-grid">
+      <section className="sec panel" aria-labelledby="before">
+        <div className="row" style={{ alignItems: 'center' }}>
+          <h2 id="before-h" style={{ margin: 0 }}>Before you go</h2>
           <div style={{ width: 116 }}>
             <Seg label="Currency" value={cur} onChange={setCur} options={[{ value: 'ZAR', label: 'R' }, { value: 'GBP', label: '£' }]} />
           </div>
         </div>
-      </div>
-      <section className="sec" aria-labelledby="before">
         <div id="before" className="small muted">
           Save before you go
         </div>
@@ -53,8 +52,7 @@ export default function Money() {
           </div>
         ))}
       </section>
-      <div className="divider" />
-      <section className="sec" aria-labelledby="paid">
+      <section className="sec panel" aria-labelledby="paid">
         <h2 id="paid">Once you're paid</h2>
         <p className="small muted" style={{ marginTop: 0 }}>
           {gbp(salaryFor(input))} a year becomes <b style={{ color: 'var(--text)' }}>{gbp(pay.monthly)}</b> a month after {gbp(pay.tax / 12)} tax and {gbp(pay.ni / 12)} National Insurance.
@@ -77,6 +75,7 @@ export default function Money() {
           </div>
         </div>
       </section>
+      </div>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { CAPE_TOWN, CITIES } from '@shared/cities'
 import { longMonthYear, monthIndex } from '@shared/dates'
-import { TopBar } from '../components/Shell'
+import { PageHead } from '../components/Shell'
 import { useApp } from '../lib/app'
 import { zar } from '../lib/format'
 import { useOpening } from '../lib/ui'
@@ -8,7 +8,7 @@ import { useOpening } from '../lib/ui'
 const LETTERS = 'JFMAMJJASOND'.split('')
 
 export default function Life() {
-  const { input, plan, active } = useApp()
+  const { input, plan } = useApp()
   useOpening()
   const city = CITIES[input.city]
   const land = monthIndex(plan.landDate)
@@ -20,14 +20,10 @@ export default function Life() {
   const coffeeZar = city.coffee * input.rate
 
   return (
-    <div className="narrow-page">
-      <div className="topbar" style={{ display: 'block' }}>
-        <TopBar right={active.name} />
-        <h1 className="h1" style={{ marginTop: 12 }}>
-          Life in {city.name}
-        </h1>
-      </div>
-      <section className="sec" aria-labelledby="daylight">
+    <div className="screen-life">
+      <PageHead title={`Life in ${city.name}`} sub="What a normal month will feel like." />
+      <div className="life-grid">
+      <section className="sec panel" aria-labelledby="daylight">
         <h2 id="daylight">Hours of daylight</h2>
         <svg className="chart" viewBox="0 0 316 136" width="100%" role="img" aria-label={`Daylight by month. ${city.name} ranges from ${minUk} to ${Math.max(...city.daylight)} hours; Cape Town from 9.8 to 14.4. You land in ${longMonthYear(plan.landDate)}.`}>
           <line className="grid-l" x1="10" x2="306" y1="20" y2="20" />
@@ -79,6 +75,7 @@ export default function Life() {
           <b>About {city.wetDays}</b>
           <p>A year, mostly light rain</p>
         </div>
+      </div>
       </div>
       <p className="small muted" style={{ padding: '0 20px' }}>
         Prices and daylight hours are planning estimates.

@@ -1,36 +1,46 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { CITIES } from '@shared/cities'
 import { longMonthYear, todayIso } from '@shared/dates'
-import { partnerCanCome } from '@shared/engine'
+import { monthlyBudget, partnerCanCome, upfrontCosts } from '@shared/engine'
 import { addMonths } from '@shared/dates'
 import type { ScenarioInput } from '@shared/types'
 import { toInput, useActions, useApp, type Id } from '../lib/app'
 import { gbp, zar } from '../lib/format'
-import { MoneyInput, Seg, Toggle } from '../lib/ui'
+import { MoneyInput, Seg, Toggle, useWide } from '../lib/ui'
 
 export default function Editor() {
   const { id } = useParams()
   const { scenarios, active, planFor, savings, overrides } = useApp()
   const { saveScenario, deleteScenario } = useActions()
   const navigate = useNavigate()
+  const location = useLocation()
+  const wide = useWide()
+  // Go back where you came from, or Home if the editor was opened directly.
+  const leave = () => (location.key !== 'default' ? navigate(-1) : navigate('/'))
   const existing = scenarios.find((s) => s._id === id)
   const isNew = !existing
   const [draft, setDraft] = useState<ScenarioInput>(() => (existing ? toInput(existing) : { ...toInput(active), name: `${active.name} (copy)` }))
+  const isMain = !!existing && existing._id === active._id
+  const [makeMain, setMakeMain] = useState(isNew || isMain)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const set = <K extends keyof ScenarioInput>(k: K, v: ScenarioInput[K]) => setDraft((d) => ({ ...d, [k]: v }))
   const p = planFor(draft)
   const applyDate = addMonths(p.landDate, -3)
   const partnerOk = partnerCanCome(draft, applyDate, overrides)
+  const before = existing ? planFor(toInput(existing)) : null
+  const diff = before ? p.targetZar - before.targetZar : 0
+  const costs = upfrontCosts(draft, p.landDate, overrides)
+  const budget = monthlyBudget(draft, p.landDate, overrides)
 
   async function save() {
     if (!draft.name.trim()) return setError('Give this scenario a name.')
     setBusy(true)
     setError(null)
     try {
-      await saveScenario({ id: existing?._id as Id<'scenarios'> | undefined, scenario: { ...draft, name: draft.name.trim() }, makeActive: true })
-      navigate('/')
+      await saveScenario({ id: existing?._id as Id<'scenarios'> | undefined, scenario: { ...draft, name: draft.name.trim() }, makeActive: makeMain })
+      leave()
     } catch {
       setError("Couldn't save. Try again.")
       setBusy(false)
@@ -49,16 +59,19 @@ export default function Editor() {
   }
 
   return (
-    <div className="narrow-page" style={{ paddingBottom: 140 }}>
-      <div className="topbar">
-        <button type="button" className="btn quiet small" onClick={() => navigate(-1)}>
+    <div className="screen-editor">
+      <div className="editor-top">
+        <button type="button" className="btn quiet small" onClick={leave}>
           Cancel
         </button>
-        <span className="brand">{isNew ? 'New scenario' : 'Edit scenario'}</span>
+        <h1 className="h1 editor-title">{isNew ? 'New scenario' : `Edit ${existing.name}`}</h1>
         <button type="button" className="btn small primary" onClick={() => void save()} disabled={busy}>
-          Save
+          {busy ? 'Saving…' : 'Save'}
         </button>
       </div>
+      <div className="editor-grid">
+      <div className="editor-form">
+      <h2 className="form-h">The basics</h2>
 
       <div className="field">
         <label htmlFor="name">Name</label>
@@ -81,6 +94,7 @@ export default function Editor() {
         {draft.landMode === 'date' && draft.landDate < p.earliestLand && <p className="error">Your paperwork can't be ready before {longMonthYear(p.earliestLand)} at the current certificate wait.</p>}
       </div>
 
+      <h2 className="form-h">Where and who</h2>
       <div className="field">
         <span className="lbl">City</span>
         <Seg label="City" value={draft.city} onChange={(v) => set('city', v)} options={Object.values(CITIES).map((c) => ({ value: c.id, label: c.name }))} />
@@ -123,6 +137,7 @@ export default function Editor() {
         )}
       </div>
 
+      <h2 className="form-h">Money and timing</h2>
       <Slider id="hunt" label="Time to find work" value={draft.jobHuntMonths} min={0} max={9} step={1} show={(v) => (v === 0 ? 'Job lined up' : `${v} month${v === 1 ? '' : 's'}`)} onChange={(v) => set('jobHuntMonths', v)} />
       <div className="field">
         <label htmlFor="salary">
@@ -142,6 +157,22 @@ export default function Editor() {
         <label htmlFor="buffer">Extra safety buffer</label>
         <MoneyInput id="buffer" prefix="£" value={draft.bufferGbp} onChange={(n) => set('bufferGbp', n)} />
       </div>
+      <div className="field">
+        {isMain ? (
+          <p className="hint" style={{ margin: 0 }}>
+            This is your main scenario: Home, the map, Money and your Loot goal follow it.
+          </p>
+        ) : (
+          <div className="toggle-row">
+            <span>
+              <b>Make this my main scenario</b>
+              <br />
+              <span className="small muted">Home, the map, Money and your Loot goal's target will follow it.</span>
+            </span>
+            <Toggle on={makeMain} onChange={setMakeMain} label="Make this my main scenario" />
+          </div>
+        )}
+      </div>
       {error && (
         <p className="error" role="alert" style={{ padding: '0 20px' }}>
           {error}
@@ -155,20 +186,57 @@ export default function Editor() {
         </div>
       )}
 
-      <div className="sign editor-result" aria-live="polite" style={{ position: 'fixed', left: 12, right: 12, bottom: 'calc(86px + env(safe-area-inset-bottom))', maxWidth: 536, margin: '0 auto', zIndex: 15, justifyContent: 'space-between' }}>
-        <span>
-          <small>You'd need</small>
-          <span className="num" style={{ fontSize: 30 }}>
-            {zar(p.targetZar, 1000)}
+      </div>
+      {wide ? (
+        <aside className="editor-summary" aria-live="polite" aria-label="What this scenario needs">
+          <small className="muted">You'd need</small>
+          <div className="num">{zar(p.targetZar, 1000)}</div>
+          <div className="muted small">
+            {gbp(p.targetGbp, 100)}. Landing {draft.landMode === 'saved' ? 'around ' : ''}
+            {longMonthYear(p.landDate)}.
+          </div>
+          {before && Math.abs(diff) >= 1000 && (
+            <p className={`diff ${diff > 0 ? 'up' : 'down'}`}>
+              {diff > 0 ? '+' : '−'}
+              {zar(Math.abs(diff), 1000)} compared with the saved version
+            </p>
+          )}
+          <ul className="sum-list">
+            {costs.groups.map((g) => (
+              <li key={g.id}>
+                <span>{g.label}</span>
+                <b>{zar(g.total * draft.rate, 1000)}</b>
+              </li>
+            ))}
+            <li>
+              <span>Left each month once paid</span>
+              <b>{gbp(budget.left)}</b>
+            </li>
+          </ul>
+          <button type="button" className="btn primary block" onClick={() => void save()} disabled={busy}>
+            {busy ? 'Saving…' : isNew ? 'Save scenario' : 'Save changes'}
+          </button>
+          <button type="button" className="btn quiet block" onClick={leave} style={{ marginTop: 8 }}>
+            Cancel
+          </button>
+        </aside>
+      ) : (
+        <div className="sign editor-result" aria-live="polite">
+          <span>
+            <small>You'd need{before && Math.abs(diff) >= 1000 ? `, ${diff > 0 ? '+' : '−'}${zar(Math.abs(diff), 1000)}` : ''}</small>
+            <span className="num" style={{ fontSize: 30 }}>
+              {zar(p.targetZar, 1000)}
+            </span>
+            <small>
+              {gbp(p.targetGbp, 100)}, landing {draft.landMode === 'saved' ? 'around ' : ''}
+              {longMonthYear(p.landDate)}
+            </small>
           </span>
-          <small>
-            {gbp(p.targetGbp, 100)}, landing {draft.landMode === 'saved' ? 'around ' : ''}
-            {longMonthYear(p.landDate)}
-          </small>
-        </span>
-        <button type="button" className="btn primary small" onClick={() => void save()} disabled={busy}>
-          Save
-        </button>
+          <button type="button" className="btn primary small" onClick={() => void save()} disabled={busy}>
+            Save
+          </button>
+        </div>
+      )}
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 /** Removes the "pre" class after first paint, which plays each screen's one opening animation. */
 export function useOpening(dep?: unknown) {
@@ -72,7 +72,8 @@ export function MoneyInput({ value, onChange, prefix = 'R', id, step = 100 }: { 
 
 export function Loading({ label = 'Loading' }: { label?: string }) {
   return (
-    <div className="center-screen" role="status">
+    <div className="center-screen splash" role="status">
+      <img src="/icon.svg" width="64" height="64" alt="" />
       <span className="muted">{label}…</span>
     </div>
   )
@@ -81,13 +82,22 @@ export function Loading({ label = 'Loading' }: { label?: string }) {
 export function Sheet({ open, onClose, children, label }: { open: boolean; onClose: () => void; children: ReactNode; label: string }) {
   const [mounted, setMounted] = useState(open)
   const [entered, setEntered] = useState(false)
+  const panel = useRef<HTMLDivElement>(null)
+  const returnTo = useRef<HTMLElement | null>(null)
   useEffect(() => {
     if (open) {
+      returnTo.current = document.activeElement as HTMLElement | null
       setMounted(true)
-      const id = requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)))
+      const id = requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          setEntered(true)
+          panel.current?.focus()
+        }),
+      )
       return () => cancelAnimationFrame(id)
     }
     setEntered(false)
+    returnTo.current?.focus?.()
     const t = window.setTimeout(() => setMounted(false), 300)
     return () => window.clearTimeout(t)
   }, [open])
@@ -101,11 +111,53 @@ export function Sheet({ open, onClose, children, label }: { open: boolean; onClo
   return (
     <>
       <div className={`scrim${entered ? '' : ' enter'}`} onClick={onClose} />
-      <div className={`sheet${entered ? '' : ' enter'}`} role="dialog" aria-modal="true" aria-label={label}>
+      <div ref={panel} tabIndex={-1} className={`sheet${entered ? '' : ' enter'}`} role="dialog" aria-modal="true" aria-label={label}>
         <div className="handle" />
+        <button type="button" className="iconbtn sheet-close" onClick={onClose} aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
         {children}
       </div>
     </>
+  )
+}
+
+/** A short "Saved" confirmation that fades after a moment. */
+export function useSavedFlash(): [boolean, () => void] {
+  const [on, setOn] = useState(false)
+  const t = useRef<number | undefined>(undefined)
+  const flash = () => {
+    setOn(true)
+    window.clearTimeout(t.current)
+    t.current = window.setTimeout(() => setOn(false), 1600)
+  }
+  return [on, flash]
+}
+
+/** Money field that saves when you leave it, not on every keystroke. */
+export function SavedMoneyField({ id, label, value, onSave, prefix = 'R', hint }: { id: string; label: string; value: number; onSave: (n: number) => Promise<unknown> | void; prefix?: string; hint?: string }) {
+  const [draft, setDraft] = useState(value)
+  const [saved, flash] = useSavedFlash()
+  useEffect(() => setDraft(value), [value])
+  return (
+    <div className="sfield">
+      <label htmlFor={id}>
+        {label}
+        <span className={`saved-flash${saved ? ' on' : ''}`} aria-live="polite">
+          {saved ? 'Saved' : ''}
+        </span>
+      </label>
+      <div
+        onBlur={async () => {
+          if (draft === value) return
+          await onSave(draft)
+          flash()
+        }}
+      >
+        <MoneyInput id={id} prefix={prefix} value={draft} onChange={setDraft} />
+      </div>
+      {hint && <p className="hint">{hint}</p>}
+    </div>
   )
 }
 

@@ -3,15 +3,16 @@ import { useMemo, useState } from 'react'
 import { CITIES } from '@shared/cities'
 import { dayMonthYear, longMonthYear, monthYear } from '@shared/dates'
 import { monthlyBudget, progress, runwayMonths, runwaySeries, salaryFor } from '@shared/engine'
-import { TopBar } from '../components/Shell'
-import TransitMap, { StopSheet, useTimeline } from '../components/TransitMap'
+import { LootCard, TopBar } from '../components/Shell'
+import Icon from '../components/Icon'
+import TransitMap, { StopSheet, useNextStop } from '../components/TransitMap'
 import { useApp } from '../lib/app'
 import { gbp, pct, words, zar } from '../lib/format'
 import { useOpening, useWide } from '../lib/ui'
 
 export default function Home() {
-  const { input, plan, profile, savings, done, overrides, today } = useApp()
-  const tasks = useTimeline()
+  const { input, plan, profile, savings, overrides, today, savingsSource } = useApp()
+  const next = useNextStop()
   const [openNext, setOpenNext] = useState(false)
   useOpening()
   const city = CITIES[input.city]
@@ -19,15 +20,13 @@ export default function Home() {
   const series = useMemo(() => runwaySeries(input, plan.landDate, overrides), [input, plan.landDate, overrides])
   const months = runwayMonths(input)
   const max = Math.max(...series, 1)
-  // Saving is ongoing, so once a monthly amount is set it isn't the next stop.
-  const next = tasks.find((t) => !done.has(t.key) && !(t.key === 'saving' && savings.monthlyZar > 0))
   const prog = progress(savings.savedZar, plan.targetZar)
 
   return (
     <div className="home-grid">
       <div className="home-main">
         <section className="cape" aria-label="Cape Town now">
-          <TopBar right="Today" />
+          <TopBar sun />
           <div className="city">Cape Town</div>
           <div className="facts">
             <span>Saved {zar(savings.savedZar, 100)}</span>
@@ -87,17 +86,18 @@ export default function Home() {
               </span>
             </button>
           )}
-          <Link to="/progress" className="card prog-strip">
-            <span>
-              <span className="small muted">{pct(prog.pct)} of the way</span>
-              <br />
-              <b>{prog.pct >= 1 ? "You've saved it all" : `You're ${prog.place.over}`}</b>
+          <Link to="/progress" className="card prog-strip" aria-label={`How far you've come: ${pct(prog.pct)} saved. ${zar(plan.remainingZar, 1000)} to go.`}>
+            <span className="small muted">How far you've come</span>
+            <span className="small muted prog-go">
+              {pct(prog.pct)} <Icon name="chevron" size={16} />
             </span>
-            <span className="small muted">{zar(plan.remainingZar, 1000)} to go</span>
+            <b className="prog-place">{prog.pct >= 1 ? "You've saved it all" : `You're ${prog.place.over}`}</b>
             <span className="track">
               <i style={{ width: `${prog.pct * 100}%` }} />
             </span>
+            <span className="small muted prog-left">{zar(plan.remainingZar, 1000)} to go</span>
           </Link>
+          {savingsSource !== 'loot' && <LootCard />}
           {!plan.onTrack && savings.monthlyZar > 0 && input.landMode === 'date' && (
             <div className="card warn-card" role="status">
               <span className="stop" aria-hidden="true" />
@@ -123,11 +123,13 @@ function DesktopMap() {
   if (!wide) return null
   return (
     <>
-      <div className="head">
-        <p>Your route</p>
-        <h2 className="h1" style={{ fontSize: 22, marginTop: 2 }}>
-          Map
+      <div className="head row" style={{ alignItems: 'center' }}>
+        <h2 className="h1" style={{ fontSize: 22, margin: 0 }}>
+          Your route
         </h2>
+        <Link to="/map" className="btn small quiet on-dark">
+          Open map
+        </Link>
       </div>
       <TransitMap />
     </>

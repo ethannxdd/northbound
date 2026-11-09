@@ -35,15 +35,27 @@ export function useTimeline() {
   return useMemo(() => buildTimeline(input, plan.landDate, today, overrides), [input, plan.landDate, today, overrides])
 }
 
+/** The first step that isn't done. Saving is ongoing, so it's skipped once a monthly amount is set. */
+export function useNextStop() {
+  const { done, savings } = useApp()
+  const tasks = useTimeline()
+  return tasks.find((t) => !done.has(t.key) && !(t.key === 'saving' && savings.monthlyZar > 0)) ?? null
+}
+
 export function shortTitle(t: Task, city: string) {
   return t.key === 'land' ? `Land in ${city}` : SHORT[t.key] ?? t.title
 }
 
-export default function TransitMap({ animate = true }: { animate?: boolean }) {
+/**
+ * The move as a transit map. With onSelect, the parent shows the details (desktop panel);
+ * without it, tapping a stop opens a sheet (phone).
+ */
+export default function TransitMap({ animate = true, selectedKey, onSelect }: { animate?: boolean; selectedKey?: string | null; onSelect?: (key: string) => void }) {
   const { done, today, input } = useApp()
   const tasks = useTimeline()
   const [openKey, setOpenKey] = useState<string | null>(null)
   const city = CITIES[input.city].name
+  const select = (k: string) => (onSelect ? onSelect(k) : setOpenKey(k))
 
   const layout = useMemo(() => {
     const split = tasks.findIndex((t) => t.key === 'visa-decision')
@@ -53,7 +65,7 @@ export default function TransitMap({ animate = true }: { animate?: boolean }) {
     let y = 40
     for (const t of pre) {
       rows.push({ t, x: X[t.line as Exclude<Line, 'trunk'>], y })
-      y += 24
+      y += 26
     }
     const merge = y + 26
     y = merge
@@ -81,26 +93,29 @@ export default function TransitMap({ animate = true }: { animate?: boolean }) {
           {layout.rows.map(({ t, x, y }) => {
             const st = status(t)
             const merge = t.key === 'visa-decision'
+            const big = merge || t.milestone
+            const sel = selectedKey === t.key
             return (
               <g
                 key={t.key}
-                className="stoprow"
+                className={`stoprow${sel ? ' sel' : ''}`}
                 role="button"
                 tabIndex={0}
+                aria-pressed={onSelect ? sel : undefined}
                 aria-label={`${t.title}. ${st === 'done' ? 'Done' : st === 'now' ? 'Due now' : `Due ${monthYear(t.due)}`}`}
-                onClick={() => setOpenKey(t.key)}
-                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setOpenKey(t.key))}
+                onClick={() => select(t.key)}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), select(t.key))}
               >
-                <rect className="hit focus" x="10" y={y - 14} width="326" height={merge || t.milestone ? 30 : 22} rx="6" fill="transparent" />
+                <rect className="hit focus" x="88" y={y - (big ? 15 : 12)} width="250" height={big ? 30 : 24} rx="6" />
                 {merge ? (
                   <rect x="56" y={y - 11} width="28" height="22" rx="11" strokeWidth="3" className={`lt st${st === 'done' ? ' ft' : ''}`} />
                 ) : (
                   <circle cx={x} cy={y} r={t.key === 'settle' ? 9 : t.milestone ? 8 : 6} strokeWidth={t.key === 'settle' ? 4 : 3} className={`${LINE_CLASS[t.line]} st${st === 'done' ? ' ' + FILL_CLASS[t.line] : ''}`} />
                 )}
-                <text x="98" y={y + 4} fontSize={merge || t.milestone ? 15 : 13.5} fontWeight={merge || t.milestone ? 800 : st === 'now' ? 700 : 400} className={st === 'done' ? 'done' : ''}>
+                <text x="98" y={y + 4} fontSize={big ? 15 : 13.5} fontWeight={big ? 800 : st === 'now' ? 700 : 400} className={st === 'done' ? 'done' : ''}>
                   {shortTitle(t, city)}
                 </text>
-                <text x="334" y={y + 4} textAnchor="end" fontSize="13" className={st === 'now' ? 'now' : 'when'}>
+                <text x="332" y={y + 4} textAnchor="end" fontSize="13" className={st === 'now' ? 'now' : 'when'}>
                   {st === 'done' ? 'Done' : st === 'now' ? 'Now' : monthYear(t.due)}
                 </text>
               </g>
@@ -108,64 +123,69 @@ export default function TransitMap({ animate = true }: { animate?: boolean }) {
           })}
         </svg>
       </div>
-      <StopSheet task={open} onClose={() => setOpenKey(null)} />
+      {!onSelect && <StopSheet task={open} onClose={() => setOpenKey(null)} />}
     </>
   )
 }
 
-export function StopSheet({ task, onClose }: { task: Task | null; onClose: () => void }) {
+/** What a stop is, what it costs, and the steps in order. Used in the sheet and the desktop panel. */
+export function StopDetail({ task: t }: { task: Task }) {
   const { done, today } = useApp()
   const { toggleDone } = useActions()
+  const isDone = done.has(t.key)
+  return (
+    <div className="stop-detail" style={{ ['--lc' as string]: LINE_COLOR[t.line] }}>
+      <span className="linechip">{LINE_NAME[t.line]}</span>
+      <h2>{t.title}</h2>
+      <div style={{ fontWeight: 700, fontSize: 14, color: isDone ? 'var(--ok)' : t.due <= today ? 'var(--now)' : 'var(--muted)' }}>{isDone ? 'Done' : t.due <= today ? 'Due now' : `Due ${dayMonthYear(t.due)}`}</div>
+      {(t.cost || t.takes || t.from) && (
+        <div className="facts3">
+          {t.cost && (
+            <div>
+              <small>Costs</small>
+              <b>{t.cost}</b>
+            </div>
+          )}
+          {t.takes && (
+            <div>
+              <small>Takes</small>
+              <b>{t.takes}</b>
+            </div>
+          )}
+          {t.from && (
+            <div>
+              <small>From</small>
+              <b>{t.from}</b>
+            </div>
+          )}
+        </div>
+      )}
+      <ol className="steps" style={{ marginTop: t.cost || t.takes || t.from ? 0 : 14 }}>
+        {t.steps.map((s) => (
+          <li key={s}>{s}</li>
+        ))}
+      </ol>
+      <div className="btns" style={{ gridTemplateColumns: t.url ? '1fr 1fr' : '1fr' }}>
+        {t.url && (
+          <a className="btn quiet" href={t.url} target="_blank" rel="noreferrer">
+            Open website
+          </a>
+        )}
+        <button type="button" className={`btn ${isDone ? 'quiet' : 'primary'}`} onClick={() => void toggleDone({ taskKey: t.key, today })}>
+          {isDone ? 'Mark as not done' : 'Mark as done'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export function StopSheet({ task, onClose }: { task: Task | null; onClose: () => void }) {
   const [last, setLast] = useState<Task | null>(task)
   if (task && task !== last) setLast(task)
   const t = task ?? last
-  const isDone = t ? done.has(t.key) : false
   return (
     <Sheet open={!!task} onClose={onClose} label={t?.title ?? 'Stop'}>
-      {t && (
-        <div style={{ ['--lc' as string]: LINE_COLOR[t.line] }}>
-          <span className="linechip">{LINE_NAME[t.line]}</span>
-          <h2>{t.title}</h2>
-          <div style={{ fontWeight: 700, fontSize: 14, color: isDone ? 'var(--ok)' : t.due <= today ? 'var(--now)' : 'var(--muted)' }}>{isDone ? 'Done' : t.due <= today ? 'Due now' : `Due ${dayMonthYear(t.due)}`}</div>
-          {(t.cost || t.takes || t.from) && (
-            <div className="facts3">
-              {t.cost && (
-                <div>
-                  <small>Costs</small>
-                  <b>{t.cost}</b>
-                </div>
-              )}
-              {t.takes && (
-                <div>
-                  <small>Takes</small>
-                  <b>{t.takes}</b>
-                </div>
-              )}
-              {t.from && (
-                <div>
-                  <small>From</small>
-                  <b>{t.from}</b>
-                </div>
-              )}
-            </div>
-          )}
-          <ol className="steps" style={{ marginTop: t.cost || t.takes || t.from ? 0 : 14 }}>
-            {t.steps.map((s) => (
-              <li key={s}>{s}</li>
-            ))}
-          </ol>
-          <div className="btns" style={{ gridTemplateColumns: t.url ? '1fr 1fr' : '1fr' }}>
-            {t.url && (
-              <a className="btn quiet" href={t.url} target="_blank" rel="noreferrer">
-                Open website
-              </a>
-            )}
-            <button type="button" className="btn primary" onClick={() => void toggleDone({ taskKey: t.key, today })}>
-              {isDone ? 'Mark as not done' : 'Mark as done'}
-            </button>
-          </div>
-        </div>
-      )}
+      {t && <StopDetail task={t} />}
     </Sheet>
   )
 }

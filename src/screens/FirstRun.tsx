@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { addMonths, firstOfMonth, todayIso } from '@shared/dates'
@@ -10,6 +11,7 @@ type When = 'saved' | 'year' | 'two' | 'pick'
 
 export default function FirstRun() {
   const onboard = useMutation(api.data.onboard)
+  const navigate = useNavigate()
   const [step, setStep] = useState(0)
   const [when, setWhen] = useState<When>('saved')
   const [pick, setPick] = useState(addMonths(firstOfMonth(todayIso()), 24))
@@ -54,6 +56,7 @@ export default function FirstRun() {
     }
     try {
       await onboard({ savedZar: saved, monthlyZar: monthly, homeRentZar: rent, homeIncomeZar: income, scenario })
+      navigate('/', { replace: true })
     } catch {
       setError("Couldn't save. Check your connection and try again.")
       setBusy(false)

@@ -14,8 +14,8 @@ import Life from './screens/Life'
 import Compare from './screens/Compare'
 import Editor from './screens/Editor'
 import Progress from './screens/Progress'
-import LinkLoot from './screens/LinkLoot'
 import Settings from './screens/Settings'
+import More from './screens/More'
 
 export default function App() {
   const { session, loading, dev } = useAuth()
@@ -44,8 +44,10 @@ function Signed() {
           <Route path="/compare" element={<Compare />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/scenario/:id" element={<Editor />} />
-          <Route path="/link" element={<LinkLoot />} />
+          <Route path="/more" element={<More />} />
+          <Route path="/link" element={<Navigate to="/settings/loot" replace />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/:section" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Shell>
