@@ -5,6 +5,7 @@ import { dayMonthYear, longMonthYear, monthYear } from '@shared/dates'
 import { monthlyBudget, progress, runwayMonths, runwaySeries, salaryFor } from '@shared/engine'
 import { LootCard, TopBar } from '../components/Shell'
 import Icon from '../components/Icon'
+import SavingPlan from '../components/SavingPlan'
 import TransitMap, { StopSheet, useNextStop } from '../components/TransitMap'
 import { useApp } from '../lib/app'
 import { gbp, pct, words, zar } from '../lib/format'
@@ -46,9 +47,9 @@ export default function Home() {
                 ? plan.readyDate
                   ? `At your pace you land around ${longMonthYear(plan.landDate)}.`
                   : 'Add a monthly saving to see when you can go.'
-                : plan.onTrack
-                  ? `You're on track for ${longMonthYear(plan.landDate)}.`
-                  : ''}
+                : plan.remainingZar > 0 && plan.fundsDeadline > today
+                  ? `To land on ${longMonthYear(plan.landDate)}, save ${zar(Math.ceil(plan.neededPerMonthZar / 100) * 100)} a month.`
+                  : `Landing on ${longMonthYear(plan.landDate)}.`}
             </p>
           </div>
         </div>
@@ -77,6 +78,7 @@ export default function Home() {
           </div>
         </section>
         <div className="home-more">
+          <SavingPlan plan={plan} mode={input.landMode} monthlyZar={savings.monthlyZar} today={today} />
           {next && (
             <button type="button" className="sign" onClick={() => setOpenNext(true)} style={{ border: 0, textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
               <span className={`stop${next.due > today ? ' ok' : ''}`} aria-hidden="true" />
@@ -98,15 +100,6 @@ export default function Home() {
             <span className="small muted prog-left">{zar(plan.remainingZar, 1000)} to go</span>
           </Link>
           {savingsSource !== 'loot' && <LootCard />}
-          {!plan.onTrack && savings.monthlyZar > 0 && input.landMode === 'date' && (
-            <div className="card warn-card" role="status">
-              <span className="stop" aria-hidden="true" />
-              <span className="small">
-                The money needs to be in your account by {longMonthYear(plan.fundsDeadline)}. Save {zar(plan.neededPerMonthZar, 100)} a month to make it
-                {plan.paceLandDate ? `, or land in ${longMonthYear(plan.paceLandDate)} instead.` : '.'}
-              </span>
-            </div>
-          )}
         </div>
       </div>
       <aside className="home-map side-map" aria-label="Your map">

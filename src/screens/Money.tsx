@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { monthlyBudget, salaryFor, takeHome, upfrontCosts, type GroupId } from '@shared/engine'
 import { PageHead } from '../components/Shell'
+import SavingPlan from '../components/SavingPlan'
 import { useApp } from '../lib/app'
 import { gbp, zar } from '../lib/format'
 import { Seg, useOpening } from '../lib/ui'
@@ -8,7 +9,7 @@ import { Seg, useOpening } from '../lib/ui'
 const GROUP_COLOR: Record<GroupId, string> = { paper: 'var(--l-paper)', move: 'var(--l-move)', runway: 'var(--l-money)' }
 
 export default function Money() {
-  const { input, plan, overrides } = useApp()
+  const { input, plan, overrides, savings, today } = useApp()
   const [cur, setCur] = useState<'ZAR' | 'GBP'>('ZAR')
   useOpening()
   const costs = upfrontCosts(input, plan.landDate, overrides)
@@ -32,6 +33,7 @@ export default function Money() {
           Save before you go
         </div>
         <div className="num">{fmt(costs.total, true)}</div>
+        <SavingPlan plan={plan} mode={input.landMode} monthlyZar={savings.monthlyZar} today={today} compact />
         <div className="stack reveal-x" style={{ ['--d' as string]: '200ms' }} aria-hidden="true">
           {costs.groups.map((g) => (
             <i key={g.id} style={{ flex: g.total, background: GROUP_COLOR[g.id] }} />

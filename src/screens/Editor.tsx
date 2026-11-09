@@ -8,10 +8,11 @@ import type { ScenarioInput } from '@shared/types'
 import { toInput, useActions, useApp, type Id } from '../lib/app'
 import { gbp, zar } from '../lib/format'
 import { MoneyInput, Seg, Toggle, useWide } from '../lib/ui'
+import SavingPlan from '../components/SavingPlan'
 
 export default function Editor() {
   const { id } = useParams()
-  const { scenarios, active, planFor, savings, overrides } = useApp()
+  const { scenarios, active, planFor, savings, overrides, today } = useApp()
   const { saveScenario, deleteScenario } = useActions()
   const navigate = useNavigate()
   const location = useLocation()
@@ -195,6 +196,7 @@ export default function Editor() {
             {gbp(p.targetGbp, 100)}. Landing {draft.landMode === 'saved' ? 'around ' : ''}
             {longMonthYear(p.landDate)}.
           </div>
+          <SavingPlan plan={p} mode={draft.landMode} monthlyZar={savings.monthlyZar} today={today} compact />
           {before && Math.abs(diff) >= 1000 && (
             <p className={`diff ${diff > 0 ? 'up' : 'down'}`}>
               {diff > 0 ? '+' : '−'}
@@ -228,8 +230,9 @@ export default function Editor() {
               {zar(p.targetZar, 1000)}
             </span>
             <small>
-              {gbp(p.targetGbp, 100)}, landing {draft.landMode === 'saved' ? 'around ' : ''}
-              {longMonthYear(p.landDate)}
+              {draft.landMode === 'date' && p.remainingZar > 0 && p.fundsDeadline > today
+                ? `Save ${zar(Math.ceil(p.neededPerMonthZar / 100) * 100)} a month to land ${longMonthYear(p.landDate)}`
+                : `Landing ${draft.landMode === 'saved' ? 'around ' : ''}${longMonthYear(p.landDate)}`}
             </small>
           </span>
           <button type="button" className="btn primary small" onClick={() => void save()} disabled={busy}>

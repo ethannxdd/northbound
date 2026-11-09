@@ -1,7 +1,8 @@
 import { CITIES } from '@shared/cities'
-import { dayMonthYear, longMonthYear, monthYear, monthsBetween } from '@shared/dates'
+import { dayMonthYear, monthYear, monthsBetween } from '@shared/dates'
 import { progress, ROUTE_PLACES } from '@shared/engine'
 import { LootCard, PageHead } from '../components/Shell'
+import SavingPlan from '../components/SavingPlan'
 import { useApp } from '../lib/app'
 import { pct, zar } from '../lib/format'
 import { useOpening } from '../lib/ui'
@@ -85,37 +86,20 @@ export default function Progress() {
       <div className="progress-side">
       <div className="stats3">
         <div>
-          <small>Saving a month</small>
-          <b>{zar(savings.monthlyZar, 100)}</b>
+          <small>{input.landMode === 'date' ? 'Need a month' : 'Saving a month'}</small>
+          <b>{input.landMode === 'date' && plan.remainingZar > 0 ? zar(Math.ceil(plan.neededPerMonthZar / 100) * 100) : zar(savings.monthlyZar, 100)}</b>
         </div>
         <div>
-          <small>Ready by</small>
-          <b>{plan.readyDate ? monthYear(plan.readyDate) : 'Not yet'}</b>
+          <small>{input.landMode === 'date' ? 'Have it by' : 'Ready by'}</small>
+          <b>{input.landMode === 'date' ? monthYear(plan.fundsDeadline) : plan.readyDate ? monthYear(plan.readyDate) : 'Not yet'}</b>
         </div>
         <div>
           <small>Months left</small>
-          <b>{monthsLeft ?? '–'}</b>
+          <b>{input.landMode === 'date' ? Math.max(0, monthsBetween(today, plan.fundsDeadline)) : monthsLeft ?? '–'}</b>
         </div>
       </div>
       <div style={{ padding: '10px 14px 20px' }}>
-        {input.landMode === 'date' && !plan.onTrack && plan.remainingZar > 0 ? (
-          <div className="sign" role="status">
-            <span className="stop" aria-hidden="true" />
-            <span>
-              For a {monthYear(plan.landDate)} landing, the money must be in your account by {longMonthYear(plan.fundsDeadline)}. Save {zar(plan.neededPerMonthZar, 100)} a month to make it.
-              {plan.paceLandDate && <small>Or land in {longMonthYear(plan.paceLandDate)} instead</small>}
-            </span>
-          </div>
-        ) : (
-          <div className="sign" role="status">
-            <span className="stop ok" aria-hidden="true" />
-            <span>
-              {plan.remainingZar <= 0
-                ? 'Your savings cover the move. Time to book the TB test and apply.'
-                : `On track. The money needs to be in your account by ${longMonthYear(plan.fundsDeadline)}, for a landing ${input.landMode === 'saved' ? 'around ' : 'on '}${longMonthYear(plan.landDate)}.`}
-            </span>
-          </div>
-        )}
+        <SavingPlan plan={plan} mode={input.landMode} monthlyZar={savings.monthlyZar} today={today} />
       </div>
       {deposits.length > 0 && (
         <section className="sec" aria-labelledby="dep">

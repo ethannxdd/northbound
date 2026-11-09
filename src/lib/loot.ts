@@ -97,26 +97,31 @@ export function lootPace(deposits: LootDeposit[]): number | null {
   return recent.reduce((a, d) => a + Number(d.amount), 0) / 3
 }
 
+/**
+ * Loot's `managed_by` column only exists once Loot migration 033 is applied. Until then,
+ * writing it fails, so try with it and fall back to writing without it.
+ */
+function missingManagedBy(error: { message?: string; code?: string } | null): boolean {
+  return !!error && (error.code === 'PGRST204' || /managed_by/i.test(error.message ?? ''))
+}
+
 export async function createLootGoal(userId: string, targetZar: number, targetDate: string): Promise<LootGoal> {
-  const { data, error } = await supabase
-    .from('savings_goals')
-    .insert({
-      user_id: userId,
-      name: 'UK move',
-      category: 'travel',
-      target_amount: Math.round(targetZar / 1000) * 1000,
-      current_amount: 0,
-      target_date: targetDate,
-      note: 'Target set by Northbound. It updates when your plan changes; your savings are never touched.',
-      // Tells Loot this goal's target and date are owned by Northbound (Loot migration 033); Loot locks them.
-      managed_by: 'northbound',
-      is_completed: false,
-      completed_at: null,
-    })
-    .select(GOAL_COLUMNS)
-    .single()
-  if (error) throw new Error("Couldn't create the goal in Loot. Try again.")
-  return data as LootGoal
+  const row = {
+    user_id: userId,
+    name: 'UK move',
+    category: 'travel',
+    target_amount: Math.round(targetZar / 1000) * 1000,
+    current_amount: 0,
+    target_date: targetDate,
+    note: 'Target set by Northbound. It updates when your plan changes; your savings are never touched.',
+    is_completed: false,
+    completed_at: null,
+  }
+  // managed_by tells Loot this goal's target and date belong to Northbound, so Loot locks them.
+  let res = await supabase.from('savings_goals').insert({ ...row, managed_by: 'northbound' }).select(GOAL_COLUMNS).single()
+  if (missingManagedBy(res.error)) res = await supabase.from('savings_goals').insert(row).select(GOAL_COLUMNS).single()
+  if (res.error) throw new Error("Couldn't create the goal in Loot. Try again.")
+  return res.data as LootGoal
 }
 
 /** Keeps the Loot goal's target and date equal to Northbound's number, using Loot's completion rule. */
@@ -124,16 +129,14 @@ export async function syncLootTarget(goal: LootGoal, targetZar: number, targetDa
   const target = Math.round(targetZar / 1000) * 1000
   if (Math.abs(goal.target_amount - target) < 1 && goal.target_date === targetDate) return
   const done = target > 0 && goal.current_amount >= target
-  const { error } = await supabase
-    .from('savings_goals')
-    .update({
-      target_amount: target,
-      target_date: targetDate,
-      // Also tags goals Northbound linked rather than created.
-      managed_by: 'northbound',
-      is_completed: done,
-      completed_at: done ? (goal.is_completed && goal.completed_at ? goal.completed_at : new Date().toISOString()) : null,
-    })
-    .eq('id', goal.id)
+  const patch = {
+    target_amount: target,
+    target_date: targetDate,
+    is_completed: done,
+    completed_at: done ? (goal.is_completed && goal.completed_at ? goal.completed_at : new Date().toISOString()) : null,
+  }
+  // Also tags goals Northbound linked rather than created.
+  let { error } = await supabase.from('savings_goals').update({ ...patch, managed_by: 'northbound' }).eq('id', goal.id)
+  if (missingManagedBy(error)) ({ error } = await supabase.from('savings_goals').update(patch).eq('id', goal.id))
   if (error) throw new Error("Couldn't update the goal in Loot.")
 }
