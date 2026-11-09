@@ -1,5 +1,16 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import type { AuthError } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+
+/** Turns Supabase's error into something that says what actually went wrong. */
+function explain(err: AuthError): string {
+  const msg = err.message || ''
+  if (/invalid api key/i.test(msg)) return "Northbound can't reach Loot's sign-in: its Supabase key is wrong. Check VITE_SUPABASE_PUBLISHABLE_KEY."
+  if (err.code === 'invalid_credentials') return "That email and password didn't match a Loot account."
+  if (err.code === 'email_not_confirmed') return 'Confirm your email address first, using the link Loot sent you.'
+  if (err.status === 0 || /fetch|network/i.test(msg)) return "Couldn't reach Loot's sign-in. Check your connection and try again."
+  return `Couldn't sign in: ${msg}`
+}
 
 /** Sign in with the same account you use for Loot. */
 export default function SignIn() {
@@ -9,6 +20,17 @@ export default function SignIn() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
+  const [googleOn, setGoogleOn] = useState(false)
+  const [showPw, setShowPw] = useState(false)
+
+  // Only offer Google if it's switched on in Loot's Supabase project.
+  useEffect(() => {
+    const url = import.meta.env.VITE_SUPABASE_URL as string
+    fetch(`${url}/auth/v1/settings`, { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => setGoogleOn(!!j?.external?.google))
+      .catch(() => setGoogleOn(false))
+  }, [])
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -20,11 +42,11 @@ export default function SignIn() {
         setBusy(false)
         return setError('Enter your Loot password.')
       }
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-      if (err) setError("That email and password didn't match a Loot account.")
+      const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+      if (err) setError(explain(err))
     } else {
-      const { error: err } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: window.location.origin } })
-      if (err) setError("Couldn't send the link. Check the email is the one you use for Loot.")
+      const { error: err } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: false, emailRedirectTo: window.location.origin } })
+      if (err) setError(err.code === 'otp_disabled' || /signups not allowed/i.test(err.message) ? "There's no Loot account with that email." : explain(err))
       else setSent(true)
     }
     setBusy(false)
@@ -33,7 +55,7 @@ export default function SignIn() {
   async function google() {
     setError(null)
     const { error: err } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
-    if (err) setError("Couldn't start Google sign-in.")
+    if (err) setError(explain(err))
   }
 
   return (
@@ -45,9 +67,11 @@ export default function SignIn() {
         </h1>
         <p style={{ margin: '0 0 18px', color: 'var(--uk-muted)' }}>Northbound uses the same account as Loot, so it can follow your savings goal.</p>
         <div className="stack-gap">
-          <button type="button" className="btn sun block" onClick={() => void google()}>
-            Continue with Google
-          </button>
+          {googleOn && (
+            <button type="button" className="btn sun block" onClick={() => void google()}>
+              Continue with Google
+            </button>
+          )}
           <label htmlFor="email" className="small" style={{ fontWeight: 700 }}>
             Email
           </label>
@@ -57,7 +81,13 @@ export default function SignIn() {
               <label htmlFor="pw" className="small" style={{ fontWeight: 700 }}>
                 Password
               </label>
-              <input id="pw" className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <div className="pw-wrap">
+                <input id="pw" className="input" type={showPw ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <button type="button" className="pw-toggle" onClick={() => setShowPw(!showPw)} aria-pressed={showPw} aria-controls="pw">
+                  {showPw ? 'Hide' : 'Show'}
+                  <span className="sr-only"> password</span>
+                </button>
+              </div>
             </>
           )}
           {error && (

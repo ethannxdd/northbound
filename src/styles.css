@@ -342,3 +342,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height:
 }
 
 @media (min-width: 900px) { .topbrand { visibility: hidden; } }
+
+/* show/hide password */
+.pw-wrap { position: relative; }
+.pw-wrap .input { padding-right: 72px; }
+.pw-toggle { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; color: var(--accent); font-weight: 700; font-size: 14px; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.signin .pw-toggle { color: var(--uk-text); }
+.pw-toggle:hover { background: rgba(127,127,127,.15); }
