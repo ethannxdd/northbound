@@ -108,6 +108,8 @@ export async function createLootGoal(userId: string, targetZar: number, targetDa
       current_amount: 0,
       target_date: targetDate,
       note: 'Target set by Northbound. It updates when your plan changes; your savings are never touched.',
+      // Tells Loot this goal's target and date are owned by Northbound (Loot migration 033); Loot locks them.
+      managed_by: 'northbound',
       is_completed: false,
       completed_at: null,
     })
@@ -127,6 +129,8 @@ export async function syncLootTarget(goal: LootGoal, targetZar: number, targetDa
     .update({
       target_amount: target,
       target_date: targetDate,
+      // Also tags goals Northbound linked rather than created.
+      managed_by: 'northbound',
       is_completed: done,
       completed_at: done ? (goal.is_completed && goal.completed_at ? goal.completed_at : new Date().toISOString()) : null,
     })
