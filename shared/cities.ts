@@ -22,6 +22,8 @@ export interface CityProfile {
   wetDays: number
   transportNote: string
   coffee: number
+  photo: string
+  photoCredit: string
 }
 
 export const CITIES: Record<CityId, CityProfile> = {
@@ -40,6 +42,8 @@ export const CITIES: Record<CityId, CityProfile> = {
     wetDays: 150,
     transportNote: '£2 bus fare cap',
     coffee: 3.4,
+    photo: 'https://images.unsplash.com/photo-1611490916757-4402482e161b',
+    photoCredit: 'Mylo Kaye on Unsplash',
   },
   london: {
     id: 'london',
@@ -56,13 +60,59 @@ export const CITIES: Record<CityId, CityProfile> = {
     wetDays: 110,
     transportNote: 'Daily caps on the Tube and buses',
     coffee: 3.9,
+    photo: 'https://images.unsplash.com/photo-1632897271846-b6e3ca78aded',
+    photoCredit: 'Jacob Smith on Unsplash',
   },
 }
 
 export const CAPE_TOWN = {
   name: 'Cape Town',
+  photo: 'https://images.unsplash.com/photo-1626894169601-482d26b23f35',
+  photoCredit: 'Peter Burdon on Unsplash',
   daylight: [14.2, 13.2, 12.1, 11.0, 10.2, 9.8, 10.0, 10.8, 11.8, 12.9, 13.9, 14.4],
   coffeeZar: 38,
 }
 
 export const HOUSING_LABEL: Record<Housing, string> = { room: 'Room in a share', studio: 'Studio', onebed: '1-bed flat' }
+
+/** Unsplash photo at a given width. */
+export function photoUrl(base: string, width: number): string {
+  return `${base}?auto=format&fit=crop&w=${width}&q=72`
+}
+
+export interface Area {
+  id: string
+  name: string
+  /** Typical rent for a room in a share, per month. Studios and flats scale by the same factor. */
+  room: number
+  commute: string
+  vibe: string
+}
+
+/** Neighbourhoods with rough rents. Planning estimates, not quotes. */
+export const AREAS: Record<CityId, Area[]> = {
+  manchester: [
+    { id: 'city-centre', name: 'City Centre', room: 950, commute: 'Walk to most offices', vibe: 'Flats, bars, everything close' },
+    { id: 'ancoats', name: 'Ancoats and Northern Quarter', room: 920, commute: '10 min walk to the centre', vibe: 'Converted mills, cafes, young crowd' },
+    { id: 'salford-quays', name: 'Salford Quays', room: 860, commute: '15 min on the tram', vibe: 'Waterside flats, MediaCity' },
+    { id: 'chorlton', name: 'Chorlton', room: 800, commute: '20 min on the tram', vibe: 'Leafy, independent shops' },
+    { id: 'didsbury', name: 'Didsbury', room: 850, commute: '25 min on the tram', vibe: 'Quiet, green, popular with professionals' },
+    { id: 'levenshulme', name: 'Levenshulme', room: 700, commute: '20 min by train or bus', vibe: 'Good value, friendly' },
+  ],
+  london: [
+    { id: 'islington', name: 'Islington', room: 1300, commute: '15 min to the City', vibe: 'Central, busy, pricey' },
+    { id: 'hackney', name: 'Hackney', room: 1150, commute: '20 min on the Overground', vibe: 'Creative, markets, nightlife' },
+    { id: 'brixton', name: 'Brixton', room: 1100, commute: '20 min on the Victoria line', vibe: 'Lively, music, food' },
+    { id: 'stratford', name: 'Stratford', room: 1050, commute: '15 min on the Elizabeth line', vibe: 'New builds, Olympic Park' },
+    { id: 'walthamstow', name: 'Walthamstow', room: 1000, commute: '25 min on the Victoria line', vibe: 'Village feel, wetlands' },
+    { id: 'croydon', name: 'Croydon', room: 900, commute: '20 min by train', vibe: 'Best value, big town centre' },
+  ],
+}
+
+/** Rent for the chosen housing, adjusted for the neighbourhood if one is picked. */
+export function rentFor(city: CityId, housing: Housing, area?: string): number {
+  const c = CITIES[city]
+  const a = AREAS[city].find((x) => x.id === area)
+  if (!a) return c.rent[housing]
+  return Math.round((c.rent[housing] * a.room) / c.rent.room / 10) * 10
+}

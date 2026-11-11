@@ -11,7 +11,8 @@ export function gbp(n: number, roundTo = 1): string {
 /** Short rand for tight spaces: R312k, R1.2m */
 export function zarShort(n: number): string {
   if (n >= 1_000_000) return `R${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}m`
-  if (n >= 1000) return `R${Math.round(n / 1000)}k`
+  if (n >= 10000) return `R${Math.round(n / 1000)}k`
+  if (n >= 1000) return `R${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`
   return zar(n)
 }
 

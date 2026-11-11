@@ -1,25 +1,14 @@
 import { v } from 'convex/values'
+import { getAuthUserId } from '@convex-dev/auth/server'
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
 import type { Id } from './_generated/dataModel'
 import { scenarioFields } from './schema'
+import { dataKey, requireKey } from './lib/user'
 
 declare const process: { env: Record<string, string | undefined> }
 
-/**
- * The signed-in user's id: the subject of their Supabase token.
- * NB_DEV_USER_ID is only for a local test deployment with no sign-in. Never set it on a real deployment.
- */
-async function userId(ctx: QueryCtx | MutationCtx): Promise<string | null> {
-  const identity = await ctx.auth.getUserIdentity()
-  if (identity) return identity.subject
-  return process.env.NB_DEV_USER_ID ?? null
-}
-
-async function requireUser(ctx: QueryCtx | MutationCtx): Promise<string> {
-  const id = await userId(ctx)
-  if (!id) throw new Error('Sign in to continue')
-  return id
-}
+const userId = dataKey
+const requireUser = requireKey
 
 async function profileOf(ctx: QueryCtx | MutationCtx, uid: string) {
   return ctx.db.query('profiles').withIndex('by_user', (q) => q.eq('userId', uid)).unique()
@@ -36,13 +25,26 @@ export const me = query({
   handler: async (ctx) => {
     const uid = await userId(ctx)
     if (!uid) return null
-    const [profile, scenarios, done, overrides] = await Promise.all([
+    const [profile, scenarios, done, overrides, documents, earnings, share, fx] = await Promise.all([
       profileOf(ctx, uid),
       ctx.db.query('scenarios').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
       ctx.db.query('done').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
       ctx.db.query('ruleOverrides').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
+      ctx.db.query('documents').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
+      ctx.db.query('earnings').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
+      ctx.db.query('shares').withIndex('by_user', (q) => q.eq('userId', uid)).first(),
+      ctx.db.query('fxRates').withIndex('by_date').order('desc').take(120),
     ])
-    return { profile, scenarios, done, overrides }
+    const authId = await getAuthUserId(ctx)
+    const user = authId ? await ctx.db.get(authId) : null
+    const account = {
+      email: user?.email ?? null,
+      lootEmail: user?.lootEmail ?? null,
+      lootLinked: !!user?.lootSub,
+      /** Signed in with an old app version that sends Loot's token directly */
+      legacyLoot: !authId && !!(await ctx.auth.getUserIdentity()),
+    }
+    return { profile, scenarios, done, overrides, documents, earnings, shareToken: share?.token ?? null, fx: fx.reverse(), account }
   },
 })
 
@@ -77,14 +79,18 @@ export const updateProfile = mutation({
     homeIncomeZar: v.optional(v.number()),
     lootGoalId: v.optional(v.union(v.string(), v.null())),
     syncLootTarget: v.optional(v.boolean()),
+    remindersOn: v.optional(v.boolean()),
+    landedOn: v.optional(v.union(v.string(), v.null())),
+    englishLevel: v.optional(v.string()),
   },
   handler: async (ctx, a) => {
     const uid = await requireUser(ctx)
     const p = await profileOf(ctx, uid)
     if (!p) throw new Error('Finish setting up first')
-    const { lootGoalId, ...rest } = a
+    const { lootGoalId, landedOn, ...rest } = a
     const patch: Record<string, unknown> = Object.fromEntries(Object.entries(rest).filter(([, x]) => x !== undefined))
     if (lootGoalId !== undefined) patch.lootGoalId = lootGoalId ?? undefined
+    if (landedOn !== undefined) patch.landedOn = landedOn ?? undefined
     await ctx.db.patch(p._id, patch)
   },
 })
@@ -102,7 +108,8 @@ export const saveScenario = mutation({
     let id = a.id
     if (id) {
       await ownScenario(ctx, uid, id)
-      await ctx.db.patch(id, a.scenario)
+      // Replace, so optional fields left out (like a cleared neighbourhood) are removed.
+      await ctx.db.replace(id, { userId: uid, ...a.scenario })
     } else {
       id = await ctx.db.insert('scenarios', { userId: uid, ...a.scenario })
     }
@@ -164,7 +171,7 @@ export const resetAll = mutation({
   args: {},
   handler: async (ctx) => {
     const uid = await requireUser(ctx)
-    for (const t of ['scenarios', 'done', 'ruleOverrides', 'profiles'] as const) {
+    for (const t of ['scenarios', 'done', 'ruleOverrides', 'profiles', 'documents', 'earnings', 'shares', 'pushSubs'] as const) {
       const rows = await ctx.db.query(t).withIndex('by_user', (q) => q.eq('userId', uid)).collect()
       for (const r of rows) await ctx.db.delete(r._id)
     }

@@ -27,6 +27,10 @@ export interface ScenarioInput {
   tempNights: number
   flightGbp: number
   bufferGbp: number
+  /** 'live' follows today's rand/pound rate; 'fixed' or missing uses `rate` */
+  rateMode?: 'live' | 'fixed'
+  /** Neighbourhood id within the city; missing means the city average */
+  area?: string
 }
 
 /** Where your savings are now and how fast they grow, in rand. */
@@ -53,4 +57,5 @@ export const DEFAULT_SCENARIO: ScenarioInput = {
   tempNights: 10,
   flightGbp: 520,
   bufferGbp: 0,
+  rateMode: 'live',
 }

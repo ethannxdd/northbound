@@ -1,3 +1,4 @@
+import { authTables } from '@convex-dev/auth/server'
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
@@ -19,10 +20,37 @@ export const scenarioFields = {
   tempNights: v.number(),
   flightGbp: v.number(),
   bufferGbp: v.number(),
+  /** 'live' follows today's rand/pound rate; 'fixed' (or missing) uses `rate` */
+  rateMode: v.optional(v.union(v.literal('live'), v.literal('fixed'))),
+  /** Neighbourhood id within the city; missing means the city average */
+  area: v.optional(v.string()),
 }
 
+export const docStatus = v.union(v.literal('todo'), v.literal('ordered'), v.literal('arrived'), v.literal('checked'))
+
 export default defineSchema({
-  // One row per user. userId is the Supabase user id (the token's subject), shared with Loot.
+  ...authTables,
+
+  // Convex Auth's users table, plus where this person's Northbound data lives.
+  // dataKey is the `userId` used by every table below. Loot sign-ins keep their Supabase id as the key,
+  // so plans made before Northbound had its own accounts carry over.
+  users: defineTable({
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    dataKey: v.optional(v.string()),
+    /** Supabase user id of the linked Loot account */
+    lootSub: v.optional(v.string()),
+    lootEmail: v.optional(v.string()),
+  })
+    .index('email', ['email'])
+    .index('phone', ['phone'])
+    .index('by_lootSub', ['lootSub']),
+
   profiles: defineTable({
     userId: v.string(),
     savedZar: v.number(),
@@ -33,13 +61,44 @@ export default defineSchema({
     lootGoalId: v.optional(v.string()),
     syncLootTarget: v.boolean(),
     onboarded: v.boolean(),
+    remindersOn: v.optional(v.boolean()),
+    /** For the settlement tracker, once you're in the UK */
+    landedOn: v.optional(v.string()),
+    englishLevel: v.optional(v.string()),
   }).index('by_user', ['userId']),
 
   scenarios: defineTable({ userId: v.string(), ...scenarioFields }).index('by_user', ['userId']),
 
-  // Ticked tasks on the map, per user (the same step is done whichever scenario you look at).
+  // Ticked steps on the map, per user.
   done: defineTable({ userId: v.string(), taskKey: v.string(), doneAt: v.string() }).index('by_user', ['userId']).index('by_user_task', ['userId', 'taskKey']),
 
   // Values edited on the Rules page.
   ruleOverrides: defineTable({ userId: v.string(), key: v.string(), value: v.union(v.number(), v.string()) }).index('by_user', ['userId']).index('by_user_key', ['userId', 'key']),
+
+  // Paperwork tracker: one row per document.
+  documents: defineTable({
+    userId: v.string(),
+    docKey: v.string(),
+    status: docStatus,
+    orderedOn: v.optional(v.string()),
+    arrivedOn: v.optional(v.string()),
+    note: v.optional(v.string()),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_doc', ['userId', 'docKey']),
+
+  // Daily rand-per-pound rates, shared by everyone.
+  fxRates: defineTable({ date: v.string(), zarPerGbp: v.number(), fetchedAt: v.number() }).index('by_date', ['date']),
+
+  // Read-only share links.
+  shares: defineTable({ userId: v.string(), token: v.string(), createdAt: v.number() }).index('by_token', ['token']).index('by_user', ['userId']),
+
+  // Phone notifications.
+  pushSubs: defineTable({ userId: v.string(), endpoint: v.string(), p256dh: v.string(), auth: v.string(), createdAt: v.number() })
+    .index('by_user', ['userId'])
+    .index('by_endpoint', ['endpoint']),
+  reminderLog: defineTable({ userId: v.string(), key: v.string(), sentOn: v.string() }).index('by_user_key', ['userId', 'key']),
+
+  // Settlement tracker: UK earnings per tax year once you're there.
+  earnings: defineTable({ userId: v.string(), taxYear: v.string(), gross: v.number() }).index('by_user', ['userId']).index('by_user_year', ['userId', 'taxYear']),
 })

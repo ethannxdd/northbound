@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { CITIES } from '@shared/cities'
+import { AREAS, CITIES, rentFor } from '@shared/cities'
 import { longMonthYear, todayIso } from '@shared/dates'
 import { monthlyBudget, partnerCanCome, upfrontCosts } from '@shared/engine'
 import { addMonths } from '@shared/dates'
@@ -12,7 +12,7 @@ import SavingPlan from '../components/SavingPlan'
 
 export default function Editor() {
   const { id } = useParams()
-  const { scenarios, active, planFor, savings, overrides, today } = useApp()
+  const { scenarios, active, planFor, savings, overrides, today, liveRate, effective } = useApp()
   const { saveScenario, deleteScenario } = useActions()
   const navigate = useNavigate()
   const location = useLocation()
@@ -32,7 +32,7 @@ export default function Editor() {
   const partnerOk = partnerCanCome(draft, applyDate, overrides)
   const before = existing ? planFor(toInput(existing)) : null
   const diff = before ? p.targetZar - before.targetZar : 0
-  const costs = upfrontCosts(draft, p.landDate, overrides)
+  const costs = upfrontCosts(effective(draft), p.landDate, overrides)
   const budget = monthlyBudget(draft, p.landDate, overrides)
 
   async function save() {
@@ -60,13 +60,13 @@ export default function Editor() {
   }
 
   return (
-    <div className="screen-editor">
+    <div>
       <div className="editor-top">
-        <button type="button" className="btn quiet small" onClick={leave}>
+        <button type="button" className="btn quiet sm" onClick={leave}>
           Cancel
         </button>
-        <h1 className="h1 editor-title">{isNew ? 'New scenario' : `Edit ${existing.name}`}</h1>
-        <button type="button" className="btn small primary" onClick={() => void save()} disabled={busy}>
+        <h1 className="editor-title">{isNew ? 'New scenario' : `Edit ${existing.name}`}</h1>
+        <button type="button" className="btn grad sm" onClick={() => void save()} disabled={busy}>
           {busy ? 'Saving…' : 'Save'}
         </button>
       </div>
@@ -98,12 +98,24 @@ export default function Editor() {
       <h2 className="form-h">Where and who</h2>
       <div className="field">
         <span className="lbl">City</span>
-        <Seg label="City" value={draft.city} onChange={(v) => set('city', v)} options={Object.values(CITIES).map((c) => ({ value: c.id, label: c.name }))} />
+        <Seg label="City" value={draft.city} onChange={(v) => setDraft((d) => ({ ...d, city: v, area: undefined }))} options={Object.values(CITIES).map((c) => ({ value: c.id, label: c.name }))} />
       </div>
 
       <div className="field">
         <span className="lbl">Home</span>
         <Seg label="Housing" value={draft.housing} onChange={(v) => set('housing', v)} options={[{ value: 'room', label: 'Room' }, { value: 'studio', label: 'Studio' }, { value: 'onebed', label: '1-bed' }]} />
+      </div>
+
+      <div className="field">
+        <label htmlFor="area">Neighbourhood</label>
+        <select id="area" className="input" value={draft.area ?? ''} onChange={(e) => set('area', e.target.value || undefined)}>
+          <option value="">City average</option>
+          {AREAS[draft.city].map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}, {gbp(rentFor(draft.city, draft.housing, a.id))}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="field">
@@ -147,7 +159,17 @@ export default function Editor() {
         <MoneyInput id="salary" prefix="£" value={draft.ukSalary} onChange={(n) => set('ukSalary', n)} />
         <p className="hint">Leave empty to use a typical IT support salary in {CITIES[draft.city].name}.</p>
       </div>
-      <Slider id="rate" label="Rand to the pound" value={draft.rate} min={15} max={35} step={0.1} show={(v) => `R${v.toFixed(2)}`} onChange={(v) => set('rate', v)} />
+      <div className="field">
+        <span className="lbl">Rand to the pound</span>
+        <Seg label="Exchange rate" value={draft.rateMode === 'live' ? 'live' : 'fixed'} onChange={(v) => set('rateMode', v)} options={[{ value: 'live', label: liveRate ? `Live, R${liveRate.toFixed(2)}` : 'Live rate' }, { value: 'fixed', label: 'Set my own' }]} />
+        {draft.rateMode !== 'live' ? (
+          <div style={{ marginTop: 10 }}>
+            <Slider id="rate" label="Your rate" value={draft.rate} min={15} max={35} step={0.1} show={(v) => `R${v.toFixed(2)}`} onChange={(v) => set('rate', v)} />
+          </div>
+        ) : (
+          <p className="hint">Follows the European Central Bank's daily rate, so your number moves with the rand.</p>
+        )}
+      </div>
       <Slider id="certs" label="Wait for SA certificates" value={draft.certLeadMonths} min={2} max={18} step={1} show={(v) => `${v} months`} onChange={(v) => set('certLeadMonths', v)} />
       <Slider id="nights" label="Nights before you find a room" value={draft.tempNights} min={3} max={30} step={1} show={(v) => `${v} nights`} onChange={(v) => set('tempNights', v)} />
       <div className="field">
@@ -181,7 +203,7 @@ export default function Editor() {
       )}
       {!isNew && (
         <div className="field">
-          <button type="button" className="btn quiet block" onClick={() => void remove()} style={{ color: 'var(--now)' }}>
+          <button type="button" className="btn quiet block" onClick={() => void remove()} style={{ color: 'var(--warn)' }}>
             Delete this scenario
           </button>
         </div>
@@ -189,7 +211,7 @@ export default function Editor() {
 
       </div>
       {wide ? (
-        <aside className="editor-summary" aria-live="polite" aria-label="What this scenario needs">
+        <aside className="card lift editor-summary" aria-live="polite" aria-label="What this scenario needs">
           <small className="muted">You'd need</small>
           <div className="num">{zar(p.targetZar, 1000)}</div>
           <div className="muted small">
@@ -207,7 +229,7 @@ export default function Editor() {
             {costs.groups.map((g) => (
               <li key={g.id}>
                 <span>{g.label}</span>
-                <b>{zar(g.total * draft.rate, 1000)}</b>
+                <b>{zar(g.total * effective(draft).rate, 1000)}</b>
               </li>
             ))}
             <li>
@@ -215,7 +237,7 @@ export default function Editor() {
               <b>{gbp(budget.left)}</b>
             </li>
           </ul>
-          <button type="button" className="btn primary block" onClick={() => void save()} disabled={busy}>
+          <button type="button" className="btn grad block" onClick={() => void save()} disabled={busy}>
             {busy ? 'Saving…' : isNew ? 'Save scenario' : 'Save changes'}
           </button>
           <button type="button" className="btn quiet block" onClick={leave} style={{ marginTop: 8 }}>
@@ -223,7 +245,7 @@ export default function Editor() {
           </button>
         </aside>
       ) : (
-        <div className="sign editor-result" aria-live="polite">
+        <div className="editor-result" aria-live="polite">
           <span>
             <small>You'd need{before && Math.abs(diff) >= 1000 ? `, ${diff > 0 ? '+' : '−'}${zar(Math.abs(diff), 1000)}` : ''}</small>
             <span className="num" style={{ fontSize: 30 }}>
@@ -235,7 +257,7 @@ export default function Editor() {
                 : `Landing ${draft.landMode === 'saved' ? 'around ' : ''}${longMonthYear(p.landDate)}`}
             </small>
           </span>
-          <button type="button" className="btn primary small" onClick={() => void save()} disabled={busy}>
+          <button type="button" className="btn grad sm" onClick={() => void save()} disabled={busy}>
             Save
           </button>
         </div>

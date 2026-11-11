@@ -1,20 +1,26 @@
-import { useState, type ReactNode } from 'react'
+import { useAction } from 'convex/react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, NavLink, useNavigate, useParams } from 'react-router-dom'
+import { api } from '../../convex/_generated/api'
 import { RULES, rule, ruleText, type RuleEntry } from '@shared/rules'
 import { longDate } from '@shared/dates'
+import RemindersControls from '../components/Reminders'
 import { BackLink } from '../components/Shell'
 import Icon from '../components/Icon'
 import { useActions, useApp } from '../lib/app'
-import { useAuth } from '../lib/auth'
+import { devNoAuth, lootPasswordSignIn, useLootSession, useSignOut } from '../lib/auth'
 import { zar } from '../lib/format'
 import { createLootGoal, useLootGoals } from '../lib/loot'
+import { supabase } from '../lib/supabase'
 import { SavedMoneyField, Seg, Toggle, useSavedFlash, useTheme, useWide, type ThemeChoice } from '../lib/ui'
 
 export const SECTIONS = [
-  { id: 'loot', label: 'Loot savings goal', icon: 'link', blurb: 'Follow a Loot goal so progress updates as you save' },
+  { id: 'loot', label: 'Loot', icon: 'link', blurb: 'Link Loot and follow a savings goal' },
   { id: 'savings', label: 'Savings plan', icon: 'savings', blurb: 'What you save each month, and life in Cape Town now' },
   { id: 'scenarios', label: 'Scenarios', icon: 'scenarios', blurb: 'Pick your main scenario, edit or add one' },
-  { id: 'appearance', label: 'Appearance', icon: 'appearance', blurb: 'Light, dark or match your device' },
+  { id: 'reminders', label: 'Reminders and calendar', icon: 'bell', blurb: 'Phone nudges and a calendar of every step' },
+  { id: 'share', label: 'Share your plan', icon: 'share', blurb: 'A read-only link for family or a partner' },
+  { id: 'appearance', label: 'Appearance', icon: 'appearance', blurb: 'Dark, light or match your device' },
   { id: 'rules', label: 'Rules and sources', icon: 'rules', blurb: 'Every fee and threshold, with its source' },
   { id: 'account', label: 'Account', icon: 'account', blurb: 'Sign out or delete your Northbound data' },
 ] as const
@@ -25,44 +31,44 @@ export default function Settings() {
   const { section } = useParams()
   const wide = useWide()
   const current = SECTIONS.find((s) => s.id === section)
-  if (!current) return <Navigate to={wide ? '/settings/loot' : '/more'} replace />
+  if (!current) return <Navigate to={wide ? '/settings/loot' : '/profile'} replace />
 
   const body = <SectionBody id={current.id} />
   if (!wide) {
     return (
-      <div className="settings-phone">
-        <div className="settings-phone-head">
-          <BackLink to="/more" label="More" />
-          <h1 className="h1">{current.label}</h1>
+      <div>
+        <div className="pagehead">
+          <BackLink to="/profile" label="Profile" />
+          <h1 className="h1" style={{ marginTop: 14 }}>
+            {current.label}
+          </h1>
+          <p>{current.blurb}.</p>
         </div>
-        <div className="settings-body">{body}</div>
+        <div className="wrap">{body}</div>
       </div>
     )
   }
   return (
     <div className="settings-desk">
       <nav className="settings-nav" aria-label="Settings">
-        <h1 className="h1" style={{ fontSize: 28, margin: '0 0 14px 10px' }}>
+        <h1 className="h1" style={{ margin: '0 0 14px 12px' }}>
           Settings
         </h1>
         {SECTIONS.map((s) => (
           <NavLink key={s.id} to={`/settings/${s.id}`} className={({ isActive }) => (isActive ? 'active' : '')}>
-            <Icon name={s.icon} size={18} />
-            <span>
-              {s.label}
-              <small>{s.blurb}</small>
-            </span>
+            <Icon name={s.icon} size={19} />
+            {s.label}
           </NavLink>
         ))}
       </nav>
       <section className="settings-main" aria-labelledby="sec-title">
-        <h2 id="sec-title" className="h1" style={{ fontSize: 30 }}>
+        <h2 id="sec-title" className="h1">
           {current.label}
         </h2>
-        <p className="muted" style={{ margin: '4px 0 22px' }}>
+        <p className="muted" style={{ margin: '6px 0 12px' }}>
           {current.blurb}.
         </p>
-        <div className="settings-body">{body}</div>
+        {body}
       </section>
     </div>
   )
@@ -76,6 +82,10 @@ function SectionBody({ id }: { id: SectionId }) {
       return <SavingsSection />
     case 'scenarios':
       return <ScenariosSection />
+    case 'reminders':
+      return <RemindersSection />
+    case 'share':
+      return <ShareSection />
     case 'appearance':
       return <AppearanceSection />
     case 'rules':
@@ -99,12 +109,72 @@ function Block({ title, children, note }: { title?: string; children: ReactNode;
 
 const NEW = '__new__'
 
+/** Signs in to Loot on this device and links it to this Northbound account. */
+function LootSignInForm({ cta, onDone }: { cta: string; onDone: () => void }) {
+  const linkLoot = useAction(api.account.linkLoot)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPw, setShowPw] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+    if (!email.includes('@')) return setError('Enter the email you use for Loot.')
+    if (!password) return setError('Enter your Loot password.')
+    setBusy(true)
+    const res = await lootPasswordSignIn(email, password)
+    if ('error' in res) {
+      setError(res.error)
+      setBusy(false)
+      return
+    }
+    const linked = await linkLoot({ token: res.token })
+    if (!linked.ok) {
+      await supabase.auth.signOut()
+      setError(linked.reason)
+      setBusy(false)
+      return
+    }
+    setBusy(false)
+    onDone()
+  }
+
+  return (
+    <form onSubmit={submit} noValidate className="stack" style={{ gap: 10, maxWidth: 440 }}>
+      <label htmlFor="loot-email" className="small" style={{ fontWeight: 700 }}>
+        Loot email
+      </label>
+      <input id="loot-email" className="input" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+      <label htmlFor="loot-pw" className="small" style={{ fontWeight: 700 }}>
+        Loot password
+      </label>
+      <div className="pw-wrap">
+        <input id="loot-pw" className="input" type={showPw ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <button type="button" className="pw-toggle" onClick={() => setShowPw(!showPw)} aria-pressed={showPw} aria-controls="loot-pw">
+          {showPw ? 'Hide' : 'Show'}
+          <span className="sr-only"> password</span>
+        </button>
+      </div>
+      {error && (
+        <p className="error" role="alert" style={{ margin: 0 }}>
+          {error}
+        </p>
+      )}
+      <button type="submit" className="btn grad" disabled={busy}>
+        {busy ? 'Signing in to Loot…' : cta}
+      </button>
+    </form>
+  )
+}
+
 function LootSection() {
-  const { session, dev } = useAuth()
-  const { profile, plan, goal, savings, goalUpdatedAt, active } = useApp()
-  const { updateProfile } = useActions()
+  const { session } = useLootSession()
+  const { profile, plan, goal, savings, goalUpdatedAt, active, account } = useApp()
+  const { updateProfile, unlinkLoot } = useActions()
   const navigate = useNavigate()
-  const linked = !!profile.lootGoalId && !!goal
+  const linkedGoal = !!profile.lootGoalId && !!goal
   const [changing, setChanging] = useState(!profile.lootGoalId)
   const { goals, error: loadError } = useLootGoals(!!session && changing)
   const [picked, setPicked] = useState<string>(profile.lootGoalId ?? NEW)
@@ -127,30 +197,38 @@ function LootSection() {
     setBusy(false)
   }
 
-  if (dev || !session) {
+  if (devNoAuth) {
     return (
       <Block>
-        <p style={{ margin: 0 }}>
-          <b>Sign in with your Loot account to link a goal.</b>
-        </p>
-        <p className="hint">You're in local test mode with no sign-in, so Loot can't be reached.</p>
+        <p style={{ margin: 0 }}>You're in local test mode with no sign-in, so Loot can't be reached.</p>
+      </Block>
+    )
+  }
+
+  if (!session) {
+    return (
+      <Block
+        title={account.lootLinked ? 'Sign in to Loot on this device' : 'Link your Loot account'}
+        note={account.lootLinked ? `Your Northbound account is linked to Loot${account.lootEmail ? ` (${account.lootEmail})` : ''}. Sign in to Loot here to see your goal on this device.` : "Don't use Loot? You don't need to: enter your savings by hand in Savings plan. If you do, linking lets Northbound follow one of your Loot goals."}
+      >
+        <LootSignInForm cta={account.lootLinked ? 'Sign in to Loot' : 'Link Loot'} onDone={() => setChanging(!profile.lootGoalId)} />
       </Block>
     )
   }
 
   return (
     <>
-      {linked && !changing && (
+      {linkedGoal && !changing && (
         <Block title="Linked goal">
-          <div className="linked-goal">
-            <span className="dot" aria-hidden="true" />
+          <div className="row" style={{ justifyContent: 'flex-start' }}>
+            <span className="dot-ok" aria-hidden="true" />
             <div style={{ flex: 1 }}>
               <b>{goal.name}</b>
               <div className="small muted">
                 {zar(savings.savedZar, 100)} saved of {zar(goal.target_amount)}. Updated {goalUpdatedAt ? new Date(goalUpdatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'just now'}.
               </div>
             </div>
-            <button type="button" className="btn quiet small" onClick={() => setChanging(true)}>
+            <button type="button" className="btn quiet sm" onClick={() => setChanging(true)}>
               Change
             </button>
           </div>
@@ -158,7 +236,7 @@ function LootSection() {
       )}
 
       {changing && (
-        <Block title={linked ? 'Pick a different goal' : 'Pick your move goal'}>
+        <Block title={linkedGoal ? 'Pick a different goal' : 'Pick your move goal'}>
           {loadError && <p className="error">{loadError}</p>}
           {!goals && !loadError && <p className="muted small">Loading your goals…</p>}
           <div role="radiogroup" aria-label="Loot goals">
@@ -186,10 +264,10 @@ function LootSection() {
             </p>
           )}
           <div className="row" style={{ justifyContent: 'flex-start', gap: 8, marginTop: 6 }}>
-            <button type="button" className="btn primary" onClick={() => void link()} disabled={busy || !goals}>
+            <button type="button" className="btn grad" onClick={() => void link()} disabled={busy || !goals}>
               {busy ? 'Linking…' : 'Link this goal'}
             </button>
-            {linked && (
+            {linkedGoal && (
               <button type="button" className="btn quiet" onClick={() => setChanging(false)}>
                 Cancel
               </button>
@@ -217,15 +295,37 @@ function LootSection() {
         </Block>
       )}
 
-      {profile.lootGoalId && (
-        <Block note="Northbound will stop following the goal. Nothing in Loot is deleted.">
-          <button type="button" className="btn quiet" onClick={() => void updateProfile({ lootGoalId: null })}>
-            Unlink and enter savings by hand
+      <Block title="Linked Loot account" note="Northbound reads only the goal you link and its deposits, and can update that goal's target and date. It doesn't use anything else in Loot.">
+        <p style={{ margin: '0 0 12px' }}>{session.user.email}</p>
+        <div className="row" style={{ justifyContent: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+          {profile.lootGoalId && (
+            <button type="button" className="btn quiet sm" onClick={() => void updateProfile({ lootGoalId: null })}>
+              Stop following the goal
+            </button>
+          )}
+          <button type="button" className="btn quiet sm" onClick={() => void supabase.auth.signOut()}>
+            Sign out of Loot on this device
           </button>
-        </Block>
-      )}
-
-      <p className="hint">Northbound reads only the goal you link and its deposits, and can update that goal's target and date. It doesn't use anything else in Loot.</p>
+          {account.email && (
+            <button
+              type="button"
+              className="btn quiet sm danger"
+              onClick={async () => {
+                if (!window.confirm('Unlink Loot from your Northbound account? Your plan stays. You can link again any time.')) return
+                try {
+                  await updateProfile({ lootGoalId: null })
+                  await unlinkLoot({})
+                  await supabase.auth.signOut()
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Couldn't unlink.")
+                }
+              }}
+            >
+              Unlink Loot
+            </button>
+          )}
+        </div>
+      </Block>
     </>
   )
 }
@@ -240,16 +340,16 @@ function SavingsSection() {
       <Block title="Saved so far">
         {savingsSource === 'loot' && goal ? (
           <p style={{ margin: 0 }}>
-            Following your Loot goal "{goal.name}". <Link to="/settings/loot">Change goal</Link>
+            Following your Loot goal "{goal.name}". <Link to="/settings/loot">Change</Link>
           </p>
         ) : (
-          <SavedMoneyField id="saved" label="Saved for the move" value={profile.savedZar} onSave={(n) => updateProfile({ savedZar: n })} hint="Link your Loot goal to keep this up to date automatically." />
+          <SavedMoneyField id="saved" label="Saved for the move" value={profile.savedZar} onSave={(n) => updateProfile({ savedZar: n })} hint="Or link a Loot goal to keep this up to date automatically." />
         )}
       </Block>
       <Block title="Each month">
         <SavedMoneyField id="monthly" label="You plan to save" value={profile.monthlyZar} onSave={(n) => updateProfile({ monthlyZar: n })} hint="If your deposits in Loot over the last 3 months were lower, Northbound uses that instead." />
       </Block>
-      <Block title="Life in Cape Town now" note="Shown on Home, next to Manchester or London. Optional.">
+      <Block title="Life in Cape Town now" note="Optional. Used to compare with life in the UK.">
         <div className="two-col">
           <SavedMoneyField id="rent" label="Rent" value={profile.homeRentZar} onSave={(n) => updateProfile({ homeRentZar: n })} />
           <SavedMoneyField id="income" label="Take-home pay" value={profile.homeIncomeZar} onSave={(n) => updateProfile({ homeIncomeZar: n })} />
@@ -266,35 +366,97 @@ export function ScenariosSection() {
   const { setActive } = useActions()
   return (
     <Block>
-      <ul className="scen-table">
-        {scenarios.map((s) => {
-          const p = planFor(s)
-          return (
-            <li key={s._id} className={s._id === active._id ? 'on' : ''}>
-              <button type="button" className="scen-pick" onClick={() => void setActive({ id: s._id })} aria-pressed={s._id === active._id}>
-                <span className="radio" aria-hidden="true" />
-                <span>
-                  <b>
-                    {s.name}
-                    {s._id === active._id && <span className="main-badge">Main</span>}
-                  </b>
-                  <small>
-                    {zar(p.targetZar, 1000)}
-                    {s._id !== active._id ? '. Tap to make it your main scenario' : '. Drives Home, the map and your Loot goal'}
-                  </small>
-                </span>
-              </button>
-              <Link to={`/scenario/${s._id}`} className="btn quiet small">
-                <Icon name="edit" size={15} /> Edit
-              </Link>
-            </li>
-          )
-        })}
-      </ul>
-      <Link to="/scenario/new" className="btn primary" style={{ marginTop: 12 }}>
+      <div className="stack" style={{ gap: 8 }}>
+        {scenarios.map((s) => (
+          <div key={s._id} className={`scen-row${s._id === active._id ? ' on' : ''}`} style={{ boxShadow: 'inset 0 0 0 1px var(--hair)' }}>
+            <button type="button" className="scen-pick" onClick={() => void setActive({ id: s._id })} aria-pressed={s._id === active._id}>
+              <span className="radio" aria-hidden="true" />
+              <span>
+                <b>
+                  {s.name}
+                  {s._id === active._id && <span className="main-badge">Main</span>}
+                </b>
+                <small>
+                  {zar(planFor(s).targetZar, 1000)}
+                  {s._id !== active._id ? '. Tap to make it your main scenario' : '. Drives your trip, map and Loot goal'}
+                </small>
+              </span>
+            </button>
+            <Link to={`/scenario/${s._id}`} className="btn quiet sm">
+              Edit
+            </Link>
+          </div>
+        ))}
+      </div>
+      <Link to="/scenario/new" className="btn grad" style={{ marginTop: 14 }}>
         <Icon name="plus" size={18} /> New scenario
       </Link>
     </Block>
+  )
+}
+
+// ---------- reminders ----------
+
+function RemindersSection() {
+  return (
+    <>
+      <Block title="On your phone and in your calendar">
+        <RemindersControls />
+      </Block>
+      <Block title="How reminders work" note="On an iPhone, add Northbound to your Home Screen (Share, then Add to Home Screen) and turn reminders on from the installed app.">
+        <p className="small muted" style={{ margin: 0 }}>
+          You'll get one nudge 2 weeks before each step and one when it's due, at about 9am Cape Town time. Steps you've marked as done are skipped. The dates follow your main scenario.
+        </p>
+      </Block>
+    </>
+  )
+}
+
+// ---------- share ----------
+
+function ShareSection() {
+  const { shareToken } = useApp()
+  const { createShare, revokeShare } = useActions()
+  const [copied, setCopied] = useState(false)
+  const url = shareToken ? `${window.location.origin}/share/${shareToken}` : null
+  return (
+    <>
+      <Block title="Read-only link" note="Anyone with the link sees your main scenario: the number, the dates, the route and which steps are done. They can't see your email, your Loot details or your other scenarios, and they can't change anything.">
+        {url ? (
+          <div className="stack" style={{ gap: 10 }}>
+            <input className="input" readOnly value={url} onFocus={(e) => e.currentTarget.select()} aria-label="Share link" />
+            <div className="row" style={{ justifyContent: 'flex-start', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn grad sm"
+                onClick={async () => {
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({ title: 'My move to the UK', url })
+                      return
+                    } catch {
+                      // Cancelled: fall through to copying.
+                    }
+                  }
+                  await navigator.clipboard.writeText(url)
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 1800)
+                }}
+              >
+                <Icon name="share" size={16} /> {copied ? 'Copied' : 'Share link'}
+              </button>
+              <button type="button" className="btn quiet sm danger" onClick={() => void revokeShare({})}>
+                Stop sharing
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" className="btn grad" onClick={() => void createShare({})}>
+            <Icon name="share" size={18} /> Create a share link
+          </button>
+        )}
+      </Block>
+    </>
   )
 }
 
@@ -303,8 +465,8 @@ export function ScenariosSection() {
 function AppearanceSection() {
   const [theme, setTheme] = useTheme()
   return (
-    <Block title="Colour mode">
-      <Seg<ThemeChoice> label="Colour mode" value={theme} onChange={setTheme} options={[{ value: 'auto', label: 'Match my device' }, { value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }]} />
+    <Block title="Colour mode" note="Dark is Northbound's default.">
+      <Seg<ThemeChoice> label="Colour mode" value={theme} onChange={setTheme} options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }, { value: 'auto', label: 'Match device' }]} />
     </Block>
   )
 }
@@ -326,7 +488,7 @@ function RulesSection() {
   )
   return (
     <>
-      <p className="hint" style={{ marginTop: 0 }}>
+      <p className="hint" style={{ margin: '0 0 14px' }}>
         As they apply on {longDate(today)}. If you find a newer value, change it here and every number in Northbound updates.
       </p>
       <details className="rule-group" open>
@@ -407,23 +569,26 @@ function RuleRow({ r, value, overridden, onSet }: { r: RuleEntry; value: number 
 // ---------- account ----------
 
 function AccountSection() {
-  const { session, signOut, dev } = useAuth()
+  const { account } = useApp()
   const { resetAll } = useActions()
+  const signOut = useSignOut()
   return (
     <>
       <Block title="Signed in">
-        <p style={{ margin: '0 0 12px' }}>{dev ? 'Local test mode, not signed in.' : `With your Loot account, ${session?.user.email ?? ''}.`}</p>
-        {!dev && (
+        <p style={{ margin: '0 0 12px' }}>
+          {devNoAuth ? 'Local test mode, not signed in.' : account.email ? `As ${account.email}.` : account.lootEmail ? `With Loot, as ${account.lootEmail}.` : 'Signed in.'}
+          {account.lootLinked && account.email ? ' Linked to Loot.' : ''}
+        </p>
+        {!devNoAuth && (
           <button type="button" className="btn quiet" onClick={() => void signOut()}>
             Sign out
           </button>
         )}
       </Block>
-      <Block title="Delete Northbound data" note="Removes your scenarios, ticked steps and rule changes. Nothing in Loot is touched. This can't be undone.">
+      <Block title="Delete Northbound data" note="Removes your scenarios, ticked steps, paperwork, share link and rule changes. Nothing in Loot is touched. This can't be undone.">
         <button
           type="button"
-          className="btn quiet"
-          style={{ color: 'var(--now)' }}
+          className="btn quiet danger"
           onClick={() => {
             if (window.confirm("Delete all of Northbound's data for your account? This can't be undone.")) void resetAll()
           }}

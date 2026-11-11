@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CITIES, HOUSING_LABEL } from '@shared/cities'
+import { CITIES, HOUSING_LABEL, photoUrl, rentFor } from '@shared/cities'
 import { monthYear, monthsBetween } from '@shared/dates'
 import { monthlyBudget, salaryFor } from '@shared/engine'
 import type { ScenarioInput } from '@shared/types'
@@ -47,109 +47,115 @@ export default function Compare() {
   const leftDiff = B.budget.left - A.budget.left
   const maxMonths = Math.max(A.monthsToSave ?? 0, B.monthsToSave ?? 0, 1)
 
-  return (
-    <div className="screen-compare">
-      <PageHead title="Compare" sub={<>Pick two scenarios. <Link to="/scenario/new">Make a new one</Link> to try something else.</>} />
-      <div className="pickers">
-        <Picker label="First" value={a.id} options={options} onChange={setA} />
-        <Picker label="Second" value={b.id} options={options} onChange={setB} />
-      </div>
-      <div className="halves">
-        {[
-          { o: a, s: A, cls: 'a' },
-          { o: b, s: B, cls: 'b' },
-        ].map(({ o, s, cls }) => (
-          <div key={cls} className={`half ${cls}`}>
-            <div className="city">{s.city.name}</div>
-            <dl>
-              <dt>Save before you go</dt>
-              <dd>{zar(s.p.targetZar, 1000)}</dd>
-              <dt>Rent, {HOUSING_LABEL[o.input.housing].toLowerCase()}</dt>
-              <dd>{gbp(s.city.rent[o.input.housing])}</dd>
-              <dt>Expected pay</dt>
-              <dd>{gbp(salaryFor(o.input))}</dd>
-              <dt>Left each month</dt>
-              <dd>{gbp(s.budget.left)}</dd>
-              <dt>{o.input.landMode === 'saved' ? 'Could land' : 'Landing'}</dt>
-              <dd>{monthYear(s.p.landDate)}</dd>
-            </dl>
-          </div>
-        ))}
-      </div>
-      <p className="card verdict">
-        {Math.abs(moreZar) < 1000 ? (
-          <>Both need about the same up front.</>
-        ) : (
-          <>
-            {b.label} needs <b>{zar(Math.abs(moreZar), 1000)} {moreZar > 0 ? 'more' : 'less'}</b> up front
-          </>
-        )}
-        {Math.abs(leftDiff) >= 10 && (
-          <>
-            {' '}
-            and leaves you <b>{gbp(Math.abs(leftDiff))} {leftDiff > 0 ? 'more' : 'less'}</b> each month
-            {leftDiff < 0 && salaryFor(b.input) > salaryFor(a.input) ? ', even with the higher pay' : ''}
-          </>
-        )}
-        .
-      </p>
-      {[a, b].some((o) => o.id === 'other-city') && (
-        <div className="verdict" style={{ marginTop: 10 }}>
-          {savedNote ? (
-            <span className="ok-text">{savedNote}</span>
-          ) : (
-            <button
-              type="button"
-              className="btn quiet small"
-              onClick={async () => {
-                const o = [a, b].find((x) => x.id === 'other-city')!
-                const id = await saveScenario({ scenario: o.input })
-                setSavedNote(`Saved as "${o.input.name}". It's in your scenarios now.`)
-                if (bId === 'other-city') setB(id)
-                else setA(id)
-              }}
-            >
-              Save the {CITIES[[a, b].find((x) => x.id === 'other-city')!.input.city].name} version as a scenario
-            </button>
-          )}
-        </div>
+  const verdict = (
+    <>
+      {Math.abs(moreZar) < 1000 ? (
+        <>Both need about the same up front</>
+      ) : (
+        <>
+          {b.label} needs <b>{zar(Math.abs(moreZar), 1000)} {moreZar > 0 ? 'more' : 'less'}</b> up front
+        </>
       )}
-      <section className="sec">
-        <h2>Time left to save</h2>
-        {[
-          { o: a, s: A, cls: '' },
-          { o: b, s: B, cls: 'b' },
-        ].map(({ o, s, cls }) => {
-          const n = s.monthsToSave
-          const filled = n === null ? 0 : Math.round((n / maxMonths) * 12)
-          return (
-            <div className="rw" key={o.id + cls}>
-              <span>{s.city.name}</span>
-              <div className={`meter ${cls} reveal-x`} aria-hidden="true">
-                {Array.from({ length: 12 }, (_, i) => (
-                  <i key={i} className={i < filled ? '' : 'off'} />
-                ))}
+      {Math.abs(leftDiff) >= 10 && (
+        <>
+          {' '}
+          and leaves you <b>{gbp(Math.abs(leftDiff))} {leftDiff > 0 ? 'more' : 'less'}</b> each month
+          {leftDiff < 0 && salaryFor(b.input) > salaryFor(a.input) ? ', even with the higher pay' : ''}
+        </>
+      )}
+      .
+    </>
+  )
+
+  return (
+    <div>
+      <PageHead title="Compare" sub={<>Pick any two scenarios. <Link to="/scenario/new">Make a new one</Link> to try something else.</>} />
+      <div className="container wrap" style={{ marginTop: 14 }}>
+        <div className="cmp-cards">
+          {[
+            { o: a, s: A, set: setA, label: 'First' },
+            { o: b, s: B, set: setB, label: 'Second' },
+          ].map(({ o, s, set, label }) => (
+            <article key={label} className="cmp-card" aria-label={`${label} scenario`}>
+              <img src={photoUrl(s.city.photo, 600)} alt="" />
+              <div className="body">
+                <Picker label={label} value={o.id} options={options} onChange={set} />
+                <dl>
+                  <dt>Save before you go</dt>
+                  <dd>{zar(s.p.targetZar, 1000)}</dd>
+                  <dt>Rent, {HOUSING_LABEL[o.input.housing].toLowerCase()}</dt>
+                  <dd>{gbp(rentFor(o.input.city, o.input.housing, o.input.area))}</dd>
+                  <dt>Expected pay</dt>
+                  <dd>{gbp(salaryFor(o.input))}</dd>
+                  <dt>Left each month</dt>
+                  <dd>{gbp(s.budget.left)}</dd>
+                  <dt>{o.input.landMode === 'saved' ? 'Could land' : 'Landing'}</dt>
+                  <dd>{monthYear(s.p.landDate)}</dd>
+                </dl>
               </div>
-              <span>{n === null ? 'Add savings' : `${n} months`}</span>
-            </div>
-          )
-        })}
-      </section>
+            </article>
+          ))}
+        </div>
+        <p className="card" style={{ marginTop: 16, maxWidth: 744, fontSize: 16 }}>
+          {verdict}
+        </p>
+        {[a, b].some((o) => o.id === 'other-city') && (
+          <div style={{ marginTop: 10 }}>
+            {savedNote ? (
+              <span className="ok-text">{savedNote}</span>
+            ) : (
+              <button
+                type="button"
+                className="btn quiet sm"
+                onClick={async () => {
+                  const o = [a, b].find((x) => x.id === 'other-city')!
+                  const id = await saveScenario({ scenario: o.input })
+                  setSavedNote(`Saved as "${o.input.name}". It's in your scenarios now.`)
+                  if (bId === 'other-city') setB(id)
+                  else setA(id)
+                }}
+              >
+                Save the {CITIES[[a, b].find((x) => x.id === 'other-city')!.input.city].name} version as a scenario
+              </button>
+            )}
+          </div>
+        )}
+        <section className="section" style={{ maxWidth: 744 }} aria-labelledby="time">
+          <h2 id="time" className="h2" style={{ marginBottom: 12 }}>
+            Time left to save
+          </h2>
+          {[
+            { o: a, s: A, cls: '' },
+            { o: b, s: B, cls: 'b' },
+          ].map(({ o, s, cls }) => {
+            const n = s.monthsToSave
+            const filled = n === null ? 0 : Math.round((n / maxMonths) * 12)
+            return (
+              <div className="rw" key={o.id + cls}>
+                <span>{o.label}</span>
+                <div className={`meter ${cls} reveal-x`} aria-hidden="true">
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <i key={i} className={i < filled ? '' : 'off'} />
+                  ))}
+                </div>
+                <span>{n === null ? 'Add savings' : `${n} months`}</span>
+              </div>
+            )
+          })}
+        </section>
+      </div>
     </div>
   )
 }
 
 function Picker({ label, value, options, onChange }: { label: string; value: string; options: Option[]; onChange: (v: string) => void }) {
   return (
-    <label className="small" style={{ fontWeight: 700 }}>
-      <span className="sr-only">{label} scenario</span>
-      <select className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{ fontSize: 14, padding: '9px 10px' }}>
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <select className="input" aria-label={`${label} scenario`} value={value} onChange={(e) => onChange(e.target.value)}>
+      {options.map((o) => (
+        <option key={o.id} value={o.id}>
+          {o.label}
+        </option>
+      ))}
+    </select>
   )
 }

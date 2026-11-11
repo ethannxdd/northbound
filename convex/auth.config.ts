@@ -1,15 +1,17 @@
-// Northbound signs in with Loot's Supabase account. Convex checks Supabase's signed tokens
-// against Supabase's public keys, so there is one sign-in for both apps.
-// Loot's Supabase project (public URL).
-const SUPABASE_URL = 'https://ofljaqogkzhwtjsirhmd.supabase.co'
+// Two kinds of sign-in token are accepted:
+// 1. Convex Auth (Northbound accounts, and "Continue with Loot"), the normal path.
+// 2. Loot's Supabase token directly, used by versions of the app from before Northbound had its own
+//    accounts. Kept so an open old tab keeps working until it reloads.
+const LOOT_ISSUER = 'https://ofljaqogkzhwtjsirhmd.supabase.co/auth/v1'
 
 export default {
   providers: [
+    { domain: process.env.CONVEX_SITE_URL, applicationID: 'convex' },
     {
       type: 'customJwt',
       applicationID: 'authenticated',
-      issuer: `${SUPABASE_URL}/auth/v1`,
-      jwks: `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
+      issuer: LOOT_ISSUER,
+      jwks: `${LOOT_ISSUER}/.well-known/jwks.json`,
       algorithm: 'ES256',
     },
   ],

@@ -21,6 +21,13 @@ const PATHS: Record<string, string> = {
   appearance: 'M12 3a9 9 0 1 0 0 18V3z',
   savings: 'M12 3v18M16 7.5c0-1.4-1.8-2.5-4-2.5s-4 1.1-4 2.5S9.8 10 12 10.5s4 1.1 4 2.5-1.8 2.5-4 2.5-4-1.1-4-2.5',
   close: 'M6 6l12 12M18 6 6 18',
+  menu: 'M4 7h16M4 12h16M4 17h16',
+  calendar: 'M4 6h16v15H4zM4 10h16M8 3v4M16 3v4',
+  bell: 'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0',
+  share: 'M12 15V3M8 7l4-4 4 4M5 12v8h14v-8',
+  docs: 'M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h4',
+  flag: 'M5 21V4h11l-1 4 1 4H5',
+  rand: 'M7 20V4h5a4 4 0 0 1 0 8H7M11 12l5 8',
 }
 
 export type IconName = keyof typeof PATHS

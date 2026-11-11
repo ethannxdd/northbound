@@ -11,16 +11,34 @@ export function useOpening(dep?: unknown) {
   }, [dep])
 }
 
-export type ThemeChoice = 'auto' | 'light' | 'dark'
+export type ThemeChoice = 'dark' | 'light' | 'auto'
 
+function applyTheme(choice: ThemeChoice) {
+  const light = choice === 'light' || (choice === 'auto' && window.matchMedia('(prefers-color-scheme: light)').matches)
+  document.documentElement.dataset.theme = light ? 'light' : 'dark'
+}
+
+/** Dark by default. "auto" follows the device. */
 export function useTheme(): [ThemeChoice, (t: ThemeChoice) => void] {
-  const [t, setT] = useState<ThemeChoice>(() => (document.documentElement.dataset.theme as ThemeChoice) || 'auto')
-  const set = (next: ThemeChoice) => {
-    if (next === 'auto') delete document.documentElement.dataset.theme
-    else document.documentElement.dataset.theme = next
+  const [t, setT] = useState<ThemeChoice>(() => {
     try {
-      if (next === 'auto') localStorage.removeItem('nb-theme')
-      else localStorage.setItem('nb-theme', next)
+      const v = localStorage.getItem('nb-theme')
+      return v === 'light' || v === 'auto' ? v : 'dark'
+    } catch {
+      return 'dark'
+    }
+  })
+  useEffect(() => {
+    if (t !== 'auto') return
+    const m = window.matchMedia('(prefers-color-scheme: light)')
+    const on = () => applyTheme('auto')
+    m.addEventListener('change', on)
+    return () => m.removeEventListener('change', on)
+  }, [t])
+  const set = (next: ThemeChoice) => {
+    applyTheme(next)
+    try {
+      localStorage.setItem('nb-theme', next)
     } catch {
       // Private mode: the choice lasts for this visit only.
     }
@@ -72,7 +90,7 @@ export function MoneyInput({ value, onChange, prefix = 'R', id, step = 100 }: { 
 
 export function Loading({ label = 'Loading' }: { label?: string }) {
   return (
-    <div className="center-screen splash" role="status">
+    <div className="splash" role="status">
       <img src="/icon.svg" width="64" height="64" alt="" />
       <span className="muted">{label}…</span>
     </div>

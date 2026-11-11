@@ -1,4 +1,4 @@
-import { CITIES, type CityProfile } from './cities'
+import { CITIES, rentFor, type CityProfile } from './cities'
 import { addMonths, maxDate, monthsBetween } from './dates'
 import { rule, type RuleOverrides } from './rules'
 import type { SavingsState, ScenarioInput } from './types'
@@ -68,7 +68,7 @@ export function monthlyBudget(s: ScenarioInput, onDate: string, ov?: RuleOverrid
   const c = CITIES[s.city]
   const p = people(s)
   const items: LineItem[] = [
-    { label: s.housing === 'room' ? 'Rent, room in a share' : s.housing === 'studio' ? 'Rent, studio' : 'Rent, 1-bed flat', gbp: c.rent[s.housing] },
+    { label: s.housing === 'room' ? 'Rent, room in a share' : s.housing === 'studio' ? 'Rent, studio' : 'Rent, 1-bed flat', gbp: rentFor(s.city, s.housing, s.area) },
     { label: 'Food', gbp: c.food * p },
     { label: 'Bills and council tax', gbp: c.bills[s.housing] },
     { label: s.city === 'manchester' ? 'Bus and tram' : 'Tube and bus', gbp: c.transport * p },
@@ -81,8 +81,8 @@ export function monthlyBudget(s: ScenarioInput, onDate: string, ov?: RuleOverrid
   return { takeHome: mine, partnerTakeHome: partner, items, outgoings, left: mine + partner - outgoings }
 }
 
-function deposit(c: CityProfile, s: ScenarioInput, onDate: string, ov?: RuleOverrides): number {
-  const weekly = (c.rent[s.housing] * 12) / 52
+function deposit(_c: CityProfile, s: ScenarioInput, onDate: string, ov?: RuleOverrides): number {
+  const weekly = (rentFor(s.city, s.housing, s.area) * 12) / 52
   return weekly * rule('depositWeeks', onDate, ov)
 }
 
@@ -108,7 +108,7 @@ export function upfrontCosts(s: ScenarioInput, landDate: string, ov?: RuleOverri
   ]
 
   const living = monthlyBudget(s, landDate, ov)
-  const rent = c.rent[s.housing]
+  const rent = rentFor(s.city, s.housing, s.area)
   const move: LineItem[] = [
     { label: p > 1 ? 'Flights, 2 people' : 'Flight', gbp: s.flightGbp * p },
     { label: `First ${s.tempNights} nights`, gbp: s.tempNights * c.tempNightly },
@@ -142,7 +142,7 @@ export function runwaySeries(s: ScenarioInput, landDate: string, ov?: RuleOverri
   const costs = upfrontCosts(s, landDate, ov)
   const runway = costs.groups.find((g) => g.id === 'runway')!.total
   const living = monthlyBudget(s, landDate, ov)
-  const rent = CITIES[s.city].rent[s.housing]
+  const rent = rentFor(s.city, s.housing, s.area)
   const months = runwayMonths(s)
   const out = [runway]
   let bal = runway

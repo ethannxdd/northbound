@@ -1,73 +1,85 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { CITIES, photoUrl } from '@shared/cities'
 import { useActions, useApp } from '../lib/app'
-import { zar, zarShort } from '../lib/format'
+import { zar } from '../lib/format'
 import { Sheet, useWide } from '../lib/ui'
 import Icon from './Icon'
 
-const SIDE_NAV = [
-  { to: '/', label: 'Home', icon: 'home' },
-  { to: '/map', label: 'Map', icon: 'map' },
-  { to: '/money', label: 'Money', icon: 'money' },
-  { to: '/progress', label: "How far you've come", icon: 'progress' },
-  { to: '/life', label: 'Life', icon: 'life' },
-  { to: '/compare', label: 'Compare', icon: 'compare' },
-]
-
 const TABS = [
-  { to: '/', label: 'Home', icon: 'home' },
+  { to: '/', label: 'Trip', icon: 'home' },
   { to: '/map', label: 'Map', icon: 'map' },
   { to: '/money', label: 'Money', icon: 'money' },
   { to: '/progress', label: 'Progress', icon: 'progress' },
-  { to: '/more', label: 'More', icon: 'more' },
+  { to: '/profile', label: 'Profile', icon: 'account' },
+]
+
+const TOP_NAV = [
+  { to: '/', label: 'Trip' },
+  { to: '/map', label: 'Map' },
+  { to: '/money', label: 'Money' },
+  { to: '/progress', label: 'Progress' },
+  { to: '/paperwork', label: 'Paperwork' },
+  { to: '/life', label: 'Life' },
+  { to: '/compare', label: 'Compare' },
 ]
 
 const TITLES: Record<string, string> = {
-  '/': 'Home',
+  '/': 'Your trip',
   '/map': 'Map',
   '/money': 'Money',
   '/life': 'Life',
   '/compare': 'Compare',
-  '/progress': "How far you've come",
-  '/more': 'More',
+  '/progress': 'Progress',
+  '/paperwork': 'Paperwork',
+  '/settlement': 'Settling in the UK',
+  '/profile': 'Profile',
 }
 
 export default function Shell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
+  const [scrolled, setScrolled] = useState(false)
+  const overPhoto = pathname === '/'
+
   useEffect(() => {
     const base = TITLES[pathname] ?? (pathname.startsWith('/settings') ? 'Settings' : pathname.startsWith('/scenario') ? 'Scenario' : '')
     document.title = base ? `${base} · Northbound` : 'Northbound'
     window.scrollTo(0, 0)
   }, [pathname])
 
+  useEffect(() => {
+    if (!overPhoto) return
+    const on = () => setScrolled(window.scrollY > 280)
+    on()
+    window.addEventListener('scroll', on, { passive: true })
+    return () => window.removeEventListener('scroll', on)
+  }, [overPhoto])
+
+  const inProfile = /^\/(profile|settings|paperwork|settlement|life|compare|scenario)/.test(pathname)
+
   return (
     <div className="shell">
-      <aside className="side" aria-label="Sidebar">
-        <Link className="brand side-brand" to="/">
-          <img src="/icon.svg" width="26" height="26" alt="" />
+      <header className={`topnav${overPhoto ? ' over' : ''}${scrolled ? ' scrolled' : ''}`}>
+        <Link to="/" className="brand brand-mark" aria-label="Northbound, your trip">
+          <img src="/icon.svg" width="30" height="30" alt="" />
           northbound
         </Link>
-        <nav aria-label="Main" className="side-nav">
-          {SIDE_NAV.map((n) => (
+        <nav aria-label="Main">
+          {TOP_NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
-              <Icon name={n.icon} size={18} />
               {n.label}
             </NavLink>
           ))}
         </nav>
-        <SideScenarios />
-        <div className="side-foot">
-          <LootCard compact />
-          <NavLink to="/settings" className={({ isActive }) => `side-settings${isActive || pathname.startsWith('/settings') ? ' active' : ''}`}>
-            <Icon name="settings" size={18} />
-            Settings
-          </NavLink>
+        <div className="right">
+          <ScenarioSwitcher />
+          <AccountButton />
         </div>
-      </aside>
+      </header>
       <main className="page">{children}</main>
       <nav className="tabbar" aria-label="Main">
         {TABS.map((n) => (
-          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => (isActive || (n.to === '/more' && /^\/(more|settings|life|compare|scenario)/.test(pathname)) ? 'active' : '')}>
+          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => (isActive || (n.to === '/profile' && inProfile) ? 'active' : '')}>
             <Icon name={n.icon} size={22} />
             <span>{n.label}</span>
           </NavLink>
@@ -77,65 +89,48 @@ export default function Shell({ children }: { children: ReactNode }) {
   )
 }
 
-function SideScenarios() {
-  const { scenarios, active, planFor } = useApp()
-  const { setActive } = useActions()
+function AccountButton() {
+  const { account } = useApp()
+  const initial = (account.email ?? account.lootEmail ?? '?').slice(0, 1).toUpperCase()
   return (
-    <div className="side-scen">
-      <div className="side-h">
-        <span>Scenarios</span>
-        <Link to="/scenario/new" className="iconbtn small-icon" aria-label="New scenario" title="New scenario">
-          <Icon name="plus" size={16} />
-        </Link>
-      </div>
-      {scenarios.map((s) => (
-        <div key={s._id} className={`sc${s._id === active._id ? ' on' : ''}`}>
-          <button type="button" className="sc-pick" onClick={() => void setActive({ id: s._id })} aria-pressed={s._id === active._id} title={s._id === active._id ? 'Your main scenario' : 'Make this your main scenario'}>
-            <span className="sc-name">
-              {s._id === active._id && <span className="star" aria-label="Main">★ </span>}
-              {s.name}
-            </span>
-            <span className="sc-num">{zarShort(planFor(s).targetZar)}</span>
-          </button>
-          <Link to={`/scenario/${s._id}`} className="iconbtn small-icon" aria-label={`Edit ${s.name}`} title="Edit">
-            <Icon name="edit" size={15} />
-          </Link>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-/** Shows whether savings follow a Loot goal, with the way to link one front and centre. */
-export function LootCard({ compact = false }: { compact?: boolean }) {
-  const { goal, savingsSource, savings, goalMissing } = useApp()
-  if (savingsSource === 'loot' && goal) {
-    return (
-      <Link to="/settings/loot" className={`loot-card linked${compact ? ' compact' : ''}`}>
-        <span className="dot" aria-hidden="true" />
-        <span>
-          <small>Following Loot goal</small>
-          <b>
-            {goal.name}, {compact ? zarShort(savings.savedZar) : zar(savings.savedZar, 100)}
-          </b>
-        </span>
-      </Link>
-    )
-  }
-  return (
-    <Link to="/settings/loot" className={`loot-card${compact ? ' compact' : ''}`}>
-      <Icon name="link" size={compact ? 18 : 22} />
-      <span>
-        <b>{goalMissing ? 'Relink your Loot goal' : 'Link your Loot goal'}</b>
-        <small>{compact ? 'Savings update as you save' : 'Your progress updates every time you add money in Loot.'}</small>
-      </span>
-      {!compact && <span className="btn primary small">Link</span>}
+    <Link to="/profile" className="acct-btn" aria-label="Your profile">
+      <Icon name="menu" size={18} />
+      <span className="avatar sm">{initial}</span>
     </Link>
   )
 }
 
-/** The active scenario's name, with a menu to switch, edit or add one. */
-export function ScenarioSwitcher({ tone = 'plain' }: { tone?: 'plain' | 'dark' | 'sun' }) {
+/** Shows whether savings follow a Loot goal, with a clear way to link one. */
+export function LootCard() {
+  const { goal, savingsSource, savings, goalMissing, lootNeedsSignIn } = useApp()
+  if (savingsSource === 'loot' && goal) {
+    return (
+      <Link to="/settings/loot" className="loot-card">
+        <span className="dot-ok" aria-hidden="true" />
+        <span>
+          <small>Following your Loot goal</small>
+          <b>
+            {goal.name}, {zar(savings.savedZar, 100)}
+          </b>
+        </span>
+        <Icon name="chevron" size={18} />
+      </Link>
+    )
+  }
+  return (
+    <Link to="/settings/loot" className="loot-card">
+      <span className="loot-dot" aria-hidden="true">L</span>
+      <span>
+        <b>{lootNeedsSignIn ? 'Sign in to Loot on this device' : goalMissing ? 'Relink your Loot goal' : 'Link a Loot savings goal'}</b>
+        <small>{lootNeedsSignIn ? 'To see your linked goal here' : 'Your progress updates every time you save in Loot'}</small>
+      </span>
+      <Icon name="chevron" size={18} />
+    </Link>
+  )
+}
+
+/** The main scenario, with a menu to switch, edit or add one. */
+export function ScenarioSwitcher() {
   const { scenarios, active, planFor } = useApp()
   const { setActive } = useActions()
   const wide = useWide()
@@ -155,9 +150,14 @@ export function ScenarioSwitcher({ tone = 'plain' }: { tone?: 'plain' | 'dark' |
     }
   }, [open, wide])
 
+  const go = (to: string) => {
+    setOpen(false)
+    navigate(to)
+  }
+
   const list = (
     <div className="scen-list">
-      <p className="scen-note">Your main scenario drives Home, the map, Money and your Loot goal's target.</p>
+      <p className="scen-note">Your main scenario drives your trip, map, money and Loot goal.</p>
       {scenarios.map((s) => (
         <div key={s._id} className={`scen-row${s._id === active._id ? ' on' : ''}`}>
           <button
@@ -168,7 +168,7 @@ export function ScenarioSwitcher({ tone = 'plain' }: { tone?: 'plain' | 'dark' |
               setOpen(false)
             }}
           >
-            <span className="radio" aria-hidden="true" />
+            <img src={photoUrl(CITIES[s.city].photo, 120)} alt="" />
             <span>
               <b>
                 {s.name}
@@ -176,30 +176,16 @@ export function ScenarioSwitcher({ tone = 'plain' }: { tone?: 'plain' | 'dark' |
               </b>
               <small>
                 {zar(planFor(s).targetZar, 1000)}
-                {s._id !== active._id ? '. Tap to make main' : ''}
+                {s._id !== active._id ? '. Make main' : ''}
               </small>
             </span>
           </button>
-          <button
-            type="button"
-            className="btn quiet small"
-            onClick={() => {
-              setOpen(false)
-              navigate(`/scenario/${s._id}`)
-            }}
-          >
+          <button type="button" className="btn quiet sm" onClick={() => go(`/scenario/${s._id}`)}>
             Edit
           </button>
         </div>
       ))}
-      <button
-        type="button"
-        className="btn quiet block"
-        onClick={() => {
-          setOpen(false)
-          navigate('/scenario/new')
-        }}
-      >
+      <button type="button" className="btn quiet block" style={{ marginTop: 6 }} onClick={() => go('/scenario/new')}>
         <Icon name="plus" size={18} /> New scenario
       </button>
     </div>
@@ -207,15 +193,11 @@ export function ScenarioSwitcher({ tone = 'plain' }: { tone?: 'plain' | 'dark' |
 
   return (
     <div className="switcher" ref={ref}>
-      <button type="button" className={`switch-btn ${tone}`} onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="dialog" aria-label={`Main scenario: ${active.name}. Change`}>
+      <button type="button" className="switch-btn" onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="dialog" aria-label={`Main scenario: ${active.name}. Change or edit`}>
         <span className="star" aria-hidden="true">★</span>
         <span className="sw-name">{active.name}</span>
         <Icon name="down" size={16} />
       </button>
-      <Link to={`/scenario/${active._id}`} className={`switch-edit ${tone}`} aria-label={`Edit ${active.name}`}>
-        <Icon name="edit" size={15} />
-        <span>Edit</span>
-      </Link>
       {wide ? (
         open && (
           <div className="popover" role="dialog" aria-label="Scenarios">
@@ -224,7 +206,7 @@ export function ScenarioSwitcher({ tone = 'plain' }: { tone?: 'plain' | 'dark' |
         )
       ) : (
         <Sheet open={open} onClose={() => setOpen(false)} label="Scenarios">
-          <h2 style={{ margin: '0 0 10px' }}>Scenarios</h2>
+          <h2>Scenarios</h2>
           {list}
         </Sheet>
       )}
@@ -232,25 +214,20 @@ export function ScenarioSwitcher({ tone = 'plain' }: { tone?: 'plain' | 'dark' |
   )
 }
 
-/** Header row used at the top of each screen on a phone. On desktop the sidebar carries the brand. */
-export function TopBar({ dark, sun }: { dark?: boolean; sun?: boolean }) {
+/** Page heading: on a phone it carries the brand and scenario switcher; on desktop the top bar does. */
+export function PageHead({ title, sub, children }: { title: ReactNode; sub?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="topbar-row">
-      <Link className="brand topbrand" to="/">
-        northbound
-      </Link>
-      <ScenarioSwitcher tone={dark ? 'dark' : sun ? 'sun' : 'plain'} />
-    </div>
-  )
-}
-
-/** Page heading for desktop and phone: title on the left, scenario controls on the right. */
-export function PageHead({ title, sub, dark }: { title: string; sub?: ReactNode; dark?: boolean }) {
-  return (
-    <header className={`pagehead${dark ? ' dark' : ''}`}>
-      <TopBar dark={dark} />
+    <header className="pagehead">
+      <div className="topline">
+        <Link to="/" className="brand brand-mark">
+          <img src="/icon.svg" width="24" height="24" alt="" />
+          northbound
+        </Link>
+        <ScenarioSwitcher />
+      </div>
       <h1 className="h1">{title}</h1>
-      {sub && <p className="pagehead-sub">{sub}</p>}
+      {sub && <p>{sub}</p>}
+      {children}
     </header>
   )
 }

@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northbound, three directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root, [data-theme="dark"] {
+    --bg: #0f141a; --surface: #182029; --raised: #212b36; --text: #f2f4f6; --muted: #9aa6b2; --hair: #2a3541; --chip: #232d38;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px -12px rgba(0,0,0,.65);
+    --sun: #f4b63f; --atlantic: #4fa3d1; --brick: #e07a5f; --trunk: #e6ecf0; --station: #0f141a;
+    --grad: linear-gradient(90deg, #f4b63f 0%, #f07a52 55%, #e8506a 100%);
+    --accent: #f07a52; --on-grad: #1a0f08; --ok: #5cc48a;
+    --page: #0a0e12;
+  }
+  [data-theme="light"] {
+    --bg: #ffffff; --surface: #ffffff; --raised: #f7f7f7; --text: #222222; --muted: #6a6a6a; --hair: #ebebeb; --chip: #f2f2f2;
+    --shadow: 0 1px 2px rgba(0,0,0,.08), 0 6px 20px rgba(0,0,0,.12);
+    --sun: #e6a01d; --atlantic: #0f5277; --brick: #a2432f; --trunk: #222222; --station: #ffffff;
+    --accent: #e0563a; --on-grad: #ffffff; --ok: #2f8f5b;
+    --grad: linear-gradient(90deg, #f2a516 0%, #e8603c 55%, #d83a5c 100%);
+    --page: #f0f0f0;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text); font: 16px/1.5 "Plus Jakarta Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  img { display: block; max-width: 100%; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 32px 16px 80px; }
+  .top { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
+  .top h1 { font: 800 34px/1.05 Archivo, sans-serif; font-variation-settings: "wdth" 70; margin: 0 0 6px; }
+  .top p { margin: 0; color: var(--muted); max-width: 70ch; }
+  .switch { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); }
+  .switch button { font: inherit; font-size: 14px; font-weight: 600; border: 0; background: transparent; color: var(--muted); padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+  .switch button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+  .opt { margin-top: 56px; }
+  .opt-h { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+  .opt-h h2 { font: 800 28px/1.1 Archivo, sans-serif; font-variation-settings: "wdth" 70; margin: 0; }
+  .opt-h .pill { font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--chip); color: var(--muted); }
+  .opt > p { color: var(--muted); max-width: 78ch; margin: 6px 0 18px; }
+  .stage { display: grid; grid-template-columns: 390px minmax(0, 1fr); gap: 28px; align-items: start; }
+  @media (max-width: 1100px) { .stage { grid-template-columns: 1fr; } }
+  .phone { width: 390px; max-width: 100%; height: 844px; border-radius: 46px; padding: 10px; background: #050709; box-shadow: 0 0 0 1px #2a2f36; }
+  .screen { width: 100%; height: 100%; border-radius: 37px; overflow: hidden; background: var(--bg); position: relative; display: flex; flex-direction: column; }
+  .scroll { flex: 1; overflow: hidden; }
+  .desk-holder { overflow-x: auto; border-radius: 16px; }
+  .desk { width: 1280px; height: 800px; zoom: .66; border-radius: 14px; overflow: hidden; background: var(--bg); box-shadow: 0 0 0 1px var(--hair); display: flex; flex-direction: column; }
+  @media (max-width: 1100px) { .desk { zoom: .5; } }
+  .label { font-size: 13px; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+
+  /* shared bits */
+  .grad-btn { border: 0; border-radius: 12px; padding: 14px 18px; font: 700 16px "Plus Jakarta Sans", sans-serif; color: var(--on-grad); background: var(--grad); width: 100%; cursor: pointer; }
+  .ghost-btn { border: 0; border-radius: 12px; padding: 12px 16px; font: 600 15px "Plus Jakarta Sans", sans-serif; color: var(--text); background: transparent; box-shadow: inset 0 0 0 1px var(--text); cursor: pointer; }
+  .num { font: 900 44px/1 Archivo, sans-serif; font-variation-settings: "wdth" 125; letter-spacing: -0.02em; }
+  .muted { color: var(--muted); }
+  .sm { font-size: 13px; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .ic { width: 22px; height: 22px; flex: none; }
+  .tabbar { display: grid; grid-template-columns: repeat(5, 1fr); padding: 8px 6px 26px; border-top: 1px solid var(--hair); background: var(--bg); }
+  .tabbar span { display: grid; justify-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; color: var(--muted); }
+  .tabbar span.on { color: var(--accent); }
+  .map text { font-family: "Plus Jakarta Sans", sans-serif; fill: var(--text); }
+  .map text.m { fill: var(--muted); }
+  .map text.now { fill: var(--brick); font-weight: 700; }
+  .lp { stroke: var(--brick); } .lm { stroke: var(--sun); } .lv { stroke: var(--atlantic); } .lt { stroke: var(--trunk); }
+  .st { fill: var(--station); } .fp { fill: var(--brick); } .fm { fill: var(--sun); }
+  .stars { color: var(--sun); }
+
+  /* ---------- A: Listing ---------- */
+  .A { font-family: "Plus Jakarta Sans", sans-serif; }
+  .A .gallery { position: relative; height: 300px; }
+  .A .gallery img { width: 100%; height: 100%; object-fit: cover; }
+  .A .gallery .tag { position: absolute; left: 14px; bottom: 14px; background: rgba(15,20,26,.75); color: #fff; backdrop-filter: blur(8px); padding: 6px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; }
+  .A .gallery .tb { position: absolute; top: 52px; left: 14px; right: 14px; display: flex; justify-content: space-between; }
+  .A .round { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.92); color: #222; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+  .A .sheet { margin-top: -22px; position: relative; background: var(--bg); border-radius: 22px 22px 0 0; padding: 20px 20px 0; }
+  .A h3 { font: 800 26px/1.15 "Plus Jakarta Sans", sans-serif; margin: 0; letter-spacing: -0.01em; }
+  .A .meta { color: var(--muted); font-size: 14px; margin: 4px 0 12px; }
+  .A .badge { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 14px; box-shadow: inset 0 0 0 1px var(--hair); }
+  .A .badge b { display: block; font-size: 14.5px; }
+  .A .badge small { color: var(--muted); font-size: 12.5px; }
+  .A .bignum { margin: 16px 0 4px; }
+  .A .amen { display: grid; gap: 12px; margin: 16px 0; }
+  .A .amen div { display: flex; gap: 12px; align-items: center; font-size: 14.5px; }
+  .A .stickybar { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-top: 1px solid var(--hair); background: var(--bg); }
+  .A .stickybar b { font-size: 17px; }
+  .A .stickybar .grad-btn { width: auto; padding: 12px 18px; }
+  /* A desktop */
+  .A .dtop { display: flex; justify-content: space-between; align-items: center; padding: 18px 48px; border-bottom: 1px solid var(--hair); }
+  .A .logo { display: flex; gap: 10px; align-items: center; font: 800 22px Archivo, sans-serif; font-variation-settings: "wdth" 125; color: var(--accent); }
+  .A .dnav { display: flex; gap: 26px; font-weight: 600; color: var(--muted); }
+  .A .dnav span.on { color: var(--text); border-bottom: 2px solid var(--text); padding-bottom: 6px; }
+  .A .avatar { display: flex; gap: 10px; align-items: center; padding: 6px 6px 6px 14px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--hair); }
+  .A .avatar i { width: 30px; height: 30px; border-radius: 50%; background: var(--muted); display: block; }
+  .A .dbody { padding: 22px 48px; flex: 1; overflow: hidden; }
+  .A .dgal { display: grid; grid-template-columns: 2fr 1fr 1fr; grid-template-rows: 118px 118px; gap: 8px; border-radius: 16px; overflow: hidden; margin: 12px 0 18px; }
+  .A .dgal img { width: 100%; height: 100%; object-fit: cover; }
+  .A .dgal img:first-child { grid-row: 1 / 3; }
+  .A .dgal .tile { background: var(--surface); display: grid; place-items: center; text-align: center; padding: 10px; }
+  .A .dcols { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 64px; }
+  .A .resv { position: sticky; top: 0; border-radius: 16px; box-shadow: var(--shadow), inset 0 0 0 1px var(--hair); background: var(--surface); padding: 22px; }
+  .A .resv .grid2 { display: grid; grid-template-columns: 1fr 1fr; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--muted); margin: 14px 0; }
+  .A .resv .grid2 div { padding: 9px 12px; font-size: 13.5px; }
+  .A .resv .grid2 div + div { border-left: 1px solid var(--muted); }
+  .A .resv .grid2 small { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: .02em; }
+  .A .line { display: flex; justify-content: space-between; font-size: 14.5px; padding: 6px 0; }
+  .A .line.total { border-top: 1px solid var(--hair); margin-top: 8px; padding-top: 14px; font-weight: 800; }
+
+  /* ---------- B: Explore ---------- */
+  .B { font-family: Figtree, sans-serif; }
+  .B .searchpill { margin: 54px 16px 10px; display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 18px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow), inset 0 0 0 1px var(--hair); }
+  .B .searchpill b { display: block; font-size: 14.5px; }
+  .B .searchpill small { color: var(--muted); font-size: 12.5px; }
+  .B .searchpill .go { margin-left: auto; width: 40px; height: 40px; border-radius: 50%; background: var(--grad); display: grid; place-items: center; color: var(--on-grad); }
+  .B .cats { display: flex; gap: 22px; padding: 10px 18px 0; border-bottom: 1px solid var(--hair); overflow: hidden; }
+  .B .cats span { display: grid; justify-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); padding-bottom: 10px; white-space: nowrap; }
+  .B .cats span.on { color: var(--text); box-shadow: inset 0 -2px 0 var(--text); }
+  .B .feed { padding: 16px 18px; display: grid; gap: 22px; }
+  .B .card .ph { position: relative; aspect-ratio: 1 / .78; border-radius: 16px; overflow: hidden; }
+  .B .card .ph img { width: 100%; height: 100%; object-fit: cover; }
+  .B .card .fav { position: absolute; left: 12px; top: 12px; background: var(--surface); color: var(--text); font-size: 12.5px; font-weight: 700; padding: 5px 10px; border-radius: 999px; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+  .B .card .dots { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 5px; }
+  .B .card .dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.6); }
+  .B .card .dots i:first-child { background: #fff; }
+  .B .card .t { display: flex; justify-content: space-between; margin-top: 10px; font-weight: 700; font-size: 15.5px; }
+  .B .card .s { color: var(--muted); font-size: 14px; line-height: 1.4; }
+  .B .card .p { margin-top: 4px; font-size: 15px; }
+  .B .card .p b { font-weight: 800; }
+  /* B desktop */
+  .B .dtop { padding: 16px 40px 0; border-bottom: 1px solid var(--hair); }
+  .B .dtop .row1 { display: flex; justify-content: space-between; align-items: center; }
+  .B .logo { display: flex; gap: 10px; align-items: center; font: 800 22px Archivo, sans-serif; font-variation-settings: "wdth" 125; color: var(--accent); }
+  .B .dsearch { display: flex; align-items: center; margin: 18px auto 18px; width: 760px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow), inset 0 0 0 1px var(--hair); }
+  .B .dsearch div { flex: 1; padding: 12px 24px; }
+  .B .dsearch div + div { border-left: 1px solid var(--hair); }
+  .B .dsearch small { display: block; font-size: 12px; font-weight: 700; }
+  .B .dsearch span { color: var(--muted); font-size: 14px; }
+  .B .dsearch .go { flex: none; width: 48px; height: 48px; margin: 8px; border-radius: 50%; background: var(--grad); display: grid; place-items: center; color: var(--on-grad); }
+  .B .dcats { display: flex; gap: 36px; justify-content: center; }
+  .B .dcats span { display: grid; justify-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); padding-bottom: 12px; }
+  .B .dcats span.on { color: var(--text); box-shadow: inset 0 -2px 0 var(--text); }
+  .B .dgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; padding: 26px 40px; }
+  .B .dgrid .card .ph { aspect-ratio: 1 / .95; }
+  .B .dsec { padding: 0 40px; font-weight: 800; font-size: 22px; }
+
+  /* ---------- C: Trip ---------- */
+  .C { font-family: "Plus Jakarta Sans", sans-serif; }
+  .C .hero { position: relative; height: 380px; }
+  .C .hero img { width: 100%; height: 100%; object-fit: cover; }
+  .C .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,0) 30%, rgba(15,20,26,0) 55%, var(--bg) 100%); }
+  .C .hero .over { position: absolute; left: 20px; right: 20px; bottom: 18px; z-index: 1; }
+  .C .hero .k { font-size: 13px; font-weight: 700; color: var(--sun); }
+  .C .hero h3 { margin: 2px 0 0; font: 800 34px/1.02 Archivo, sans-serif; font-variation-settings: "wdth" 72; color: var(--text); }
+  .C .hero .tb { position: absolute; top: 52px; left: 18px; right: 18px; display: flex; justify-content: space-between; z-index: 1; color: #fff; font-weight: 700; }
+  .C .count { display: flex; gap: 8px; padding: 0 20px; margin-top: -2px; }
+  .C .count div { flex: 1; background: var(--surface); border-radius: 14px; padding: 10px 12px; box-shadow: inset 0 0 0 1px var(--hair); }
+  .C .count b { display: block; font: 900 24px/1 Archivo, sans-serif; font-variation-settings: "wdth" 110; }
+  .C .count small { color: var(--muted); font-size: 12px; }
+  .C .sech { display: flex; justify-content: space-between; align-items: baseline; padding: 20px 20px 10px; font-weight: 800; font-size: 18px; }
+  .C .sech a { font-size: 13.5px; font-weight: 600; text-decoration: underline; color: var(--text); }
+  .C .resv { display: flex; gap: 14px; margin: 0 20px 10px; padding: 12px; border-radius: 16px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--hair); align-items: center; }
+  .C .resv .date { width: 54px; flex: none; text-align: center; border-radius: 12px; padding: 6px 0; background: var(--raised); }
+  .C .resv .date b { display: block; font-size: 18px; font-weight: 800; line-height: 1.1; }
+  .C .resv .date small { font-size: 11px; color: var(--muted); font-weight: 700; }
+  .C .resv .line { width: 4px; align-self: stretch; border-radius: 2px; }
+  .C .resv b.t { display: block; font-size: 15px; }
+  .C .resv small.s { color: var(--muted); font-size: 12.5px; }
+  .C .resv .due { margin-left: auto; font-size: 12px; font-weight: 800; color: var(--brick); white-space: nowrap; }
+  /* C desktop */
+  .C .dhero { position: relative; height: 330px; }
+  .C .dhero img { width: 100%; height: 100%; object-fit: cover; }
+  .C .dhero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,14,18,.9) 0%, rgba(10,14,18,.4) 50%, rgba(10,14,18,0) 75%), linear-gradient(180deg, transparent 60%, var(--bg)); }
+  [data-theme="light"] .C .dhero::after { background: linear-gradient(90deg, rgba(0,0,0,.7) 0%, rgba(0,0,0,.25) 50%, rgba(0,0,0,0) 75%), linear-gradient(180deg, transparent 70%, var(--bg)); }
+  .C .dhero .over { position: absolute; z-index: 1; left: 48px; top: 70px; color: #fff; max-width: 560px; }
+  .C .dhero h3 { font: 800 60px/1 Archivo, sans-serif; font-variation-settings: "wdth" 72; margin: 6px 0 10px; }
+  .C .dnavbar { position: absolute; z-index: 2; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 18px 48px; color: #fff; }
+  .C .dnavbar .links { display: flex; gap: 26px; font-weight: 600; }
+  .C .dnavbar .links span.on { border-bottom: 2px solid #fff; padding-bottom: 4px; }
+  .C .dmain { display: grid; grid-template-columns: 1.1fr 1fr 360px; gap: 28px; padding: 0 48px; margin-top: -40px; position: relative; z-index: 3; }
+  .C .panel { background: var(--surface); border-radius: 18px; box-shadow: var(--shadow), inset 0 0 0 1px var(--hair); padding: 18px 20px; }
+  .C .panel h4 { margin: 0 0 10px; font-size: 16px; }
+
+  .accounts { margin-top: 64px; }
+  .acc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 28px; align-items: start; }
+  .acc-screen { padding: 64px 22px 22px; display: flex; flex-direction: column; gap: 12px; height: 100%; }
+  .acc-screen h3 { font: 800 30px/1.08 "Plus Jakarta Sans", sans-serif; margin: 18px 0 4px; letter-spacing: -0.01em; }
+  .acc-input { border-radius: 12px; box-shadow: inset 0 0 0 1px var(--muted); padding: 10px 14px; }
+  .acc-input small { display: block; font-size: 11.5px; color: var(--muted); }
+  .or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--hair); }
+  .social { display: flex; gap: 12px; align-items: center; justify-content: center; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--text); padding: 12px; font-weight: 600; font-size: 15px; }
+  .loot-dot { width: 20px; height: 20px; border-radius: 6px; background: linear-gradient(135deg, #3fbf7f, #1f8a5b); }
+  .credit { margin-top: 40px; font-size: 12.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Northbound, three directions</h1>
+      <p>Each one keeps the transit map, the rand-to-pound number and the Cape sun and Atlantic colours, and borrows Airbnb's photos, rounded cards, clear type and calm layout. Dark is the default. The numbers are your test plan: Manchester, solo, R335,000.</p>
+    </div>
+    <div class="switch" role="group" aria-label="Colour mode">
+      <button type="button" data-t="dark" aria-pressed="true">Dark (default)</button>
+      <button type="button" data-t="light" aria-pressed="false">Light</button>
+    </div>
+  </div>
+
+  <!-- ================= A ================= -->
+  <section class="opt A" aria-labelledby="a-h">
+    <div class="opt-h"><h2 id="a-h">A · Listing</h2><span class="pill">Closest to an Airbnb listing page</span></div>
+    <p>Your move reads like a place you're booking: a photo of where you're going, the plan's details like amenities, the map as "where you'll be", and the number in a booking card. On a phone the card becomes a bar at the bottom, like Airbnb's "Reserve" bar.</p>
+    <div class="stage">
+      <div>
+        <p class="label">Phone, Home</p>
+        <div class="phone"><div class="screen">
+          <div class="scroll">
+            <div class="gallery">
+              <img src="https://images.unsplash.com/photo-1611490916757-4402482e161b?auto=format&fit=crop&w=900&q=75" alt="Aerial view of Manchester">
+              <div class="tb"><span class="round">‹</span><span class="round">✎</span></div>
+              <span class="tag">1 / 3 · Manchester</span>
+            </div>
+            <div class="sheet">
+              <h3>Manchester, solo</h3>
+              <div class="meta">Ancestry visa · Room in a share · 3 months to find work</div>
+              <div class="badge"><span class="stars">★</span><span><b>Main scenario</b><small>Drives your map, money and Loot goal</small></span></div>
+              <div class="bignum"><span class="num">R335,000</span></div>
+              <div class="muted sm">to land around August 2029. Save R9,400 a month.</div>
+              <div class="amen">
+                <div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h8l4 4v14H7z"/></svg> Visa, 5-year health surcharge, documents</div>
+                <div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 16l20-6-4 8H6zM8 12l2-6"/></svg> Flight, 10 nights, deposit and first rent</div>
+                <div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18v12H3zM3 11h18"/></svg> 4 months of living costs while you job-hunt</div>
+              </div>
+            </div>
+          </div>
+          <div class="stickybar"><span><b>R335,000</b><br><span class="sm muted">19% saved · Aug 2029</span></span><button class="grad-btn" type="button">See your plan</button></div>
+          <div class="tabbar">
+            <span class="on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11.5 12 5l8 6.5V20H4z"/></svg>Home</span>
+            <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3v18M6 8c0 3 6 2 6 6v7M12 3v6M18 3v18"/></svg>Map</span>
+            <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18v12H3zM3 11h18"/></svg>Money</span>
+            <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M12 3l-4 4M12 3l4 4"/></svg>Progress</span>
+            <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg>More</span>
+          </div>
+        </div></div>
+      </div>
+      <div>
+        <p class="label">Desktop, Home</p>
+        <div class="desk-holder"><div class="desk">
+          <div class="dtop">
+            <span class="logo"><img src="../public/icon.svg" width="30" height="30" alt="">northbound</span>
+            <span class="dnav"><span class="on">Home</span><span>Map</span><span>Money</span><span>Progress</span><span>Life</span><span>Compare</span></span>
+            <span class="avatar">☰ <i></i></span>
+          </div>
+          <div class="dbody">
+            <div class="row"><h3 style="font-size:30px">Manchester, solo</h3><span class="muted" style="font-weight:600">★ Main scenario · <u>Edit</u> · <u>Switch</u></span></div>
+            <div class="dgal">
+              <img src="https://images.unsplash.com/photo-1611490916757-4402482e161b?auto=format&fit=crop&w=1000&q=75" alt="Manchester">
+              <img src="https://images.unsplash.com/photo-1626894169601-482d26b23f35?auto=format&fit=crop&w=600&q=75" alt="Cape Town">
+              <div class="tile"><div><div class="num" style="font-size:30px">19%</div><div class="muted sm">saved, you're over Namibia</div></div></div>
+              <div class="tile"><div><div class="num" style="font-size:30px">33</div><div class="muted sm">months until you land</div></div></div>
+              <div class="tile"><div><div class="num" style="font-size:30px">2/17</div><div class="muted sm">steps done</div></div></div>
+            </div>
+            <div class="dcols">
+              <div>
+                <div style="font-size:20px;font-weight:800">Your route, Cape Town to Manchester</div>
+                <div class="muted" style="margin-bottom:6px">Three lines meet at your visa decision</div>
+                <svg class="map" viewBox="0 0 560 210" width="560">
+                  <g fill="none" stroke-width="6" stroke-linecap="round"><path class="lp" d="M20 30 H200 Q226 30 226 56 V70"/><path class="lm" d="M20 50 H200 Q216 50 218 66 V70"/><path class="lv" d="M20 70 H226"/><path class="lt" d="M240 70 H540"/></g>
+                  <g stroke-width="3"><circle cx="60" cy="30" r="6" class="lp st fp"/><circle cx="110" cy="30" r="6" class="lp st"/><circle cx="90" cy="50" r="6" class="lm st fm"/><circle cx="150" cy="70" r="6" class="lv st"/><rect x="222" y="59" width="30" height="22" rx="11" class="lt st"/><circle cx="330" cy="70" r="8" class="lt st"/><circle cx="420" cy="70" r="6" class="lt st"/><circle cx="530" cy="70" r="9" stroke-width="4" class="lt st"/></g>
+                  <g font-size="12.5"><text x="40" y="110" class="now">Certificates · Now</text><text x="200" y="110" font-weight="700">Visa decision</text><text x="200" y="126" class="m">May 2029</text><text x="300" y="110" font-weight="700">Land</text><text x="300" y="126" class="m">Aug 2029</text><text x="395" y="110">Payday</text><text x="500" y="110" font-weight="700">Settle</text><text x="500" y="126" class="m">2034</text></g>
+                </svg>
+              </div>
+              <div class="resv">
+                <div><span class="num" style="font-size:34px">R335,000</span> <span class="muted">total</span></div>
+                <div class="grid2"><div><small>LAND</small>Aug 2029</div><div><small>WHO</small>Just me</div></div>
+                <div class="line"><span class="muted">Paperwork and visa</span><span>R138,550</span></div>
+                <div class="line"><span class="muted">Getting there</span><span>R71,630</span></div>
+                <div class="line"><span class="muted">Runway, 4 months</span><span>R124,790</span></div>
+                <div class="line total"><span>Save each month</span><span>R9,400</span></div>
+                <button class="grad-btn" type="button" style="margin-top:12px">Edit this plan</button>
+              </div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= B ================= -->
+  <section class="opt B" aria-labelledby="b-h">
+    <div class="opt-h"><h2 id="b-h">B · Explore</h2><span class="pill">Closest to Airbnb's home page</span></div>
+    <p>Your scenarios become listings you browse. The search pill at the top shows your main plan (where, who, when) and opens the editor. A row of category icons replaces the page menu. Good if you'll keep several scenarios and like flicking between them.</p>
+    <div class="stage">
+      <div>
+        <p class="label">Phone, Home</p>
+        <div class="phone"><div class="screen">
+          <div class="scroll">
+            <div class="searchpill"><span><b>Manchester · Solo</b><small>Land around Aug 2029 · Room in a share</small></span><span class="go">⌕</span></div>
+            <div class="cats">
+              <span class="on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Scenarios</span>
+              <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3v18M6 8c0 3 6 2 6 6v7M12 3v6M18 3v18"/></svg>Route</span>
+              <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18v12H3zM3 11h18"/></svg>Money</span>
+              <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>Life</span>
+              <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h7v14H4zM13 5h7v14h-7z"/></svg>Compare</span>
+            </div>
+            <div class="feed">
+              <div class="card">
+                <div class="ph"><img src="https://images.unsplash.com/photo-1611490916757-4402482e161b?auto=format&fit=crop&w=800&q=75" alt="Manchester"><span class="fav">★ Main scenario</span><span class="dots"><i></i><i></i><i></i></span></div>
+                <div class="t"><span>Manchester, solo</span><span>19% saved</span></div>
+                <div class="s">Room in a share · land around Aug 2029<br>R273,000 to go at R9,400 a month</div>
+                <div class="p"><b>R335,000</b> total</div>
+              </div>
+              <div class="card">
+                <div class="ph"><img src="https://images.unsplash.com/photo-1632897271846-b6e3ca78aded?auto=format&fit=crop&w=800&q=75" alt="London"><span class="dots"><i></i><i></i><i></i></span></div>
+                <div class="t"><span>London, solo</span><span>16% saved</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar">
+            <span class="on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/></svg>Explore</span>
+            <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3v18M6 8c0 3 6 2 6 6v7M12 3v6M18 3v18"/></svg>Route</span>
+            <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M12 3l-4 4M12 3l4 4"/></svg>Progress</span>
+            <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18v12H3zM3 11h18"/></svg>Money</span>
+            <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</span>
+          </div>
+        </div></div>
+      </div>
+      <div>
+        <p class="label">Desktop, Home</p>
+        <div class="desk-holder"><div class="desk">
+          <div class="dtop">
+            <div class="row1"><span class="logo"><img src="../public/icon.svg" width="30" height="30" alt="">northbound</span><span class="muted" style="font-weight:600">Link Loot goal &nbsp; ☰ ●</span></div>
+            <div class="dsearch"><div><small>Where</small><span>Manchester</span></div><div><small>Who</small><span>Just me</span></div><div><small>When</small><span>When I've saved enough</span></div><div><small>Home</small><span>Room in a share</span></div><span class="go">⌕</span></div>
+            <div class="dcats">
+              <span class="on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Scenarios</span>
+              <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3v18M6 8c0 3 6 2 6 6v7M12 3v6M18 3v18"/></svg>Route</span>
+              <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M12 3l-4 4M12 3l4 4"/></svg>Progress</span>
+              <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18v12H3zM3 11h18"/></svg>Money</span>
+              <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>Life</span>
+              <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h7v14H4zM13 5h7v14h-7z"/></svg>Compare</span>
+            </div>
+          </div>
+          <div class="dgrid">
+            <div class="card"><div class="ph"><img src="https://images.unsplash.com/photo-1611490916757-4402482e161b?auto=format&fit=crop&w=600&q=75" alt="Manchester"><span class="fav">★ Main scenario</span></div><div class="t"><span>Manchester, solo</span><span>19%</span></div><div class="s">Land around Aug 2029</div><div class="p"><b>R335,000</b> total</div></div>
+            <div class="card"><div class="ph"><img src="https://images.unsplash.com/photo-1632897271846-b6e3ca78aded?auto=format&fit=crop&w=600&q=75" alt="London"></div><div class="t"><span>London, solo</span><span>16%</span></div><div class="s">Land around Feb 2030</div><div class="p"><b>R392,000</b> total</div></div>
+            <div class="card"><div class="ph"><img src="https://images.unsplash.com/photo-1642888622462-878e87572286?auto=format&fit=crop&w=600&q=75" alt="Manchester, modern building"></div><div class="t"><span>Manchester, with partner</span><span>11%</span></div><div class="s">Land around Jun 2030</div><div class="p"><b>R561,000</b> total</div></div>
+            <div class="card"><div class="ph" style="display:grid;place-items:center;background:var(--surface);box-shadow:inset 0 0 0 1px var(--hair)"><div style="text-align:center"><div style="font-size:40px">＋</div><b>New scenario</b><div class="muted sm">Try a city, a partner, a date</div></div></div></div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= C ================= -->
+  <section class="opt C" aria-labelledby="c-h">
+    <div class="opt-h"><h2 id="c-h">C · Trip</h2><span class="pill">Closest to Airbnb's Trips page</span><span class="pill" style="color:var(--sun)">My pick</span></div>
+    <p>The move is an upcoming trip. A full photo of where you're going, a countdown, and your next steps shown like reservations, each on its line's colour. The transit map is one tap away as the itinerary. It feels the most personal and the most "Northbound".</p>
+    <div class="stage">
+      <div>
+        <p class="label">Phone, Home</p>
+        <div class="phone"><div class="screen">
+          <div class="scroll">
+            <div class="hero">
+              <img src="https://images.unsplash.com/photo-1611490916757-4402482e161b?auto=format&fit=crop&w=900&q=75" alt="Aerial view of Manchester">
+              <div class="tb"><span>northbound</span><span>★ Main ▾</span></div>
+              <div class="over"><div class="k">Your move · Ancestry visa</div><h3>Cape Town to Manchester</h3></div>
+            </div>
+            <div class="count">
+              <div><b>33</b><small>months to go</small></div>
+              <div><b>19%</b><small>saved</small></div>
+              <div><b>R9.4k</b><small>a month</small></div>
+            </div>
+            <div class="sech"><span>Coming up</span><a href="#">See the map</a></div>
+            <div class="resv"><span class="line" style="background:var(--brick)"></span><span class="date"><small>NOW</small><b>●</b></span><span><b class="t">Unabridged birth certificates</b><small class="s">Home Affairs · about 6 months</small></span></div>
+            <div class="resv"><span class="line" style="background:var(--brick)"></span><span class="date"><small>NOW</small><b>●</b></span><span><b class="t">Gran's GRO certificate</b><small class="s">£12.50 · 4 days</small></span></div>
+            <div class="resv"><span class="line" style="background:var(--atlantic)"></span><span class="date"><small>APR</small><b>29</b></span><span><b class="t">Start job applications</b><small class="s">CV in UK format</small></span></div>
+          </div>
+          <div class="tabbar">
+            <span class="on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11.5 12 5l8 6.5V20H4z"/></svg>Trip</span>
+            <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3v18M6 8c0 3 6 2 6 6v7M12 3v6M18 3v18"/></svg>Map</span>
+            <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18v12H3zM3 11h18"/></svg>Money</span>
+            <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M12 3l-4 4M12 3l4 4"/></svg>Progress</span>
+            <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</span>
+          </div>
+        </div></div>
+      </div>
+      <div>
+        <p class="label">Desktop, Home</p>
+        <div class="desk-holder"><div class="desk">
+          <div class="dhero">
+            <img src="https://images.unsplash.com/photo-1611490916757-4402482e161b?auto=format&fit=crop&w=1600&q=75" alt="Aerial view of Manchester">
+            <div class="dnavbar"><span style="font:800 22px Archivo;font-variation-settings:'wdth' 125">northbound</span><span class="links"><span class="on">Trip</span><span>Map</span><span>Money</span><span>Progress</span><span>Life</span><span>Compare</span></span><span>★ Manchester, solo ▾ &nbsp; ●</span></div>
+            <div class="over"><div style="color:var(--sun);font-weight:700">Your move · Ancestry visa · 33 months to go</div><h3>Cape Town to Manchester</h3><div style="opacity:.9">Land around August 2029 with three months to find work.</div></div>
+          </div>
+          <div class="dmain">
+            <div class="panel">
+              <h4>Coming up</h4>
+              <div class="resv" style="margin:0 0 8px"><span class="line" style="background:var(--brick)"></span><span class="date"><small>NOW</small><b>●</b></span><span><b class="t">Unabridged birth certificates</b><small class="s">Home Affairs · about 6 months</small></span></div>
+              <div class="resv" style="margin:0 0 8px"><span class="line" style="background:var(--brick)"></span><span class="date"><small>NOW</small><b>●</b></span><span><b class="t">Gran's GRO certificate</b><small class="s">£12.50 · 4 days</small></span></div>
+              <div class="resv" style="margin:0"><span class="line" style="background:var(--atlantic)"></span><span class="date"><small>APR</small><b>29</b></span><span><b class="t">Start job applications</b><small class="s">CV in UK format</small></span></div>
+            </div>
+            <div class="panel">
+              <h4>Itinerary</h4>
+              <svg class="map" viewBox="0 0 330 260" width="100%">
+                <g fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path class="lp" d="M30 10 V90 Q30 116 56 116 H74"/><path class="lm" d="M50 10 V90 Q50 106 66 108 H74"/><path class="lv" d="M70 10 V108"/><path class="lt" d="M70 124 V250"/></g>
+                <g stroke-width="3"><circle cx="30" cy="30" r="6" class="lp st fp"/><circle cx="30" cy="55" r="6" class="lp st"/><circle cx="50" cy="42" r="6" class="lm st fm"/><circle cx="70" cy="80" r="6" class="lv st"/><rect x="56" y="105" width="28" height="22" rx="11" class="lt st"/><circle cx="70" cy="170" r="8" class="lt st"/><circle cx="70" cy="244" r="9" stroke-width="4" class="lt st"/></g>
+                <g font-size="13"><text x="98" y="34">Certificates</text><text x="320" y="34" text-anchor="end" class="now">Now</text><text x="98" y="59" class="m">Check passport</text><text x="98" y="84" class="m">Job applications</text><text x="98" y="120" font-weight="800">Visa decision</text><text x="320" y="120" text-anchor="end" class="m">May 2029</text><text x="98" y="174" font-weight="800">Land in Manchester</text><text x="320" y="174" text-anchor="end" class="m">Aug 2029</text><text x="98" y="248" font-weight="800">Settle</text><text x="320" y="248" text-anchor="end" class="m">2034</text></g>
+              </svg>
+            </div>
+            <div class="panel">
+              <div class="muted sm">You need</div>
+              <div class="num" style="font-size:40px;margin:4px 0">R335,000</div>
+              <div class="muted sm" style="margin-bottom:12px">£14,500 · 19% saved · R273,000 to go</div>
+              <div style="height:8px;border-radius:4px;background:var(--raised);overflow:hidden;margin-bottom:14px"><i style="display:block;width:19%;height:100%;background:var(--grad)"></i></div>
+              <button class="grad-btn" type="button">Save R9,400 a month</button>
+              <div class="muted sm" style="margin-top:10px;text-align:center">Synced with your Loot goal "UK move"</div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= accounts ================= -->
+  <section class="accounts" aria-labelledby="acc-h">
+    <div class="opt-h"><h2 id="acc-h">New: your own Northbound account</h2><span class="pill">Works with any direction</span></div>
+    <p class="muted" style="max-width:78ch">Anyone can sign up with an email and password just for Northbound. If you use Loot you can still sign in with Loot, and anyone can link Loot later from their profile to follow a savings goal.</p>
+    <div class="acc-grid">
+      <div class="phone"><div class="screen"><div class="acc-screen">
+        <img src="../public/icon.svg" width="44" height="44" alt="">
+        <h3>Plan your move to the UK</h3>
+        <p class="muted" style="margin:0 0 6px">Create a free Northbound account to save your plan.</p>
+        <div class="acc-input"><small>Email</small>you@example.com</div>
+        <div class="acc-input"><small>Password</small>••••••••••</div>
+        <button class="grad-btn" type="button">Create account</button>
+        <div class="or">or</div>
+        <div class="social"><span class="loot-dot"></span>Continue with Loot</div>
+        <p class="sm muted" style="text-align:center;margin:4px 0 0">Already have an account? <u>Sign in</u></p>
+      </div></div></div>
+      <div class="phone"><div class="screen"><div class="acc-screen">
+        <span class="muted sm">‹ Profile</span>
+        <h3>Link Loot</h3>
+        <p class="muted" style="margin:0">Sign in to Loot once and pick your move goal. Your progress then updates every time you save in Loot. Your Northbound account stays separate.</p>
+        <div class="social" style="margin-top:10px"><span class="loot-dot"></span>Sign in to Loot</div>
+        <div class="acc-input" style="margin-top:14px"><small>Linked goal</small>UK move · R62,000 of R335,000</div>
+        <p class="sm muted" style="margin:0">Northbound only sets this goal's target and date. Your savings and Loot's auto-save are never touched.</p>
+      </div></div></div>
+    </div>
+  </section>
+
+  <p class="credit">Photos from Unsplash: Manchester by Mylo Kaye and Mark Stuckey, London by Jacob Smith, Cape Town by Peter Burdon.</p>
+</div>
+<script>
+  document.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => {
+    document.documentElement.dataset.theme = b.dataset.t
+    document.querySelectorAll('[data-t]').forEach(x => x.setAttribute('aria-pressed', String(x === b)))
+  }))
+</script>
+</body>
+</html>

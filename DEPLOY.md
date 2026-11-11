@@ -44,6 +44,23 @@ Test mode only works on the old local deployment, so from now on you sign in, ev
 
 Keep it somewhere safe for step 4. Don't paste it into any file in the project.
 
+## 2b. Set the backend's keys (once per deployment)
+
+Northbound accounts and phone reminders need signing keys on each Convex deployment:
+
+```bash
+node scripts/setup-keys.mjs http://localhost:5190
+```
+```bash
+node scripts/setup-keys.mjs https://goingnorthbound.vercel.app --prod
+```
+
+Running it again replaces the keys, which signs everyone out and turns off phone reminders until they're switched back on. After the first production deploy, load the exchange rates once (the daily job keeps them fresh after that):
+
+```bash
+npx convex run fx:refresh --prod
+```
+
 ## 3. Put the code on GitHub (private)
 
 ```bash

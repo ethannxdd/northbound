@@ -27,22 +27,24 @@ export default function Progress() {
   const lastDeposit = deposits[0]
 
   return (
-    <div className="screen-progress">
-      <PageHead dark title={prog.pct >= 1 ? 'You have it all' : `You're ${prog.place.over}`} sub={`${pct(prog.pct)} of the way. ${zar(savings.savedZar, 100)} saved, ${zar(plan.remainingZar, 1000)} to go.`} />
+    <div>
+      <PageHead title={prog.pct >= 1 ? 'You have it all' : `You're ${prog.place.over}`} sub={`${pct(prog.pct)} of the way. ${zar(savings.savedZar, 100)} saved, ${zar(plan.remainingZar, 1000)} to go.`} />
+      <div className="container wrap" style={{ marginTop: 8 }}>
       {savingsSource === 'loot' && goal ? (
         <div className="synced">
+          <span className="dot-ok" aria-hidden="true" />
           Synced with your Loot goal "{goal.name}", {ago(goalUpdatedAt)}
         </div>
       ) : (
-        <div className="progress-link" style={{ padding: '12px 14px 0' }}>
+        <div style={{ maxWidth: 560 }}>
           {goalMissing && <p className="error" style={{ margin: '0 0 8px' }}>The linked Loot goal can't be found. It may have been deleted in Loot.</p>}
           <LootCard />
         </div>
       )}
-      <div className="progress-grid">
-      <div className="route" style={{ padding: '6px 12px 0' }}>
+      <div className="cols-2 stack" style={{ marginTop: 14 }}>
+      <div className="card route">
         <svg viewBox="0 0 320 320" role="img" aria-label={`Route from Cape Town to ${city}. You've saved ${pct(prog.pct)}, which puts you ${prog.place.over}.`}>
-          <line x1="40" x2="40" y1={bottom} y2={top} className="track" strokeWidth="8" strokeLinecap="round" />
+          <line x1="40" x2="40" y1={bottom} y2={top} className="track-line" strokeWidth="8" strokeLinecap="round" />
           {prog.pct > 0 && <path d={`M40 ${bottom} V${youY}`} className="gone draw" strokeWidth="8" strokeLinecap="round" fill="none" pathLength={1} style={{ ['--d' as string]: '200ms' }} />}
           <circle cx="40" cy={bottom} r="7" className="you" strokeWidth="3" />
           {shown.map((p) => (
@@ -83,8 +85,8 @@ export default function Progress() {
           </g>
         </svg>
       </div>
-      <div className="progress-side">
-      <div className="stats3">
+      <div className="sticky-side stack">
+      <div className="stats">
         <div>
           <small>{input.landMode === 'date' ? 'Need a month' : 'Saving a month'}</small>
           <b>{input.landMode === 'date' && plan.remainingZar > 0 ? zar(Math.ceil(plan.neededPerMonthZar / 100) * 100) : zar(savings.monthlyZar, 100)}</b>
@@ -98,12 +100,12 @@ export default function Progress() {
           <b>{input.landMode === 'date' ? Math.max(0, monthsBetween(today, plan.fundsDeadline)) : monthsLeft ?? '–'}</b>
         </div>
       </div>
-      <div style={{ padding: '10px 14px 20px' }}>
+      <div>
         <SavingPlan plan={plan} mode={input.landMode} monthlyZar={savings.monthlyZar} today={today} />
       </div>
       {deposits.length > 0 && (
-        <section className="sec" aria-labelledby="dep">
-          <h2 id="dep">Recent deposits in Loot</h2>
+        <section className="card" aria-labelledby="dep">
+          <h2 id="dep" className="h2">Recent deposits in Loot</h2>
           <ul className="list">
             {deposits.slice(0, 5).map((d) => (
               <li key={d.id} className="row">
@@ -114,6 +116,7 @@ export default function Progress() {
           </ul>
         </section>
       )}
+      </div>
       </div>
       </div>
     </div>

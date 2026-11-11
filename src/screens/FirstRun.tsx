@@ -4,7 +4,7 @@ import { useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { addMonths, firstOfMonth, todayIso } from '@shared/dates'
 import { DEFAULT_SCENARIO, type ScenarioInput } from '@shared/types'
-import type { CityId, Housing } from '@shared/cities'
+import { CAPE_TOWN, CITIES, photoUrl, type CityId, type Housing } from '@shared/cities'
 import { MoneyInput } from '../lib/ui'
 
 type When = 'saved' | 'year' | 'two' | 'pick'
@@ -65,12 +65,12 @@ export default function FirstRun() {
 
   return (
     <div className="fr">
-      <div className="fr-cape">
+      <div className="auth-photo">
+        <img src={photoUrl(step >= 1 ? CITIES[city].photo : CAPE_TOWN.photo, 1600)} alt="" />
         <span className="brand">northbound</span>
-        <h1 className="h1">Let's find your number.</h1>
-        <p>How much you need saved to land in the UK on your Ancestry visa, with time to find work.</p>
+        <p className="tag display">Let's find your number.</p>
       </div>
-      <div className="fr-uk">
+      <div className="fr-body">
         <div className="progress" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={step + 1} aria-label={`Question ${step + 1} of ${total}`}>
           {Array.from({ length: total }, (_, i) => (
             <i key={i} className={i <= step ? 'on' : ''} />
@@ -145,7 +145,7 @@ export default function FirstRun() {
         )}
 
         {error && (
-          <p className="error" role="alert" style={{ color: '#ffc2b0' }}>
+          <p className="error" role="alert">
             {error}
           </p>
         )}
@@ -155,7 +155,7 @@ export default function FirstRun() {
               Back
             </button>
           )}
-          <button type="button" className="btn sun" onClick={next} disabled={busy}>
+          <button type="button" className="btn grad" onClick={next} disabled={busy}>
             {step === 3 ? (busy ? 'Working it out…' : 'Show my number') : 'Continue'}
           </button>
         </div>

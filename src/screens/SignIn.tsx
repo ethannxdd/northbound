@@ -1,118 +1,128 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import type { AuthError } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { useAuthActions } from '@convex-dev/auth/react'
+import { useState, type FormEvent } from 'react'
+import { CAPE_TOWN, photoUrl } from '@shared/cities'
+import { lootPasswordSignIn } from '../lib/auth'
+import { supabaseConfigured } from '../lib/supabase'
 
-/** Turns Supabase's error into something that says what actually went wrong. */
-function explain(err: AuthError): string {
-  const msg = err.message || ''
-  if (/invalid api key/i.test(msg)) return "Northbound can't reach Loot's sign-in: its Supabase key is wrong. Check VITE_SUPABASE_PUBLISHABLE_KEY."
-  if (err.code === 'invalid_credentials') return "That email and password didn't match a Loot account."
-  if (err.code === 'email_not_confirmed') return 'Confirm your email address first, using the link Loot sent you.'
-  if (err.status === 0 || /fetch|network/i.test(msg)) return "Couldn't reach Loot's sign-in. Check your connection and try again."
-  return `Couldn't sign in: ${msg}`
+type Mode = 'signUp' | 'signIn' | 'loot'
+
+/** Turns Convex Auth's error into words. */
+function explain(e: unknown, mode: Mode): string {
+  const msg = e instanceof Error ? e.message : String(e)
+  if (/at least 8/i.test(msg)) return 'Use at least 8 characters for your password.'
+  if (/valid email/i.test(msg)) return 'Enter a valid email address.'
+  if (mode === 'signUp' && /already exists/i.test(msg)) return 'There is already an account with that email. Sign in instead.'
+  if (/InvalidAccountId/i.test(msg)) return "There's no Northbound account with that email. Create one, or continue with Loot."
+  if (/InvalidSecret|Invalid password/i.test(msg)) return "That password didn't match."
+  if (/TooManyFailedAttempts/i.test(msg)) return 'Too many tries. Wait a few minutes and try again.'
+  return mode === 'signUp' ? "Couldn't create your account. Try again." : "Couldn't sign you in. Try again."
 }
 
-/** Sign in with the same account you use for Loot. */
 export default function SignIn() {
+  const { signIn } = useAuthActions()
+  const [mode, setMode] = useState<Mode>('signUp')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [mode, setMode] = useState<'password' | 'link'>('password')
+  const [showPw, setShowPw] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [sent, setSent] = useState(false)
-  const [googleOn, setGoogleOn] = useState(false)
-  const [showPw, setShowPw] = useState(false)
-
-  // Only offer Google if it's switched on in Loot's Supabase project.
-  useEffect(() => {
-    const url = import.meta.env.VITE_SUPABASE_URL as string
-    fetch(`${url}/auth/v1/settings`, { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => setGoogleOn(!!j?.external?.google))
-      .catch(() => setGoogleOn(false))
-  }, [])
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!email.includes('@')) return setError('Enter the email you use for Loot.')
+    if (!email.includes('@')) return setError(mode === 'loot' ? 'Enter the email you use for Loot.' : 'Enter your email address.')
+    if (!password) return setError('Enter your password.')
+    if (mode === 'signUp' && password.length < 8) return setError('Use at least 8 characters for your password.')
     setBusy(true)
-    if (mode === 'password') {
-      if (!password) {
-        setBusy(false)
-        return setError('Enter your Loot password.')
+    try {
+      if (mode === 'loot') {
+        const res = await lootPasswordSignIn(email, password)
+        if ('error' in res) {
+          setError(res.error)
+        } else {
+          await signIn('loot', { token: res.token })
+        }
+      } else {
+        await signIn('password', { email: email.trim().toLowerCase(), password, flow: mode })
       }
-      const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-      if (err) setError(explain(err))
-    } else {
-      const { error: err } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: false, emailRedirectTo: window.location.origin } })
-      if (err) setError(err.code === 'otp_disabled' || /signups not allowed/i.test(err.message) ? "There's no Loot account with that email." : explain(err))
-      else setSent(true)
+    } catch (err) {
+      setError(explain(err, mode))
     }
     setBusy(false)
   }
 
-  async function google() {
+  const switchTo = (m: Mode) => {
+    setMode(m)
     setError(null)
-    const { error: err } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
-    if (err) setError(explain(err))
   }
 
   return (
-    <div className="signin-screen">
-      <div className="signin-art" aria-hidden="true">
+    <div className="auth-screen">
+      <div className="auth-photo">
+        <img src={photoUrl(CAPE_TOWN.photo, 1600)} alt="Cape Town and Table Mountain from the sea" />
         <span className="brand">northbound</span>
-        <p className="signin-big">Cape Town to the UK, one step at a time.</p>
+        <p className="tag display">Cape Town to the UK, one step at a time.</p>
       </div>
-      <div className="signin-side">
-      <form className="signin" onSubmit={submit} noValidate>
-        <img src="/icon.svg" width="56" height="56" alt="" />
-        <h1 className="h1" style={{ color: 'var(--uk-text)' }}>
-          Sign in with your Loot account
-        </h1>
-        <p style={{ margin: '0 0 18px', color: 'var(--uk-muted)' }}>Northbound uses the same account as Loot, so it can follow your savings goal.</p>
-        <div className="stack-gap">
-          {googleOn && (
-            <button type="button" className="btn sun block" onClick={() => void google()}>
-              Continue with Google
+      <form className="auth-body" onSubmit={submit} noValidate>
+        {mode === 'loot' ? (
+          <>
+            <button type="button" className="linkbtn" style={{ justifySelf: 'start' }} onClick={() => switchTo('signUp')}>
+              ‹ Back
             </button>
-          )}
-          <label htmlFor="email" className="small" style={{ fontWeight: 700 }}>
-            Email
-          </label>
-          <input id="email" className="input" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-          {mode === 'password' && (
-            <>
-              <label htmlFor="pw" className="small" style={{ fontWeight: 700 }}>
-                Password
-              </label>
-              <div className="pw-wrap">
-                <input id="pw" className="input" type={showPw ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-                <button type="button" className="pw-toggle" onClick={() => setShowPw(!showPw)} aria-pressed={showPw} aria-controls="pw">
-                  {showPw ? 'Hide' : 'Show'}
-                  <span className="sr-only"> password</span>
-                </button>
-              </div>
-            </>
-          )}
-          {error && (
-            <p className="error" role="alert" style={{ color: '#ffb4a2' }}>
-              {error}
+            <h1 className="h1">Continue with Loot</h1>
+            <p className="muted" style={{ margin: 0 }}>
+              Use your Loot email and password. Northbound makes you an account linked to Loot, so it can follow your savings goal.
             </p>
-          )}
-          {sent ? (
-            <p role="status">Check your email for a sign-in link.</p>
-          ) : (
-            <button type="submit" className="btn primary block" disabled={busy} style={{ background: 'var(--uk-text)', color: 'var(--uk-bg)' }}>
-              {busy ? 'Signing in…' : mode === 'password' ? 'Sign in' : 'Email me a sign-in link'}
-            </button>
-          )}
-          <button type="button" className="btn quiet block" style={{ color: 'var(--uk-text)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.3)' }} onClick={() => { setMode(mode === 'password' ? 'link' : 'password'); setSent(false); setError(null) }}>
-            {mode === 'password' ? 'Use an email link instead' : 'Use your password instead'}
+          </>
+        ) : (
+          <>
+            <h1 className="h1">{mode === 'signUp' ? 'Plan your move to the UK' : 'Welcome back'}</h1>
+            <div className="auth-tabs" role="tablist">
+              <button type="button" role="tab" aria-selected={mode === 'signUp'} onClick={() => switchTo('signUp')}>
+                Create account
+              </button>
+              <button type="button" role="tab" aria-selected={mode === 'signIn'} onClick={() => switchTo('signIn')}>
+                Sign in
+              </button>
+            </div>
+          </>
+        )}
+        <label htmlFor="email" className="small" style={{ fontWeight: 700 }}>
+          Email
+        </label>
+        <input id="email" className="input" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+        <label htmlFor="pw" className="small" style={{ fontWeight: 700 }}>
+          Password
+        </label>
+        <div className="pw-wrap">
+          <input id="pw" className="input" type={showPw ? 'text' : 'password'} autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} />
+          <button type="button" className="pw-toggle" onClick={() => setShowPw(!showPw)} aria-pressed={showPw} aria-controls="pw">
+            {showPw ? 'Hide' : 'Show'}
+            <span className="sr-only"> password</span>
           </button>
         </div>
+        {mode === 'signUp' && <p className="hint" style={{ marginTop: -4 }}>At least 8 characters.</p>}
+        {error && (
+          <p className="error" role="alert" style={{ margin: 0 }}>
+            {error}
+          </p>
+        )}
+        <button type="submit" className="btn grad block" disabled={busy}>
+          {busy ? 'One moment…' : mode === 'signUp' ? 'Create account' : mode === 'signIn' ? 'Sign in' : 'Continue with Loot'}
+        </button>
+        {mode !== 'loot' && supabaseConfigured && (
+          <>
+            <div className="or">or</div>
+            <button type="button" className="social" onClick={() => switchTo('loot')}>
+              <span className="loot-dot" aria-hidden="true">L</span>
+              Continue with Loot
+            </button>
+            <p className="tiny muted" style={{ textAlign: 'center', margin: 0 }}>
+              Don't use Loot? You don't need it. You can link it later if you start.
+            </p>
+          </>
+        )}
       </form>
-      </div>
     </div>
   )
 }

@@ -13,8 +13,8 @@ export default defineConfig({
         name: 'Northbound',
         short_name: 'Northbound',
         description: 'Plan your move from Cape Town to the UK.',
-        theme_color: '#16202b',
-        background_color: '#f4f6f7',
+        theme_color: '#0f141a',
+        background_color: '#0f141a',
         display: 'standalone',
         start_url: '/',
         icons: [
@@ -26,6 +26,9 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/push-sw\.js$/],
+        // Shows reminders sent by the server (public/push-sw.js).
+        importScripts: ['push-sw.js'],
         // Convex and Supabase traffic is never cached by the service worker.
         runtimeCaching: [],
       },

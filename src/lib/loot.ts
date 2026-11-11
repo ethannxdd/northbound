@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useAuth } from './auth'
+import { useLootSession } from './auth'
 import { supabase } from './supabase'
 
 // Reads and updates savings goals in Loot. Only the linked goal is ever written to.
@@ -23,7 +23,7 @@ export interface LootDeposit {
 const GOAL_COLUMNS = 'id, name, target_amount, current_amount, target_date, is_completed, completed_at'
 
 export function useLootGoals(enabled: boolean) {
-  const { session } = useAuth()
+  const { session } = useLootSession()
   const [goals, setGoals] = useState<LootGoal[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const load = useCallback(async () => {
@@ -40,7 +40,7 @@ export function useLootGoals(enabled: boolean) {
 
 /** The linked goal and its recent deposits, kept live. */
 export function useLinkedGoal(goalId: string | undefined) {
-  const { session } = useAuth()
+  const { session } = useLootSession()
   const [goal, setGoal] = useState<LootGoal | null>(null)
   const [deposits, setDeposits] = useState<LootDeposit[]>([])
   const [updatedAt, setUpdatedAt] = useState<number | null>(null)

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { monthYear, dayMonthYear } from '@shared/dates'
 import { buildTimeline, type Line, type Task } from '@shared/timeline'
 import { CITIES } from '@shared/cities'
@@ -130,9 +131,10 @@ export default function TransitMap({ animate = true, selectedKey, onSelect }: { 
 
 /** What a stop is, what it costs, and the steps in order. Used in the sheet and the desktop panel. */
 export function StopDetail({ task: t }: { task: Task }) {
-  const { done, today } = useApp()
+  const { done, ticked, today } = useApp()
   const { toggleDone } = useActions()
   const isDone = done.has(t.key)
+  const viaPaperwork = isDone && !ticked.has(t.key)
   return (
     <div className="stop-detail" style={{ ['--lc' as string]: LINE_COLOR[t.line] }}>
       <span className="linechip">{LINE_NAME[t.line]}</span>
@@ -171,9 +173,15 @@ export function StopDetail({ task: t }: { task: Task }) {
             Open website
           </a>
         )}
-        <button type="button" className={`btn ${isDone ? 'quiet' : 'primary'}`} onClick={() => void toggleDone({ taskKey: t.key, today })}>
-          {isDone ? 'Mark as not done' : 'Mark as done'}
-        </button>
+        {viaPaperwork ? (
+          <Link to="/paperwork" className="btn quiet">
+            Done in your paperwork tracker
+          </Link>
+        ) : (
+          <button type="button" className={`btn ${isDone ? 'quiet' : 'grad'}`} onClick={() => void toggleDone({ taskKey: t.key, today })}>
+            {isDone ? 'Mark as not done' : 'Mark as done'}
+          </button>
+        )}
       </div>
     </div>
   )
