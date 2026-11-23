@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CITIES, photoUrl } from '@shared/cities'
 import { dayMonthYear, monthYear, monthsBetween } from '@shared/dates'
-import { progress, runwayMonths, upfrontCosts } from '@shared/engine'
+import { progress, runwayMonths } from '@shared/engine'
 import type { Line, Task } from '@shared/timeline'
 import { ScenarioSwitcher } from '../components/Shell'
 import { LINE_COLOR, StopSheet, shortTitle, useTimeline } from '../components/TransitMap'
@@ -14,7 +14,7 @@ const LINE_LABEL: Record<Line, string> = { paper: 'Paperwork', money: 'Money', m
 
 /** Home: your number on the city photo, how far you've come, and what's next. */
 export default function Trip() {
-  const { input, plan, savings, done, today, savingsSource, active, deposits, profile, overrides } = useApp()
+  const { input, plan, savings, done, today, savingsSource, active, deposits, profile, totals } = useApp()
   const tasks = useTimeline()
   const wide = useWide()
   const [openKey, setOpenKey] = useState<string | null>(null)
@@ -25,8 +25,8 @@ export default function Trip() {
   const open = tasks.find((t) => t.key === openKey) ?? null
   const needed = Math.ceil(plan.neededPerMonthZar / 100) * 100
   const perMonth = input.landMode === 'date' && plan.remainingZar > 0 && plan.fundsDeadline > today ? needed : savings.monthlyZar
-  const itemCount = useMemo(() => upfrontCosts(input, plan.landDate, overrides).groups.reduce((a, g) => a + g.items.length, 0), [input, plan.landDate, overrides])
-  const quoted = 0
+  const itemCount = totals.itemCount
+  const quoted = totals.quotedCount
   const runway = runwayMonths(input)
   const lastDeposit = deposits[0]
   const pace = paceNote(plan, input.landMode, savings.monthlyZar, needed, today)
@@ -158,7 +158,7 @@ export default function Trip() {
                 <span className="key-base" aria-hidden="true" />
                 Baseline
               </span>
-              <b>{gbp(plan.targetGbp)}</b>
+              <b>{gbp(plan.baselineGbp)}</b>
             </div>
             <div className="vs-row">
               <span>
@@ -168,7 +168,13 @@ export default function Trip() {
               <b>{gbp(plan.targetGbp)}</b>
             </div>
           </div>
-          <div className="note">No quotes yet. Add the prices you find and Northbound uses them instead of the baseline.</div>
+          <div className="note">
+            {quoted === 0 && totals.customCount === 0
+              ? 'No quotes yet. Add the prices you find and Northbound uses them instead of the baseline.'
+              : Math.abs(plan.targetGbp - plan.baselineGbp) < 0.5
+                ? 'Your quotes match the baseline so far.'
+                : `Your quotes put the plan ${gbp(Math.abs(plan.targetGbp - plan.baselineGbp))} ${plan.targetGbp > plan.baselineGbp ? 'over' : 'under'} the baseline.`}
+          </div>
           <span className="go">Review costs</span>
         </Link>
       </div>

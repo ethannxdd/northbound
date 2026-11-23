@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AREAS, CAPE_TOWN, CITIES, rentFor } from '@shared/cities'
 import { longMonthYear, monthIndex } from '@shared/dates'
 import { PageHead } from '../components/Shell'
+import PaidCard from '../components/PaidCard'
 import { toInput, useActions, useApp } from '../lib/app'
 import { gbp, zar } from '../lib/format'
 import { useOpening } from '../lib/ui'
@@ -32,7 +33,8 @@ export default function Life() {
     <div>
       <PageHead title={`Life in ${city.name}`} sub="Daylight, prices, getting around, and where you might live." />
       <div className="container wrap" style={{ marginTop: 14 }}>
-        <div className="cols-2 stack" style={{ gap: 16 }}>
+        <PaidCard />
+        <div className="cols-2 stack" style={{ gap: 16, marginTop: 16 }}>
           <section className="card" aria-labelledby="daylight">
             <h2 id="daylight" className="h2">
               Hours of daylight

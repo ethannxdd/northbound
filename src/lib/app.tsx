@@ -4,13 +4,15 @@ import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 import { todayIso } from '@shared/dates'
 import { tasksDoneByDocs, type DocStatus } from '@shared/documents'
-import { plan, type Plan } from '@shared/engine'
+import { plan, planTotal, upfrontCosts, type Plan, type PlanExtras, type PlanTotal } from '@shared/engine'
 import type { RuleOverrides } from '@shared/rules'
 import type { SavingsState, ScenarioInput } from '@shared/types'
 import { useLootSession } from './auth'
 import { lootPace, syncLootTarget, useLinkedGoal, type LootDeposit, type LootGoal } from './loot'
 
 export type ScenarioDoc = Doc<'scenarios'>
+export type QuoteDoc = Doc<'quotes'>
+export type CustomCostDoc = Doc<'customCosts'>
 export type Me = NonNullable<ReturnType<typeof useMe>>
 
 export function toInput(d: ScenarioDoc): ScenarioInput {
@@ -53,7 +55,15 @@ interface AppData {
   fx: FxPoint[]
   liveRate: number | null
   today: string
-  planFor: (s: ScenarioInput) => Plan
+  /** Quotes and own costs on the main scenario */
+  quotes: QuoteDoc[]
+  customs: CustomCostDoc[]
+  /** Baseline, your quotes and the plan total for the main scenario */
+  totals: PlanTotal
+  /** Quotes and own costs on any scenario, for plan() */
+  extrasFor: (id?: Id<'scenarios'>) => PlanExtras
+  /** Pass the scenario id so its quotes count */
+  planFor: (s: ScenarioInput, id?: Id<'scenarios'>) => Plan
   /** A scenario with the live rate applied when it follows the live rate */
   effective: (s: ScenarioInput) => ScenarioInput
 }
@@ -88,8 +98,16 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
     return { savedZar: saved, monthlyZar: monthly }
   }, [linked.goal, linked.deposits, profile.savedZar, profile.monthlyZar])
 
-  const planFor = useMemo(() => (s: ScenarioInput) => plan(effective(s), savings, today, overrides), [effective, savings, today, overrides])
-  const p = useMemo(() => planFor(input), [planFor, input])
+  const extrasFor = useMemo(
+    () =>
+      (id?: Id<'scenarios'>): PlanExtras =>
+        id ? { quotes: me.quotes.filter((q) => q.scenarioId === id), customs: me.customCosts.filter((c) => c.scenarioId === id).map((c) => ({ id: c._id as string, group: c.group, label: c.label })) } : {},
+    [me.quotes, me.customCosts],
+  )
+  const planFor = useMemo(() => (s: ScenarioInput, id?: Id<'scenarios'>) => plan(effective(s), savings, today, overrides, extrasFor(id)), [effective, savings, today, overrides, extrasFor])
+  const p = useMemo(() => planFor(input, active._id), [planFor, input, active._id])
+  const activeExtras = useMemo(() => extrasFor(active._id), [extrasFor, active._id])
+  const totals = useMemo(() => planTotal(upfrontCosts(input, p.landDate, overrides), activeExtras.quotes, activeExtras.customs, input.rate), [input, p.landDate, overrides, activeExtras])
 
   // Keep the Loot goal's target equal to the number, if switched on.
   const goal = linked.goal
@@ -129,6 +147,10 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
     fx: me.fx,
     liveRate,
     today,
+    quotes: me.quotes.filter((q) => q.scenarioId === active._id),
+    customs: me.customCosts.filter((c) => c.scenarioId === active._id),
+    totals,
+    extrasFor,
     planFor,
     effective,
   }
@@ -156,6 +178,9 @@ export function useActions() {
     createShare: useMutation(api.shares.create),
     revokeShare: useMutation(api.shares.revoke),
     unlinkLoot: useMutation(api.account.unlinkLoot),
+    addQuote: useMutation(api.quotes.add),
+    removeQuote: useMutation(api.quotes.remove),
+    removeCustom: useMutation(api.quotes.removeCustom),
   }
 }
 

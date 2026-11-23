@@ -101,4 +101,30 @@ export default defineSchema({
 
   // Settlement tracker: UK earnings per tax year once you're there.
   earnings: defineTable({ userId: v.string(), taxYear: v.string(), gross: v.number() }).index('by_user', ['userId']).index('by_user_year', ['userId', 'taxYear']),
+
+  // Prices you found for a cost line, or for one of your own costs. The newest counts; older ones are history.
+  quotes: defineTable({
+    userId: v.string(),
+    scenarioId: v.id('scenarios'),
+    /** A cost line key from the engine, or a customCosts id */
+    itemKey: v.string(),
+    amount: v.number(),
+    currency: v.union(v.literal('GBP'), v.literal('ZAR')),
+    sourceUrl: v.optional(v.string()),
+    /** ISO date */
+    foundOn: v.string(),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index('by_user_scenario', ['userId', 'scenarioId'])
+    .index('by_user_scenario_item', ['userId', 'scenarioId', 'itemKey']),
+
+  // Your own costs that aren't in the baseline. Valued at their newest quote.
+  customCosts: defineTable({
+    userId: v.string(),
+    scenarioId: v.id('scenarios'),
+    group: v.union(v.literal('paper'), v.literal('move'), v.literal('runway')),
+    label: v.string(),
+    createdAt: v.number(),
+  }).index('by_user_scenario', ['userId', 'scenarioId']),
 })

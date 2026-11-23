@@ -42,6 +42,8 @@ function Signed() {
           <Route path="/" element={<Trip />} />
           <Route path="/map" element={<MapScreen />} />
           <Route path="/money" element={<Money />} />
+          <Route path="/money/quote" element={<Money />} />
+          <Route path="/money/quote/:itemKey" element={<Money />} />
           <Route path="/life" element={<Life />} />
           <Route path="/compare" element={<Compare />} />
           <Route path="/progress" element={<Progress />} />

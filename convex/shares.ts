@@ -58,6 +58,19 @@ export const view = query({
       .query('documents')
       .withIndex('by_user', (q) => q.eq('userId', share.userId))
       .collect()
+    // Only what the number needs: amounts and dates, no links or notes.
+    const quotes = (
+      await ctx.db
+        .query('quotes')
+        .withIndex('by_user_scenario', (q) => q.eq('userId', share.userId).eq('scenarioId', scenario._id))
+        .take(2000)
+    ).map((q) => ({ itemKey: q.itemKey, amount: q.amount, currency: q.currency, foundOn: q.foundOn, createdAt: q.createdAt }))
+    const customs = (
+      await ctx.db
+        .query('customCosts')
+        .withIndex('by_user_scenario', (q) => q.eq('userId', share.userId).eq('scenarioId', scenario._id))
+        .take(500)
+    ).map((c) => ({ id: c._id as string, group: c.group, label: c.label }))
     const { _id, _creationTime, userId, ...input } = scenario
     void _id
     void _creationTime
@@ -68,6 +81,8 @@ export const view = query({
       monthlyZar: profile.monthlyZar,
       done: done.map((d) => d.taskKey),
       docStatuses: Object.fromEntries(docs.map((d) => [d.docKey, d.status])),
+      quotes,
+      customs,
       liveRate: (await ctx.db.query('fxRates').withIndex('by_date').order('desc').first())?.zarPerGbp ?? null,
     }
   },

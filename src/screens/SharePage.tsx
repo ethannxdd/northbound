@@ -29,7 +29,7 @@ export default function SharePage() {
   const today = todayIso()
   const base = { ...DEFAULT_SCENARIO, ...data.input }
   const input = base.rateMode === 'live' && data.liveRate ? { ...base, rate: Math.round(data.liveRate * 100) / 100 } : base
-  const p = planOf(input, { savedZar: data.savedZar, monthlyZar: data.monthlyZar }, today)
+  const p = planOf(input, { savedZar: data.savedZar, monthlyZar: data.monthlyZar }, today, undefined, { quotes: data.quotes, customs: data.customs })
   const prog = progress(data.savedZar, p.targetZar)
   const done = new Set([...data.done, ...tasksDoneByDocs(data.docStatuses as Record<string, DocStatus>)])
   const city = CITIES[input.city]

@@ -70,7 +70,8 @@ export default function Shell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="page">
-        <div key={pathname} className="rise">
+        {/* Keyed on the first segment, so opening a sheet route (/money/quote) doesn't replay the screen's opening. */}
+        <div key={pathname.split('/')[1]} className="rise">
           {children}
         </div>
       </main>

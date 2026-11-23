@@ -4,6 +4,7 @@ import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/s
 import type { Id } from './_generated/dataModel'
 import { scenarioFields } from './schema'
 import { dataKey, requireKey } from './lib/user'
+import { copyQuotes, deleteQuotes } from './quotes'
 
 declare const process: { env: Record<string, string | undefined> }
 
@@ -25,7 +26,7 @@ export const me = query({
   handler: async (ctx) => {
     const uid = await userId(ctx)
     if (!uid) return null
-    const [profile, scenarios, done, overrides, documents, earnings, share, fx] = await Promise.all([
+    const [profile, scenarios, done, overrides, documents, earnings, share, fx, quotes, customCosts] = await Promise.all([
       profileOf(ctx, uid),
       ctx.db.query('scenarios').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
       ctx.db.query('done').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
@@ -34,6 +35,8 @@ export const me = query({
       ctx.db.query('earnings').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
       ctx.db.query('shares').withIndex('by_user', (q) => q.eq('userId', uid)).first(),
       ctx.db.query('fxRates').withIndex('by_date').order('desc').take(120),
+      ctx.db.query('quotes').withIndex('by_user_scenario', (q) => q.eq('userId', uid)).take(2000),
+      ctx.db.query('customCosts').withIndex('by_user_scenario', (q) => q.eq('userId', uid)).take(500),
     ])
     const authId = await getAuthUserId(ctx)
     const user = authId ? await ctx.db.get(authId) : null
@@ -44,7 +47,7 @@ export const me = query({
       /** Signed in with an old app version that sends Loot's token directly */
       legacyLoot: !authId && !!(await ctx.auth.getUserIdentity()),
     }
-    return { profile, scenarios, done, overrides, documents, earnings, shareToken: share?.token ?? null, fx: fx.reverse(), account }
+    return { profile, scenarios, done, overrides, documents, earnings, shareToken: share?.token ?? null, fx: fx.reverse(), account, quotes, customCosts }
   },
 })
 
@@ -102,7 +105,13 @@ async function ownScenario(ctx: MutationCtx, uid: string, id: Id<'scenarios'>) {
 }
 
 export const saveScenario = mutation({
-  args: { id: v.optional(v.id('scenarios')), scenario: scenarioArg, makeActive: v.optional(v.boolean()) },
+  args: {
+    id: v.optional(v.id('scenarios')),
+    scenario: scenarioArg,
+    makeActive: v.optional(v.boolean()),
+    /** When this new scenario is a copy: bring that scenario's quotes and own costs along */
+    copyFrom: v.optional(v.id('scenarios')),
+  },
   handler: async (ctx, a) => {
     const uid = await requireUser(ctx)
     let id = a.id
@@ -112,6 +121,10 @@ export const saveScenario = mutation({
       await ctx.db.replace(id, { userId: uid, ...a.scenario })
     } else {
       id = await ctx.db.insert('scenarios', { userId: uid, ...a.scenario })
+      if (a.copyFrom) {
+        await ownScenario(ctx, uid, a.copyFrom)
+        await copyQuotes(ctx, uid, a.copyFrom, id)
+      }
     }
     if (a.makeActive) {
       const p = await profileOf(ctx, uid)
@@ -128,6 +141,7 @@ export const deleteScenario = mutation({
     await ownScenario(ctx, uid, a.id)
     const all = await ctx.db.query('scenarios').withIndex('by_user', (q) => q.eq('userId', uid)).collect()
     if (all.length <= 1) throw new Error('Keep at least one scenario')
+    await deleteQuotes(ctx, uid, a.id)
     await ctx.db.delete(a.id)
     const p = await profileOf(ctx, uid)
     if (p && p.activeScenarioId === a.id) await ctx.db.patch(p._id, { activeScenarioId: all.find((s) => s._id !== a.id)!._id })
@@ -171,6 +185,10 @@ export const resetAll = mutation({
   args: {},
   handler: async (ctx) => {
     const uid = await requireUser(ctx)
+    for (const t of ['quotes', 'customCosts'] as const) {
+      const rows = await ctx.db.query(t).withIndex('by_user_scenario', (q) => q.eq('userId', uid)).collect()
+      for (const r of rows) await ctx.db.delete(r._id)
+    }
     for (const t of ['scenarios', 'done', 'ruleOverrides', 'profiles', 'documents', 'earnings', 'shares', 'pushSubs'] as const) {
       const rows = await ctx.db.query(t).withIndex('by_user', (q) => q.eq('userId', uid)).collect()
       for (const r of rows) await ctx.db.delete(r._id)
