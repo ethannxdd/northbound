@@ -130,7 +130,7 @@ export default function Editor() {
               <Seg label="City" value={draft.city} onChange={(v) => setDraft((d) => ({ ...d, city: v, area: undefined }))} options={Object.values(CITIES).map((c) => ({ value: c.id, label: c.name }))} />
             </SegRow>
             <SegRow label="Home">
-              <Seg label="Home" value={draft.housing} onChange={(v) => set('housing', v)} options={[{ value: 'room', label: 'Room in a share' }, { value: 'studio', label: 'Studio' }, { value: 'onebed', label: '1-bed' }]} />
+              <Seg label="Home" value={draft.housing} onChange={(v) => set('housing', v)} options={[{ value: 'room', label: 'Room' }, { value: 'studio', label: 'Studio' }, { value: 'onebed', label: '1-bed' }]} />
             </SegRow>
             <SegRow label="Who's coming">
               <Seg label="Who's coming" value={draft.partner ? 'two' : 'one'} onChange={(v) => set('partner', v === 'two')} options={[{ value: 'one', label: 'Just me' }, { value: 'two', label: 'With a partner' }]} />

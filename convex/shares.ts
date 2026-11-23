@@ -83,6 +83,8 @@ export const view = query({
       docStatuses: Object.fromEntries(docs.map((d) => [d.docKey, d.status])),
       quotes,
       customs,
+      // Only the total borrowed, so the dates match the owner's view. No loan terms.
+      borrowedZar: (profile.loanZar ?? 0) + (profile.cardZar ?? 0),
       liveRate: (await ctx.db.query('fxRates').withIndex('by_date').order('desc').first())?.zarPerGbp ?? null,
     }
   },

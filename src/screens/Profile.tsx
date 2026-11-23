@@ -2,34 +2,26 @@ import { Link } from 'react-router-dom'
 import { CITIES } from '@shared/cities'
 import { DOCUMENTS, atLeast, type DocStatus } from '@shared/documents'
 import Icon from '../components/Icon'
-import { LootCard, PageHead } from '../components/Shell'
+import { LootCard } from '../components/Shell'
 import { useApp } from '../lib/app'
-import { devNoAuth } from '../lib/auth'
-import { SECTIONS } from './Settings'
+import { ProfileCard, SECTIONS } from './Settings'
 
 /** Profile: your account, your other tools, and settings, grouped so they're easy to scan. */
 export default function Profile() {
-  const { account, input, docs } = useApp()
-  const name = account.email ?? account.lootEmail ?? (devNoAuth ? 'Test mode' : 'You')
+  const { input, docs, savingsSource } = useApp()
   const docsDone = DOCUMENTS.filter((d) => !d.optional && atLeast(docs[d.key]?.status as DocStatus | undefined, 'arrived')).length
   const docsTotal = DOCUMENTS.filter((d) => !d.optional).length
 
   return (
-    <div>
-      <PageHead title="Profile" />
-      <div className="container wrap" style={{ maxWidth: 760 }}>
-        <div className="card profile-head">
-          <span className="avatar" aria-hidden="true">
-            {name.slice(0, 1).toUpperCase()}
-          </span>
-          <span style={{ minWidth: 0 }}>
-            <b style={{ display: 'block', fontSize: 17, overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</b>
-            <span className="small muted">{account.email ? 'Northbound account' : account.lootLinked ? 'Signed in with Loot' : ''}{account.lootLinked && account.email ? ', linked to Loot' : ''}</span>
-          </span>
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <LootCard />
-        </div>
+    <div className="main" style={{ maxWidth: 760 }}>
+      <h1 className="h1">Profile</h1>
+      <div>
+        <ProfileCard />
+        {savingsSource !== 'loot' && (
+          <div style={{ marginTop: 12 }}>
+            <LootCard />
+          </div>
+        )}
 
         <h2 className="menu-group-h">Your move</h2>
         <div className="menu-list">

@@ -675,7 +675,7 @@ function downloadJson(me: NonNullable<ReturnType<typeof useMe>>) {
 
 // ---------- profile card (desktop left column) ----------
 
-function ProfileCard() {
+export function ProfileCard() {
   const { account, input, plan } = useApp()
   const name = account.email ?? account.lootEmail ?? (devNoAuth ? 'Test mode' : 'You')
   return (

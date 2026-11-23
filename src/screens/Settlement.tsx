@@ -118,7 +118,9 @@ export default function Settlement() {
           </ul>
           {first.short && !profile.landedOn && (
             <div className="note warn" role="status" style={{ marginTop: 12 }}>
-              With a {plural(input.jobHuntMonths, 'month')} job hunt your first tax year ({first.taxYear.replace('-', '/')}) only has about {first.months} months of pay, around {gbp(first.gross)}, so it may fall short of {gbp(first.minEarnings)}.{' '}
+              {first.months < 0.5
+                ? `With a ${plural(input.jobHuntMonths, 'month')} job hunt you won't be paid at all in your first tax year (${first.taxYear.replace('-', '/')}), so it falls short of ${gbp(first.minEarnings)}.`
+                : `With a ${plural(input.jobHuntMonths, 'month')} job hunt your first tax year (${first.taxYear.replace('-', '/')}) only has about ${first.months} months of pay, around ${gbp(first.gross)}, so it may fall short of ${gbp(first.minEarnings)}.`}{' '}
               {first.startBy ? `Starting work by ${dayMonthYear(first.startBy)} fixes it: land earlier in the tax year, or shorten the job hunt.` : 'Landing earlier in the tax year, or a shorter job hunt, fixes it.'}
             </div>
           )}
@@ -145,7 +147,7 @@ function EarningsRow({ year, planned, actual, min, max, first }: { year: string;
     <li>
       <span className="ey">
         <b>{year.replace('-', '/')}</b>
-        <small>{real ? 'Your P60' : first && planned.months < 12 ? `Plan · ${planned.months} months of pay` : 'Plan'}</small>
+        <small>{real ? 'Your P60' : first && planned.months < 12 ? (planned.months < 0.5 ? 'Plan · no pay yet' : `Plan · ${planned.months} months of pay`) : 'Plan'}</small>
       </span>
       <span className="ebar" aria-hidden="true">
         <i className={real ? (under ? 'warn' : 'ok') : under ? 'warn' : ''} style={{ width: `${Math.min(100, (value / max) * 100)}%` }} />

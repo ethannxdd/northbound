@@ -35,7 +35,7 @@ export default function Progress() {
   const offPace = plan.remainingZar > 0 && (dateMode ? !plan.onTrack : savings.monthlyZar <= 0)
 
   // The route, top (city) to bottom (Cape Town), with you placed by how much you've saved.
-  const stops: { name: string; sub: string; kind: Kind; at: number }[] = [{ name: city, sub: `100% · ${zar(plan.saveTargetZar)}`, kind: prog.pct >= 1 ? 'you' : 'end', at: 1 }]
+  const stops: { name: string; sub: string; kind: Kind; at: number }[] = [{ name: city, sub: `100% · ${zar(plan.saveTargetZar, 1000)}`, kind: prog.pct >= 1 ? 'you' : 'end', at: 1 }]
   for (const w of WAYPOINTS) {
     if (Math.abs(w.at - prog.pct) < 0.04) continue
     stops.push({ name: w.name, sub: `${pct(w.at)} · ${zar(plan.saveTargetZar * w.at, 1000)}`, kind: prog.pct >= w.at ? 'passed' : 'ahead', at: w.at })

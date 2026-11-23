@@ -52,7 +52,9 @@ export default function Shell({ children }: { children: ReactNode }) {
   // New screen: back to the top, and on a phone bring its tab into view. Sheets on the same screen (/money/quote) don't count.
   useEffect(() => {
     window.scrollTo(0, 0)
-    nav.current?.querySelector('.active')?.scrollIntoView({ inline: 'center', block: 'nearest' })
+    const n = nav.current
+    const el = n?.querySelector<HTMLElement>('.active')
+    if (n) n.scrollLeft = el && n.scrollWidth > n.clientWidth ? el.offsetLeft - (n.clientWidth - el.offsetWidth) / 2 : 0
   }, [section])
 
   return (

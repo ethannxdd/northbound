@@ -54,7 +54,7 @@ export default function Paperwork() {
         </div>
       </div>
 
-      <div className="pills" role="group" aria-label="Show documents" style={{ alignSelf: 'flex-start' }}>
+      <div className="filter-pills" role="group" aria-label="Show documents">
         {(
           [
             ['all', `All ${counts.all}`],
