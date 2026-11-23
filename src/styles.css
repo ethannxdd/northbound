@@ -877,3 +877,20 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height:
 .egross.ok-text { color: var(--ok); }
 .einput .input { height: 40px; }
 @media (max-width: 760px) { .settle-path ol { grid-template-columns: 1fr 1fr; } .settle-path li .sp-rail::after { display: none; } .earn-list li { grid-template-columns: 100px 1fr 90px; } }
+
+/* ---------- settings ---------- */
+.settings-left { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 100px; align-self: start; padding-top: 30px; }
+.profile-card { display: flex; gap: 14px; align-items: center; padding: 18px; }
+.profile-card b { display: block; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-card small { font-size: 13px; color: var(--muted); }
+.avatar.lg { width: 52px; height: 52px; font-size: 17px; flex: none; }
+.settings-nav.card { padding: 8px; position: static; }
+.settings-main.card { margin-top: 30px; padding: 28px 32px; align-self: start; }
+.rule-counts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.badge.danger { background: var(--danger-tint); color: var(--danger); }
+.rule-row.flash { animation: nb-flash 1.6s ease-out; border-radius: 10px; }
+@keyframes nb-flash { from { background: var(--accent-tint); } to { background: transparent; } }
+.qs-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.qs-list li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-ctl); background: var(--fill-2); }
+.rule-input.long .input { padding-right: 66px; }
+.rule-row { grid-template-columns: 1fr 150px; }

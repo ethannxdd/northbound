@@ -62,3 +62,15 @@ describe('settlement', () => {
     expect(c.yearsMet).toBe(1)
   })
 })
+
+import { needsRefresh, RULES as ALL_RULES } from './rules'
+
+describe('rule freshness', () => {
+  it('flags rules last checked more than 90 days ago', () => {
+    expect(needsRefresh({ lastChecked: '2026-08-01' }, '2026-11-23')).toBe(true)
+    expect(needsRefresh({ lastChecked: '2026-09-01' }, '2026-11-23')).toBe(false)
+  })
+  it('marks every unofficial value as an estimate', () => {
+    for (const key of ['tbTestZar', 'saUnabridgedZar', 'settlementMinEarnings', 'ilrFee', 'citizenshipFee'] as const) expect(ALL_RULES.find((r) => r.key === key)!.estimate).toBe(true)
+  })
+})

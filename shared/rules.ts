@@ -93,3 +93,12 @@ function ruleRaw(key: RuleKey, onDate: string): number | string {
   const live = entry.versions.filter((v) => v.from <= onDate).sort((a, b) => (a.from < b.from ? 1 : -1))
   return (live[0] ?? entry.versions[0]).value
 }
+
+/** Rules older than this need checking again. */
+export const REFRESH_DAYS = 90
+
+/** True when a rule was last checked more than 90 days before `today`. */
+export function needsRefresh(entry: Pick<RuleEntry, 'lastChecked'>, today: string): boolean {
+  const age = (Date.parse(today + 'T00:00:00Z') - Date.parse(entry.lastChecked + 'T00:00:00Z')) / 86_400_000
+  return age > REFRESH_DAYS
+}

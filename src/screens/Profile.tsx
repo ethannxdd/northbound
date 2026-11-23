@@ -42,7 +42,7 @@ export default function Profile() {
 
         <h2 className="menu-group-h">Settings</h2>
         <div className="menu-list">
-          {SECTIONS.filter((s) => s.id !== 'scenarios').map((s) => (
+          {SECTIONS.filter((s) => s.id !== 'scenarios' && s.id !== 'settling').map((s) => (
             <Row key={s.id} to={`/settings/${s.id}`} icon={s.icon} label={s.label} sub={s.blurb} />
           ))}
         </div>

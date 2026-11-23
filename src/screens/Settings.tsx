@@ -1,9 +1,12 @@
 import { useAction } from 'convex/react'
-import { useState, type FormEvent, type ReactNode } from 'react'
-import { Link, Navigate, NavLink, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { Link, Navigate, NavLink, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../../convex/_generated/api'
-import { RULES, rule, ruleText, type RuleEntry } from '@shared/rules'
-import { longDate } from '@shared/dates'
+import { RULES, needsRefresh, rule, ruleText, type RuleEntry } from '@shared/rules'
+import { CITIES } from '@shared/cities'
+import { dayMonthYear, longDate, monthYear } from '@shared/dates'
+import { sortQuotes } from '@shared/engine'
+import { gbp } from '../lib/format'
 import RemindersControls from '../components/Reminders'
 import { BackLink } from '../components/Shell'
 import Icon from '../components/Icon'
@@ -15,9 +18,11 @@ import { supabase } from '../lib/supabase'
 import { SavedMoneyField, Seg, Toggle, useSavedFlash, useTheme, useWide, type ThemeChoice } from '../lib/ui'
 
 export const SECTIONS = [
+  { id: 'scenarios', label: 'Your scenarios', icon: 'scenarios', blurb: 'Pick your main scenario, edit or add one' },
+  { id: 'settling', label: 'Settling in the UK', icon: 'flag', blurb: 'Your 5-year path, earnings and English' },
   { id: 'loot', label: 'Loot', icon: 'loot', blurb: 'Link Loot and follow a savings goal' },
   { id: 'savings', label: 'Savings plan', icon: 'savings', blurb: 'What you save each month, and life in Cape Town now' },
-  { id: 'scenarios', label: 'Scenarios', icon: 'scenarios', blurb: 'Pick your main scenario, edit or add one' },
+  { id: 'quotes', label: 'My quotes', icon: 'money', blurb: 'Every price you found, with its history' },
   { id: 'reminders', label: 'Reminders and calendar', icon: 'bell', blurb: 'Phone nudges and a calendar of every step' },
   { id: 'share', label: 'Share your plan', icon: 'share', blurb: 'A read-only link for family or a partner' },
   { id: 'appearance', label: 'Appearance', icon: 'appearance', blurb: 'Dark, light or match your device' },
@@ -30,8 +35,22 @@ type SectionId = (typeof SECTIONS)[number]['id']
 export default function Settings() {
   const { section } = useParams()
   const wide = useWide()
+  const { hash } = useLocation()
   const current = SECTIONS.find((s) => s.id === section)
-  if (!current) return <Navigate to={wide ? '/settings/loot' : '/profile'} replace />
+  // Links like /settings/rules#rule-visaFee scroll to that rule once it's on screen.
+  useEffect(() => {
+    if (!hash) return
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(hash.slice(1))
+      if (!el) return
+      el.closest('details')?.setAttribute('open', '')
+      el.scrollIntoView({ block: 'center' })
+      el.classList.add('flash')
+    }, 60)
+    return () => window.clearTimeout(t)
+  }, [hash, section])
+  if (section === 'settling') return <Navigate to="/settlement" replace />
+  if (!current) return <Navigate to={wide ? '/settings/scenarios' : '/profile'} replace />
 
   const body = <SectionBody id={current.id} />
   if (!wide) {
@@ -50,18 +69,18 @@ export default function Settings() {
   }
   return (
     <div className="settings-desk">
-      <nav className="settings-nav" aria-label="Settings">
-        <h1 className="h1" style={{ margin: '0 0 14px 12px' }}>
-          Settings
-        </h1>
-        {SECTIONS.map((s) => (
-          <NavLink key={s.id} to={`/settings/${s.id}`} className={({ isActive }) => (isActive ? 'active' : '')}>
-            <Icon name={s.icon} size={19} />
-            {s.label}
-          </NavLink>
-        ))}
-      </nav>
-      <section className="settings-main" aria-labelledby="sec-title">
+      <div className="settings-left">
+        <ProfileCard />
+        <nav className="settings-nav card" aria-label="Settings">
+          {SECTIONS.map((s) => (
+            <NavLink key={s.id} to={s.id === 'settling' ? '/settlement' : `/settings/${s.id}`} className={({ isActive }) => (isActive ? 'active' : '')}>
+              <Icon name={s.icon} size={19} />
+              {s.label}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
+      <section className="settings-main card" aria-labelledby="sec-title">
         <h2 id="sec-title" className="h1">
           {current.label}
         </h2>
@@ -82,6 +101,10 @@ function SectionBody({ id }: { id: SectionId }) {
       return <SavingsSection />
     case 'scenarios':
       return <ScenariosSection />
+    case 'quotes':
+      return <QuotesSection />
+    case 'settling':
+      return null
     case 'reminders':
       return <RemindersSection />
     case 'share':
@@ -483,47 +506,61 @@ function RulesSection() {
   const { setRule } = useActions()
   const groups = [...new Set(RULES.map((r) => r.group))]
   const estimates = RULES.filter((r) => r.estimate)
-  const row = (r: RuleEntry) => (
-    <RuleRow key={r.key} r={r} value={r.unit === 'text' ? ruleText(r.key, today, overrides) : rule(r.key, today, overrides)} overridden={overrides[r.key] !== undefined} onSet={(v) => void setRule({ key: r.key, value: v })} />
+  const stale = RULES.filter((r) => needsRefresh(r, today))
+  const row = (r: RuleEntry, idPrefix = 'rule-') => (
+    <RuleRow
+      key={r.key}
+      id={`${idPrefix}${r.key}`}
+      r={r}
+      stale={needsRefresh(r, today)}
+      value={r.unit === 'text' ? ruleText(r.key, today, overrides) : rule(r.key, today, overrides)}
+      overridden={overrides[r.key] !== undefined}
+      onSet={(v) => void setRule({ key: r.key, value: v })}
+    />
   )
   return (
     <>
+      <div className="rule-counts">
+        <span className="tag warn">{estimates.length} estimates</span>
+        <span className={`tag ${stale.length ? 'danger' : 'ok'}`}>{stale.length ? `${stale.length} need a refresh` : 'All checked in the last 90 days'}</span>
+      </div>
       <p className="hint" style={{ margin: '0 0 14px' }}>
-        As they apply on {longDate(today)}. If you find a newer value, change it here and every number in Northbound updates.
+        As they apply on {longDate(today)}. If you find a newer value, change it here and every number in Northbound updates. Anything not checked for 90 days is flagged for a refresh.
       </p>
       <details className="rule-group" open>
         <summary>
           Estimates to check <span className="badge">{estimates.length}</span>
         </summary>
-        <ul className="list">{estimates.map(row)}</ul>
+        <ul className="list">{estimates.map((r) => row(r, 'est-'))}</ul>
       </details>
       {groups.map((g) => (
         <details key={g} className="rule-group">
           <summary>{g}</summary>
-          <ul className="list">{RULES.filter((r) => r.group === g).map(row)}</ul>
+          <ul className="list">{RULES.filter((r) => r.group === g).map((r) => row(r))}</ul>
         </details>
       ))}
     </>
   )
 }
 
-function RuleRow({ r, value, overridden, onSet }: { r: RuleEntry; value: number | string; overridden: boolean; onSet: (v: number | null) => void }) {
+function RuleRow({ id, r, stale, value, overridden, onSet }: { id: string; r: RuleEntry; stale: boolean; value: number | string; overridden: boolean; onSet: (v: number | null) => void }) {
   const shown = r.unit === 'rate' ? String(Math.round(Number(value) * 10000) / 100) : String(value)
   const [text, setText] = useState(shown)
   const [saved, flash] = useSavedFlash()
   const isText = r.unit === 'text'
   const unit = r.unit === 'GBP' ? '£' : r.unit === 'ZAR' ? 'R' : r.unit === 'rate' ? '%' : r.unit
   return (
-    <li className="rule-row">
+    <li className="rule-row" id={id} tabIndex={-1}>
       <span>
         {r.label}
         {r.estimate && <span className="badge">Estimate</span>}
+        {stale && <span className="badge danger">Needs a refresh</span>}
         <span className={`saved-flash${saved ? ' on' : ''}`}>{saved ? 'Saved' : ''}</span>
       </span>
       {isText ? (
         <span style={{ textAlign: 'right', fontWeight: 700 }}>{String(value)}</span>
       ) : (
-        <div className="rule-input">
+        <div className={`rule-input${unit.length > 1 ? " long" : ""}`}>
           <input
             className="input"
             inputMode="decimal"
@@ -626,4 +663,82 @@ function downloadJson(me: NonNullable<ReturnType<typeof useMe>>) {
   a.download = `northbound-${new Date().toISOString().slice(0, 10)}.json`
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+// ---------- profile card (desktop left column) ----------
+
+function ProfileCard() {
+  const { account, input, plan } = useApp()
+  const name = account.email ?? account.lootEmail ?? (devNoAuth ? 'Test mode' : 'You')
+  return (
+    <div className="card profile-card">
+      <span className="avatar lg" aria-hidden="true">
+        {name.slice(0, 2).toUpperCase()}
+      </span>
+      <span style={{ minWidth: 0 }}>
+        <b>{name}</b>
+        <small>
+          {CITIES[input.city].name} · landing {monthYear(plan.landDate)}
+        </small>
+      </span>
+    </div>
+  )
+}
+
+// ---------- my quotes ----------
+
+function QuotesSection() {
+  const { totals, quotes, input, active } = useApp()
+  const { removeQuote } = useActions()
+  const lines = totals.groups.flatMap((g) => g.lines).filter((l) => l.quoteCount > 0)
+  if (!lines.length)
+    return (
+      <Block note="Quotes belong to a scenario. These are for your main scenario.">
+        <p className="muted" style={{ margin: '0 0 12px' }}>
+          No quotes yet on {active.name}. Add the prices you find and Northbound uses them instead of the baseline.
+        </p>
+        <Link to="/money/quote" className="btn primary">
+          Add my quote
+        </Link>
+      </Block>
+    )
+  return (
+    <>
+      <p className="hint" style={{ margin: '0 0 6px' }}>
+        For your main scenario, {active.name}. The newest quote for each cost counts; older ones are history.
+      </p>
+      {lines.map((l) => (
+        <Block key={l.key} title={l.label}>
+          <ul className="qs-list">
+            {sortQuotes(quotes.filter((q) => q.itemKey === l.key)).map((q, i) => (
+              <li key={q._id}>
+                <span className="qh-main">
+                  <b>{q.currency === 'GBP' ? gbp(q.amount) : zar(q.amount)}</b>
+                  <small>
+                    {q.currency === 'GBP' ? zar(q.amount * input.rate) : gbp(q.amount / input.rate)} · found {dayMonthYear(q.foundOn)}
+                    {q.sourceUrl && (
+                      <>
+                        {' · '}
+                        <a href={q.sourceUrl} target="_blank" rel="noreferrer noopener">
+                          Source
+                        </a>
+                      </>
+                    )}
+                    {q.note ? ` · ${q.note}` : ''}
+                  </small>
+                </span>
+                <span className={`tag${i === 0 ? ' mine' : ''}`}>{i === 0 ? 'Counts' : 'Older'}</span>
+                <button type="button" className="btn quiet sm danger" onClick={() => void removeQuote({ id: q._id })} aria-label={`Delete the quote from ${dayMonthYear(q.foundOn)} for ${l.label}`}>
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+          <Link to={`/money/quote/${l.key}`} className="btn link sm" style={{ marginTop: 8 }}>
+            + Add a newer quote
+          </Link>
+        </Block>
+      ))}
+    </>
+  )
 }
