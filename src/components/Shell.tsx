@@ -121,7 +121,7 @@ export function LootCard() {
   }
   return (
     <Link to="/settings/loot" className="loot-card">
-      <span className="loot-dot" aria-hidden="true">L</span>
+      <Icon name="loot" size={26} />
       <span>
         <b>{lootNeedsSignIn ? 'Sign in to Loot on this device' : goalMissing ? 'Relink your Loot goal' : 'Link a Loot savings goal'}</b>
         <small>{lootNeedsSignIn ? 'To see your linked goal here' : 'Your progress updates every time you save in Loot'}</small>

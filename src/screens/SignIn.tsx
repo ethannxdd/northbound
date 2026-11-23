@@ -1,3 +1,4 @@
+import Icon from '../components/Icon'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { useState, type FormEvent } from 'react'
 import { CAPE_TOWN, photoUrl } from '@shared/cities'
@@ -114,7 +115,7 @@ export default function SignIn() {
           <>
             <div className="or">or</div>
             <button type="button" className="social" onClick={() => switchTo('loot')}>
-              <span className="loot-dot" aria-hidden="true">L</span>
+              <Icon name="loot" size={26} />
               Continue with Loot
             </button>
             <p className="tiny muted" style={{ textAlign: 'center', margin: 0 }}>

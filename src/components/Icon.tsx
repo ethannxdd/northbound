@@ -33,6 +33,8 @@ const PATHS: Record<string, string> = {
 export type IconName = keyof typeof PATHS
 
 export default function Icon({ name, size = 20 }: { name: IconName | string; size?: number }) {
+  // Loot's own app icon, copied from the Loot repo (public/icons/app-icon.svg).
+  if (name === 'loot') return <img src="/loot-icon.svg" className="loot-icon" width={size} height={size} alt="" />
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={name === 'more' ? 3 : 1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: 'none' }}>
       <path d={PATHS[name] ?? ''} />

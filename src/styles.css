@@ -225,7 +225,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height:
 .loot-card > span:nth-child(2) { flex: 1; min-width: 0; }
 .loot-card b { display: block; font-size: 15px; font-weight: 600; }
 .loot-card small { display: block; font-size: 12.5px; color: var(--muted); }
-.loot-dot { width: 26px; height: 26px; border-radius: 8px; background: var(--l-money); flex: none; display: grid; place-items: center; color: var(--on-accent); font-weight: 800; font-size: 13px; }
+.loot-icon { display: block; flex: none; border-radius: 22.5%; box-shadow: 0 0 0 1px var(--hair-strong); }
 .dot-ok { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px var(--ok-tint); flex: none; margin: 0 4px; }
 
 /* ---------- shell ---------- */

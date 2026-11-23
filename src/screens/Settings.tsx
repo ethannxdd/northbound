@@ -15,7 +15,7 @@ import { supabase } from '../lib/supabase'
 import { SavedMoneyField, Seg, Toggle, useSavedFlash, useTheme, useWide, type ThemeChoice } from '../lib/ui'
 
 export const SECTIONS = [
-  { id: 'loot', label: 'Loot', icon: 'link', blurb: 'Link Loot and follow a savings goal' },
+  { id: 'loot', label: 'Loot', icon: 'loot', blurb: 'Link Loot and follow a savings goal' },
   { id: 'savings', label: 'Savings plan', icon: 'savings', blurb: 'What you save each month, and life in Cape Town now' },
   { id: 'scenarios', label: 'Scenarios', icon: 'scenarios', blurb: 'Pick your main scenario, edit or add one' },
   { id: 'reminders', label: 'Reminders and calendar', icon: 'bell', blurb: 'Phone nudges and a calendar of every step' },
