@@ -1,6 +1,6 @@
 import { CITIES, rentFor, type CityProfile } from './cities'
 import { addMonths, maxDate, monthsBetween } from './dates'
-import { rule, type RuleOverrides } from './rules'
+import { rule, type RuleKey, type RuleOverrides } from './rules'
 import type { SavingsState, ScenarioInput } from './types'
 
 // ---------- UK pay ----------
@@ -42,8 +42,14 @@ export function salaryFor(s: ScenarioInput): number {
 }
 
 export interface LineItem {
+  /** Stable id, used to attach quotes. Never reuse a key for a different cost. */
+  key: string
   label: string
   gbp: number
+  /** Short "how it's worked out" line shown under the name */
+  basis?: string
+  /** The rules this figure uses, so the UI can link to them */
+  ruleKeys?: RuleKey[]
 }
 
 export type GroupId = 'paper' | 'move' | 'runway'
@@ -68,12 +74,12 @@ export function monthlyBudget(s: ScenarioInput, onDate: string, ov?: RuleOverrid
   const c = CITIES[s.city]
   const p = people(s)
   const items: LineItem[] = [
-    { label: s.housing === 'room' ? 'Rent, room in a share' : s.housing === 'studio' ? 'Rent, studio' : 'Rent, 1-bed flat', gbp: rentFor(s.city, s.housing, s.area) },
-    { label: 'Food', gbp: c.food * p },
-    { label: 'Bills and council tax', gbp: c.bills[s.housing] },
-    { label: s.city === 'manchester' ? 'Bus and tram' : 'Tube and bus', gbp: c.transport * p },
-    { label: 'Phone', gbp: c.phone * p },
-    { label: 'Everything else', gbp: c.other * p },
+    { key: 'rent', label: s.housing === 'room' ? 'Rent, room in a share' : s.housing === 'studio' ? 'Rent, studio' : 'Rent, 1-bed flat', gbp: rentFor(s.city, s.housing, s.area) },
+    { key: 'food', label: 'Food', gbp: c.food * p },
+    { key: 'bills', label: 'Bills and council tax', gbp: c.bills[s.housing] },
+    { key: 'transport', label: s.city === 'manchester' ? 'Bus and tram' : 'Tube and bus', gbp: c.transport * p },
+    { key: 'phone', label: 'Phone', gbp: c.phone * p },
+    { key: 'other', label: 'Everything else', gbp: c.other * p },
   ]
   const outgoings = items.reduce((a, i) => a + i.gbp, 0)
   const mine = takeHome(salaryFor(s), onDate, ov).monthly
@@ -91,46 +97,187 @@ export function runwayMonths(s: ScenarioInput): number {
   return s.jobHuntMonths + 1
 }
 
-/** Everything you need saved before you go, grouped like the map's three lines. Pounds. */
+/** Everything you need saved before you go, grouped like the map's three lines. Pounds. This is the baseline: no quotes. */
 export function upfrontCosts(s: ScenarioInput, landDate: string, ov?: RuleOverrides): { groups: CostGroup[]; total: number } {
   const c = CITIES[s.city]
   const p = people(s)
   const r = s.rate
   const visaYears = rule('visaYears', landDate, ov)
+  const two = p > 1 ? ', 2 people' : ''
+  const times = p > 1 ? ' × 2 people' : ''
 
+  const visaFee = rule('visaFee', landDate, ov)
+  const ihs = rule('ihsPerYear', landDate, ov)
+  const tb = rule('tbTestZar', landDate, ov)
+  const gro = rule('groCertificate', landDate, ov)
+  const sa = rule('saUnabridgedZar', landDate, ov)
   const paper: LineItem[] = [
-    { label: p > 1 ? 'Visa fees, 2 people' : 'Visa fee', gbp: rule('visaFee', landDate, ov) * p },
-    { label: `Health surcharge, ${visaYears} years${p > 1 ? ', 2 people' : ''}`, gbp: rule('ihsPerYear', landDate, ov) * visaYears * p },
+    { key: 'visaFee', label: `UK Ancestry visa fee${two}`, gbp: visaFee * p, basis: `${money(visaFee)} a person, set by the Home Office`, ruleKeys: ['visaFee'] },
     {
-      label: 'TB test and certificates',
-      gbp: (rule('tbTestZar', landDate, ov) * p) / r + rule('groCertificate', landDate, ov) + (rule('saUnabridgedZar', landDate, ov) * 2) / r,
+      key: 'ihs',
+      label: `Immigration Health Surcharge, ${visaYears} years${two}`,
+      gbp: ihs * visaYears * p,
+      basis: `${money(ihs)} a year × ${visaYears} years${times}`,
+      ruleKeys: ['ihsPerYear', 'visaYears'],
     },
+    { key: 'tbTest', label: `TB test${two}`, gbp: (tb * p) / r, basis: `${money(tb, 'R')} at an approved clinic${times}`, ruleKeys: ['tbTestZar'] },
+    { key: 'groCert', label: "Gran's birth certificate (GRO)", gbp: gro, basis: `${money(gro)} from the General Register Office`, ruleKeys: ['groCertificate'] },
+    { key: 'saCerts', label: 'Unabridged birth certificates × 2', gbp: (sa * 2) / r, basis: `${money(sa, 'R')} each from Home Affairs`, ruleKeys: ['saUnabridgedZar'] },
   ]
 
   const living = monthlyBudget(s, landDate, ov)
   const rent = rentFor(s.city, s.housing, s.area)
+  const depositWeeks = rule('depositWeeks', landDate, ov)
   const move: LineItem[] = [
-    { label: p > 1 ? 'Flights, 2 people' : 'Flight', gbp: s.flightGbp * p },
-    { label: `First ${s.tempNights} nights`, gbp: s.tempNights * c.tempNightly },
-    { label: "Deposit and first month's rent", gbp: deposit(c, s, landDate, ov) + rent },
-    { label: 'Bedding, SIM, basics', gbp: 300 + 100 * (p - 1) },
+    { key: 'flight', label: `One-way flight${two}`, gbp: s.flightGbp * p, basis: `Cape Town to ${c.name}, ${money(s.flightGbp)}${times}` },
+    { key: 'monthlyLet', label: `Monthly let, first ${s.tempNights} nights`, gbp: s.tempNights * c.tempNightly, basis: `${s.tempNights} nights at ${money(c.tempNightly)} while you find a place` },
+    { key: 'deposit', label: `Deposit (${depositWeeks} weeks)`, gbp: deposit(c, s, landDate, ov), basis: `${depositWeeks} weeks of ${money(rent)} a month rent, the legal maximum`, ruleKeys: ['depositWeeks'] },
+    { key: 'firstRent', label: "First month's rent", gbp: rent, basis: 'Paid before you get the keys' },
+    { key: 'basics', label: 'Bedding, SIM, basics', gbp: 300 + 100 * (p - 1), basis: p > 1 ? '£300, plus £100 for a second person' : 'A rough allowance of £300' },
   ]
 
   const months = runwayMonths(s)
-  const runway: LineItem[] = [{ label: 'Month 1, rent already paid', gbp: living.outgoings - rent }]
-  if (months > 1) runway.push({ label: months === 2 ? 'Month 2' : `Months 2 to ${months}`, gbp: living.outgoings * (months - 1) })
-  if (s.bufferGbp > 0) runway.push({ label: 'Safety buffer', gbp: s.bufferGbp })
+  const runway: LineItem[] = [{ key: 'runway1', label: 'Month 1 living, rent already paid', gbp: living.outgoings - rent, basis: `${money(Math.round(living.outgoings))} a month, less the rent you paid up front` }]
+  if (months > 1)
+    runway.push({
+      key: 'runwayRest',
+      label: months === 2 ? 'Month 2 living' : `Months 2 to ${months} living`,
+      gbp: living.outgoings * (months - 1),
+      basis: `${money(Math.round(living.outgoings))} a month × ${months - 1}, until your first payday`,
+    })
+  if (s.bufferGbp > 0) runway.push({ key: 'buffer', label: 'Safety buffer', gbp: s.bufferGbp, basis: 'Your own cushion for surprises' })
 
   const groups: CostGroup[] = [
     { id: 'paper', label: 'Paperwork and visa', items: paper, total: sum(paper) },
     { id: 'move', label: 'Getting there', items: move, total: sum(move) },
     { id: 'runway', label: `Runway, ${months} month${months === 1 ? '' : 's'}`, items: runway, total: sum(runway) },
   ]
-  return { groups, total: sum(groups.map((g) => ({ label: g.label, gbp: g.total }))) }
+  return { groups, total: groups.reduce((a, g) => a + g.total, 0) }
 }
 
 function sum(items: LineItem[]): number {
   return items.reduce((a, i) => a + i.gbp, 0)
+}
+
+function money(n: number, sym: '£' | 'R' = '£'): string {
+  const whole = Math.abs(n - Math.round(n)) < 1e-9
+  return sym + n.toLocaleString('en-GB', { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 })
+}
+
+// ---------- quotes and the plan total ----------
+
+export type Currency = 'GBP' | 'ZAR'
+
+/** A price found for one cost line, or for one of your own costs. */
+export interface QuoteLike {
+  itemKey: string
+  amount: number
+  currency: Currency
+  /** ISO date */
+  foundOn: string
+  createdAt: number
+}
+
+/** A cost that isn't in the baseline. Its value is its newest quote. */
+export interface CustomCostLike {
+  id: string
+  group: GroupId
+  label: string
+}
+
+/** A quote in pounds. Rand quotes convert at the scenario's rate. */
+export function quoteGbp(q: Pick<QuoteLike, 'amount' | 'currency'>, rate: number): number {
+  return q.currency === 'GBP' ? q.amount : q.amount / rate
+}
+
+/** Newest first: the latest date found, then the latest added. */
+export function sortQuotes<Q extends QuoteLike>(quotes: Q[]): Q[] {
+  return [...quotes].sort((a, b) => (a.foundOn === b.foundOn ? b.createdAt - a.createdAt : a.foundOn < b.foundOn ? 1 : -1))
+}
+
+/** The quote that counts for each item: the newest one. */
+export function newestQuotes<Q extends QuoteLike>(quotes: Q[]): Map<string, Q> {
+  const out = new Map<string, Q>()
+  for (const q of sortQuotes(quotes)) if (!out.has(q.itemKey)) out.set(q.itemKey, q)
+  return out
+}
+
+export interface PlanLine {
+  key: string
+  label: string
+  basis?: string
+  ruleKeys?: RuleKey[]
+  /** Northbound's figure. Null for your own extra costs. */
+  baselineGbp: number | null
+  /** Your newest quote in pounds, or null */
+  mineGbp: number | null
+  /** What the plan uses: your quote if you have one, else the baseline */
+  planGbp: number
+  custom: boolean
+  quoteCount: number
+}
+
+export interface PlanGroup {
+  id: GroupId
+  label: string
+  lines: PlanLine[]
+  baselineGbp: number
+  planGbp: number
+}
+
+export interface PlanTotal {
+  groups: PlanGroup[]
+  baselineGbp: number
+  /** The number: your quotes where you have them, the baseline everywhere else, plus your own costs */
+  planGbp: number
+  /** Sum of your newest quotes, baseline items and your own costs */
+  mineGbp: number
+  /** Baseline items, and how many of them have a price and a quote */
+  itemCount: number
+  pricedCount: number
+  quotedCount: number
+  customCount: number
+}
+
+/** Plan total = Σ baseline items (newest quote if any, else baseline) + Σ your own costs. */
+export function planTotal(costs: { groups: CostGroup[] }, quotes: QuoteLike[] = [], customs: CustomCostLike[] = [], rate: number): PlanTotal {
+  const newest = newestQuotes(quotes)
+  const counts = new Map<string, number>()
+  for (const q of quotes) counts.set(q.itemKey, (counts.get(q.itemKey) ?? 0) + 1)
+  let itemCount = 0
+  let pricedCount = 0
+  let quotedCount = 0
+  let mineGbp = 0
+  const groups: PlanGroup[] = costs.groups.map((g) => {
+    const lines: PlanLine[] = g.items.map((i) => {
+      const q = newest.get(i.key)
+      const mine = q ? quoteGbp(q, rate) : null
+      itemCount++
+      if (i.gbp > 0) pricedCount++
+      if (mine !== null) {
+        quotedCount++
+        mineGbp += mine
+      }
+      return { key: i.key, label: i.label, basis: i.basis, ruleKeys: i.ruleKeys, baselineGbp: i.gbp, mineGbp: mine, planGbp: mine ?? i.gbp, custom: false, quoteCount: counts.get(i.key) ?? 0 }
+    })
+    for (const c of customs.filter((x) => x.group === g.id)) {
+      const q = newest.get(c.id)
+      const mine = q ? quoteGbp(q, rate) : null
+      if (mine !== null) mineGbp += mine
+      lines.push({ key: c.id, label: c.label, baselineGbp: null, mineGbp: mine, planGbp: mine ?? 0, custom: true, quoteCount: counts.get(c.id) ?? 0 })
+    }
+    return { id: g.id, label: g.label, lines, baselineGbp: g.total, planGbp: lines.reduce((a, l) => a + l.planGbp, 0) }
+  })
+  return {
+    groups,
+    baselineGbp: groups.reduce((a, g) => a + g.baselineGbp, 0),
+    planGbp: groups.reduce((a, g) => a + g.planGbp, 0),
+    mineGbp,
+    itemCount,
+    pricedCount,
+    quotedCount,
+    customCount: customs.length,
+  }
 }
 
 /**
@@ -163,6 +310,9 @@ export interface Plan {
   fundsDeadline: string
   /** Earliest landing allowed by the paperwork lead time */
   earliestLand: string
+  /** Northbound's figure before your quotes, pounds */
+  baselineGbp: number
+  /** The plan total in pounds: your quotes where you have them */
   targetGbp: number
   targetZar: number
   remainingZar: number
@@ -173,6 +323,11 @@ export interface Plan {
   onTrack: boolean
   /** In date mode: the landing date your current pace supports */
   paceLandDate: string | null
+}
+
+export interface PlanExtras {
+  quotes?: QuoteLike[]
+  customs?: CustomCostLike[]
 }
 
 function readyDateFor(remainingZar: number, monthlyZar: number, today: string): string | null {
@@ -186,11 +341,14 @@ export function earliestLanding(s: ScenarioInput, today: string, ov?: RuleOverri
   return addMonths(today, s.certLeadMonths + 1 + Math.ceil(rule('decisionWeeks', today, ov) / 4))
 }
 
-/** Works out the number, and in "when I've saved enough" mode, the landing date too. */
-export function plan(s: ScenarioInput, savings: SavingsState, today: string, ov?: RuleOverrides): Plan {
+/**
+ * Works out the number, and in "when I've saved enough" mode, the landing date too.
+ * The number is the plan total: your quotes where you have them, the baseline everywhere else.
+ */
+export function plan(s: ScenarioInput, savings: SavingsState, today: string, ov?: RuleOverrides, extras: PlanExtras = {}): Plan {
   const window = rule('applyWindowMonths', today, ov)
   const earliestLand = earliestLanding(s, today, ov)
-  const target = (land: string) => upfrontCosts(s, land, ov).total
+  const target = (land: string) => planTotal(upfrontCosts(s, land, ov), extras.quotes, extras.customs, s.rate).planGbp
 
   let land = s.landMode === 'date' ? s.landDate : earliestLand
   if (s.landMode === 'saved') {
@@ -205,6 +363,7 @@ export function plan(s: ScenarioInput, savings: SavingsState, today: string, ov?
   }
 
   const targetGbp = target(land)
+  const baselineGbp = upfrontCosts(s, land, ov).total
   const targetZar = targetGbp * s.rate
   const remainingZar = Math.max(0, targetZar - savings.savedZar)
   const fundsDeadline = addMonths(land, -window)
@@ -213,7 +372,7 @@ export function plan(s: ScenarioInput, savings: SavingsState, today: string, ov?
   const neededPerMonthZar = remainingZar / monthsToDeadline
   const onTrack = readyDate !== null && readyDate <= fundsDeadline && land >= earliestLand
   const paceLandDate = readyDate ? maxDate(addMonths(readyDate, window), earliestLand) : null
-  return { landDate: land, fundsDeadline, earliestLand, targetGbp, targetZar, remainingZar, readyDate, neededPerMonthZar, onTrack, paceLandDate }
+  return { landDate: land, fundsDeadline, earliestLand, baselineGbp, targetGbp, targetZar, remainingZar, readyDate, neededPerMonthZar, onTrack, paceLandDate }
 }
 
 // ---------- partner ----------
