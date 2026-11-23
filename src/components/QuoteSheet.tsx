@@ -78,16 +78,9 @@ function QuoteForm({ initial, onClose }: { initial?: string; onClose: () => void
 
   return (
     <form className="quote-form" onSubmit={submit} aria-labelledby="quote-title">
-      <div className="sheet-h">
-        <h2 id="quote-title" className="h2">
-          Add my quote
-        </h2>
-        <button type="button" className="iconbtn" aria-label="Close" onClick={onClose}>
-          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
-        </button>
-      </div>
+      <h2 id="quote-title" className="h2">
+        Add my quote
+      </h2>
 
       <div className="field">
         <label htmlFor="q-item">Cost item</label>

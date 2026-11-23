@@ -7,7 +7,7 @@ import { longDate } from '@shared/dates'
 import RemindersControls from '../components/Reminders'
 import { BackLink } from '../components/Shell'
 import Icon from '../components/Icon'
-import { useActions, useApp } from '../lib/app'
+import { useActions, useApp, useMe } from '../lib/app'
 import { devNoAuth, lootPasswordSignIn, useLootSession, useSignOut } from '../lib/auth'
 import { zar } from '../lib/format'
 import { createLootGoal, useLootGoals } from '../lib/loot'
@@ -377,7 +377,7 @@ export function ScenariosSection() {
                   {s._id === active._id && <span className="main-badge">Main</span>}
                 </b>
                 <small>
-                  {zar(planFor(s).targetZar, 1000)}
+                  {zar(planFor(s, s._id).targetZar, 1000)}
                   {s._id !== active._id ? '. Tap to make it your main scenario' : '. Drives your trip, map and Loot goal'}
                 </small>
               </span>
@@ -572,6 +572,7 @@ function AccountSection() {
   const { account } = useApp()
   const { resetAll } = useActions()
   const signOut = useSignOut()
+  const me = useMe()
   return (
     <>
       <Block title="Signed in">
@@ -585,7 +586,12 @@ function AccountSection() {
           </button>
         )}
       </Block>
-      <Block title="Delete Northbound data" note="Removes your scenarios, ticked steps, paperwork, share link and rule changes. Nothing in Loot is touched. This can't be undone.">
+      <Block title="Download your data" note="Everything Northbound stores for you, including your quotes and own costs, as a JSON file.">
+        <button type="button" className="btn quiet" disabled={!me} onClick={() => me && downloadJson(me)}>
+          Download JSON
+        </button>
+      </Block>
+      <Block title="Delete Northbound data" note="Removes your scenarios, quotes, ticked steps, paperwork, share link and rule changes. Nothing in Loot is touched. This can't be undone.">
         <button
           type="button"
           className="btn quiet danger"
@@ -598,4 +604,26 @@ function AccountSection() {
       </Block>
     </>
   )
+}
+
+/** Saves your Northbound data as a JSON file. Your plan only: no sign-in details. */
+function downloadJson(me: NonNullable<ReturnType<typeof useMe>>) {
+  const strip = <T extends object>(rows: T[]) => rows.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== 'userId')))
+  const data = {
+    exportedAt: new Date().toISOString(),
+    profile: me.profile ? strip([me.profile])[0] : null,
+    scenarios: strip(me.scenarios),
+    quotes: strip(me.quotes),
+    customCosts: strip(me.customCosts),
+    done: strip(me.done),
+    ruleOverrides: strip(me.overrides),
+    documents: strip(me.documents),
+    earnings: strip(me.earnings),
+  }
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `northbound-${new Date().toISOString().slice(0, 10)}.json`
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

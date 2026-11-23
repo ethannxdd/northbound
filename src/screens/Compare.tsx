@@ -36,7 +36,7 @@ export default function Compare() {
   const b = options.find((o) => o.id === bId) ?? options[options.length - 1]
 
   const stats = (o: Option) => {
-    const p = planFor(o.input)
+    const p = planFor(o.input, o.id)
     const budget = monthlyBudget(o.input, p.landDate, overrides)
     const monthsToSave = p.readyDate ? Math.max(0, monthsBetween(today, p.readyDate)) : null
     return { p, budget, monthsToSave, city: CITIES[o.input.city] }

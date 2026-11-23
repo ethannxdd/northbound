@@ -29,7 +29,16 @@ export function spring({ from, to, velocity = 0, response = 0.35, bounce = 0, on
   let v = velocity
   let last = performance.now()
   let raf = 0
+  let ran = false
+  // Hidden or throttled pages may never paint a frame: jump to the end so nothing is left half-open.
+  const fallback = setTimeout(() => {
+    if (ran) return
+    cancelAnimationFrame(raf)
+    onUpdate(to, 0)
+    onDone?.()
+  }, 200)
   const step = (now: number) => {
+    ran = true
     // Fixed small substeps keep the integration stable on slow frames.
     let dt = Math.min(0.064, (now - last) / 1000)
     last = now
@@ -50,7 +59,10 @@ export function spring({ from, to, velocity = 0, response = 0.35, bounce = 0, on
     raf = requestAnimationFrame(step)
   }
   raf = requestAnimationFrame(step)
-  return () => cancelAnimationFrame(raf)
+  return () => {
+    clearTimeout(fallback)
+    cancelAnimationFrame(raf)
+  }
 }
 
 /** Apple-style rubber band: resistance grows the further you pull past the edge. */

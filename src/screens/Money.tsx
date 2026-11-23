@@ -16,7 +16,7 @@ const HOUSING: Record<string, string> = { room: 'room in a share', studio: 'stud
 
 /** Money: the baseline, your quotes and the plan total, line by line. */
 export default function Money() {
-  const { input, plan, overrides, savings, today, fx, liveRate, active, totals } = useApp()
+  const { input, plan, overrides, savings, today, fx, liveRate, active, totals, goal, profile } = useApp()
   const { pathname } = useLocation()
   const { itemKey } = useParams<{ itemKey?: string }>()
   const navigate = useNavigate()
@@ -94,7 +94,7 @@ export default function Money() {
           <small>
             {show === 'both' ? `${zar(totals.planGbp * r)} · ` : ''}
             {Math.abs(diffGbp) >= 0.5 ? `${diffGbp > 0 ? '+' : '−'}${gbp(Math.abs(diffGbp))} on the baseline. ` : ''}
-            This is your number{active._id ? ' and your Loot goal target' : ''}.
+            This is your number{goal && profile.syncLootTarget ? ' and your Loot goal target' : ''}.
           </small>
         </div>
       </section>

@@ -19,6 +19,7 @@ import type * as lib_loot from "../lib/loot.js";
 import type * as lib_user from "../lib/user.js";
 import type * as push from "../push.js";
 import type * as pushSend from "../pushSend.js";
+import type * as quotes from "../quotes.js";
 import type * as settlement from "../settlement.js";
 import type * as shares from "../shares.js";
 
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   "lib/user": typeof lib_user;
   push: typeof push;
   pushSend: typeof pushSend;
+  quotes: typeof quotes;
   settlement: typeof settlement;
   shares: typeof shares;
 }>;

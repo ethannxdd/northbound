@@ -27,10 +27,10 @@ export default function Editor() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const set = <K extends keyof ScenarioInput>(k: K, v: ScenarioInput[K]) => setDraft((d) => ({ ...d, [k]: v }))
-  const p = planFor(draft)
+  const p = planFor(draft, existing?._id ?? active._id)
   const applyDate = addMonths(p.landDate, -3)
   const partnerOk = partnerCanCome(draft, applyDate, overrides)
-  const before = existing ? planFor(toInput(existing)) : null
+  const before = existing ? planFor(toInput(existing), existing._id) : null
   const diff = before ? p.targetZar - before.targetZar : 0
   const costs = upfrontCosts(effective(draft), p.landDate, overrides)
   const budget = monthlyBudget(draft, p.landDate, overrides)
@@ -40,7 +40,7 @@ export default function Editor() {
     setBusy(true)
     setError(null)
     try {
-      await saveScenario({ id: existing?._id as Id<'scenarios'> | undefined, scenario: { ...draft, name: draft.name.trim() }, makeActive: makeMain })
+      await saveScenario({ id: existing?._id as Id<'scenarios'> | undefined, scenario: { ...draft, name: draft.name.trim() }, makeActive: makeMain, copyFrom: existing ? undefined : active._id })
       leave()
     } catch {
       setError("Couldn't save. Try again.")

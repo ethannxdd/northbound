@@ -178,7 +178,7 @@ export function ScenarioSwitcher({ align = 'left' }: { align?: 'left' | 'right' 
                 {s._id === active._id && <span className="main-badge">Main</span>}
               </b>
               <small>
-                {zar(planFor(s).targetZar, 1000)}
+                {zar(planFor(s, s._id).targetZar, 1000)}
                 {s._id !== active._id ? '. Make main' : ''}
               </small>
             </span>

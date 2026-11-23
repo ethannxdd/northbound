@@ -61,9 +61,9 @@ interface AppData {
   /** Baseline, your quotes and the plan total for the main scenario */
   totals: PlanTotal
   /** Quotes and own costs on any scenario, for plan() */
-  extrasFor: (id?: Id<'scenarios'>) => PlanExtras
+  extrasFor: (id?: string) => PlanExtras
   /** Pass the scenario id so its quotes count */
-  planFor: (s: ScenarioInput, id?: Id<'scenarios'>) => Plan
+  planFor: (s: ScenarioInput, id?: string) => Plan
   /** A scenario with the live rate applied when it follows the live rate */
   effective: (s: ScenarioInput) => ScenarioInput
 }
@@ -100,11 +100,11 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
 
   const extrasFor = useMemo(
     () =>
-      (id?: Id<'scenarios'>): PlanExtras =>
+      (id?: string): PlanExtras =>
         id ? { quotes: me.quotes.filter((q) => q.scenarioId === id), customs: me.customCosts.filter((c) => c.scenarioId === id).map((c) => ({ id: c._id as string, group: c.group, label: c.label })) } : {},
     [me.quotes, me.customCosts],
   )
-  const planFor = useMemo(() => (s: ScenarioInput, id?: Id<'scenarios'>) => plan(effective(s), savings, today, overrides, extrasFor(id)), [effective, savings, today, overrides, extrasFor])
+  const planFor = useMemo(() => (s: ScenarioInput, id?: string) => plan(effective(s), savings, today, overrides, extrasFor(id)), [effective, savings, today, overrides, extrasFor])
   const p = useMemo(() => planFor(input, active._id), [planFor, input, active._id])
   const activeExtras = useMemo(() => extrasFor(active._id), [extrasFor, active._id])
   const totals = useMemo(() => planTotal(upfrontCosts(input, p.landDate, overrides), activeExtras.quotes, activeExtras.customs, input.rate), [input, p.landDate, overrides, activeExtras])
