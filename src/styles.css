@@ -925,3 +925,55 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height:
 .check-row { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
 .check-row input { width: 18px; height: 18px; accent-color: var(--accent); }
 @media (max-width: 640px) { .opt-cards { grid-template-columns: 1fr; } .seg-row { grid-template-columns: 1fr; gap: 6px; } }
+
+/* ---------- first run (v5) ---------- */
+.fr { flex-direction: row; flex-wrap: wrap; background: var(--bg); }
+.fr-photos { flex: 1 1 480px; min-width: 0; margin: 16px; min-height: 520px; border-radius: 36px; overflow: hidden; display: flex; flex-direction: column; }
+.fr-ph { flex: 1; position: relative; min-height: 200px; background: var(--raised); }
+.fr-ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.fr-ph::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(5,7,11,0.15), rgba(5,7,11,0.45)); }
+.fr-ph > span { position: absolute; z-index: 1; left: 24px; font-size: 26px; font-weight: 800; letter-spacing: -0.03em; color: #F5F5F7; text-shadow: 0 2px 16px rgba(0,0,0,.5); }
+.fr-ph.top > span { bottom: 20px; color: var(--l-money); }
+.fr-ph.bottom > span { top: 20px; }
+.fr-line { height: 4px; background: var(--accent); flex: none; }
+.fr-live { position: absolute; z-index: 1; right: 20px; bottom: 20px; padding: 16px 18px; border-radius: 22px; display: flex; flex-direction: column; gap: 2px; color: var(--text); }
+.fr-live small { font-size: 12px; color: var(--muted); }
+.fr-num { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
+.fr-body { flex: 1 1 520px; justify-content: center; padding: 48px 32px; gap: 10px; }
+.fr-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.fr-brand { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; }
+.fr-dots { display: flex; gap: 6px; }
+.fr-dots i { width: 6px; height: 6px; border-radius: 999px; background: var(--fill-4); transition: width 220ms var(--ease-out); }
+.fr-dots i.on { width: 26px; background: var(--accent); }
+.fr-dots i.done { background: var(--accent); }
+.fr .q { font-size: 34px; margin: 0 0 14px; }
+.fr .q2 { font-size: 18px; font-weight: 700; margin: 12px 0 10px; }
+.chip { display: flex; align-items: center; gap: 14px; padding: 18px 20px; border-radius: 20px; color: var(--text); }
+.chip-txt { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.chip-txt b { font-size: 16px; font-weight: 700; }
+.chip .ring { width: 22px; height: 22px; border-radius: 999px; border: 2px solid var(--hair-strong); flex: none; }
+.chip[aria-pressed="true"] .ring { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 4px var(--bg); }
+.fr .actions .btn.primary { flex: 1; }
+@media (max-width: 760px) {
+  .fr-photos { flex-basis: 100%; min-height: 0; height: 34dvh; margin: 10px; border-radius: 28px; }
+  .fr-ph { min-height: 0; }
+  .fr-body { padding: 12px 20px 24px; }
+  .fr .q { font-size: 26px; }
+  .fr-live { padding: 10px 12px; right: 12px; bottom: 12px; }
+  .fr-num { font-size: 20px; }
+}
+
+/* ---------- sign in (v5) ---------- */
+.auth-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -0.03em; color: #F5F5F7 !important; }
+.auth-msg { position: absolute; z-index: 1; left: 16px; right: 16px; bottom: 16px; padding: 20px; border-radius: 24px; display: flex; flex-direction: column; gap: 8px; max-width: 520px; }
+.auth-h { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; }
+.auth-sub { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-2); }
+.auth-photo::after { background: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,0) 45%); }
+@media (min-width: 900px) {
+  .auth-screen { background: var(--bg); }
+  .auth-photo { margin: 16px; border-radius: 36px; min-height: calc(100vh - 32px); }
+  .auth-msg { left: 20px; bottom: 20px; padding: 28px; border-radius: 28px; }
+  .auth-h { font-size: 34px; }
+  .auth-sub { font-size: 15px; }
+  .auth-body { align-content: center; }
+}

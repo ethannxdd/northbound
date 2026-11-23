@@ -1,4 +1,5 @@
 import Icon from '../components/Icon'
+import { BrandMark } from '../components/Shell'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { useState, type FormEvent } from 'react'
 import { CAPE_TOWN, photoUrl } from '@shared/cities'
@@ -61,8 +62,14 @@ export default function SignIn() {
     <div className="auth-screen">
       <div className="auth-photo">
         <img src={photoUrl(CAPE_TOWN.photo, 1600)} alt="Cape Town and Table Mountain from the sea" />
-        <span className="brand">northbound</span>
-        <p className="tag display">Cape Town to the UK, one step at a time.</p>
+        <span className="brand auth-brand">
+          <BrandMark size={36} />
+          northbound
+        </span>
+        <div className="auth-msg glass">
+          <p className="auth-h">Cape Town to the UK, every step and every rand.</p>
+          <p className="auth-sub">Your number, your route and your runway, with a baseline for every cost next to the quotes you find yourself.</p>
+        </div>
       </div>
       <form className="auth-body" onSubmit={submit} noValidate>
         {mode === 'loot' ? (

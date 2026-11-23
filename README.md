@@ -41,4 +41,4 @@ The calculation engines (`shared/`) are covered: UK take-home pay, costs, runway
 
 ## Icons
 
-`python scripts/make-icons.py` redraws the PNG icons in `public/`.
+`node scripts/make-icons.mjs` redraws the PNG icons in `public/`.
