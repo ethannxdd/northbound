@@ -4,13 +4,14 @@ import { DEFAULT_SCENARIO as d, type ScenarioInput } from './types'
 
 const LAND = '2029-03-01'
 
-// Totals from before the lines were split (commit 2f34daa): [total, paper, move, runway].
+// [total, paper, move, runway]. First pinned before the lines were split (2f34daa) and matched exactly
+// after the split (2555e4c). Re-pinned in the Nov 2026 rent refresh, which changed the city rents on purpose.
 const BEFORE: [string, ScenarioInput, number[]][] = [
-  ['solo', d, [14500.684815184815, 5997.915584415585, 3100.769230769231, 5402]],
-  ['partner', { ...d, partner: true, partnerWorks: true }, [23471.606893106895, 11976.837662337663, 3720.769230769231, 7774]],
-  ['london studio', { ...d, city: 'london', housing: 'studio' }, [19428.684815184817, 5997.915584415585, 4750.7692307692305, 8680]],
-  ['1-bed, buffer, short hunt', { ...d, housing: 'onebed', bufferGbp: 1500, jobHuntMonths: 1 }, [14180.838661338661, 5997.915584415585, 3746.9230769230767, 4436]],
-  ['no hunt, no let', { ...d, jobHuntMonths: 0, tempNights: 0 }, [9361.684815184815, 5997.915584415585, 2650.769230769231, 713]],
+  ['solo', d, [13985.3001998002, 5997.915584415584, 2885.3846153846152, 5102]],
+  ['partner', { ...d, partner: true, partnerWorks: true }, [22956.222277722278, 11976.837662337663, 3505.3846153846152, 7474]],
+  ['london studio', { ...d, city: 'london', housing: 'studio' }, [19170.99250749251, 5997.915584415584, 4643.076923076924, 8530]],
+  ['1-bed, buffer, short hunt', { ...d, housing: 'onebed', bufferGbp: 1500, jobHuntMonths: 1 }, [13739.3001998002, 5997.915584415584, 3445.3846153846152, 4296]],
+  ['no hunt, no let', { ...d, jobHuntMonths: 0, tempNights: 0 }, [9146.3001998002, 5997.915584415584, 2435.3846153846152, 713]],
 ]
 
 describe('split cost lines', () => {

@@ -9,8 +9,8 @@ import { DEFAULT_SCENARIO } from './types'
 
 describe('neighbourhoods', () => {
   it('scale rent by area and fall back to the city average', () => {
-    expect(rentFor('manchester', 'room')).toBe(850)
-    expect(rentFor('manchester', 'room', 'levenshulme')).toBe(700)
+    expect(rentFor('manchester', 'room')).toBe(750)
+    expect(rentFor('manchester', 'room', 'levenshulme')).toBe(620)
     expect(rentFor('manchester', 'studio', 'city-centre')).toBeGreaterThan(rentFor('manchester', 'studio'))
   })
   it('change the number', () => {

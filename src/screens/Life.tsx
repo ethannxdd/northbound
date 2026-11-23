@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AREAS, CAPE_TOWN, CITIES, rentFor } from '@shared/cities'
-import { longMonthYear, monthIndex } from '@shared/dates'
+import { dayMonthYear, longMonthYear, monthIndex } from '@shared/dates'
 import PaidCard from '../components/PaidCard'
 import { toInput, useActions, useApp } from '../lib/app'
 import { gbp, zar } from '../lib/format'
@@ -144,7 +144,11 @@ export default function Life() {
         </div>
       </section>
       <p className="tiny faint" style={{ margin: 0 }}>
-        Prices, rents and daylight hours are planning estimates.
+        Prices, rents and daylight hours are planning estimates. Rents last checked {dayMonthYear(city.rentChecked)} against{' '}
+        <a href={city.rentSource} target="_blank" rel="noreferrer noopener">
+          ONS figures
+        </a>{' '}
+        and listings.
       </p>
     </div>
   )

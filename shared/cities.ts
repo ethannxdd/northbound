@@ -24,13 +24,17 @@ export interface CityProfile {
   coffee: number
   photo: string
   photoCredit: string
+  /** Where the rents come from, and when they were last checked (ISO date) */
+  rentSource: string
+  rentChecked: string
 }
 
 export const CITIES: Record<CityId, CityProfile> = {
   manchester: {
     id: 'manchester',
     name: 'Manchester',
-    rent: { room: 850, studio: 1050, onebed: 1150 },
+    // 1-bed: ONS Price Index of Private Rents, Manchester, Sep 2026 (£1,007). Room and studio: SpareRoom and Rightmove listings, Nov 2026.
+    rent: { room: 750, studio: 900, onebed: 1010 },
     bills: { room: 120, studio: 260, onebed: 300 },
     transport: 80,
     food: 250,
@@ -44,11 +48,14 @@ export const CITIES: Record<CityId, CityProfile> = {
     coffee: 3.4,
     photo: 'https://images.unsplash.com/photo-1611490916757-4402482e161b',
     photoCredit: 'Mylo Kaye on Unsplash',
+    rentSource: 'https://www.ons.gov.uk/visualisations/housingpriceslocal/E08000003/',
+    rentChecked: '2026-11-23',
   },
   london: {
     id: 'london',
     name: 'London',
-    rent: { room: 1150, studio: 1500, onebed: 1800 },
+    // 1-bed: ONS, London, autumn 2026 (about £1,760). Room: SpareRoom Rental Index, Q2 2026 (£915 to £978). Studio: listings, Nov 2026.
+    rent: { room: 950, studio: 1450, onebed: 1760 },
     bills: { room: 140, studio: 300, onebed: 340 },
     transport: 170,
     food: 280,
@@ -62,6 +69,8 @@ export const CITIES: Record<CityId, CityProfile> = {
     coffee: 3.9,
     photo: 'https://images.unsplash.com/photo-1632897271846-b6e3ca78aded',
     photoCredit: 'Jacob Smith on Unsplash',
+    rentSource: 'https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/privaterentandhousepricesuk/latest',
+    rentChecked: '2026-11-23',
   },
 }
 
@@ -92,20 +101,20 @@ export interface Area {
 /** Neighbourhoods with rough rents. Planning estimates, not quotes. */
 export const AREAS: Record<CityId, Area[]> = {
   manchester: [
-    { id: 'city-centre', name: 'City Centre', room: 950, commute: 'Walk to most offices', vibe: 'Flats, bars, everything close' },
-    { id: 'ancoats', name: 'Ancoats and Northern Quarter', room: 920, commute: '10 min walk to the centre', vibe: 'Converted mills, cafes, young crowd' },
-    { id: 'salford-quays', name: 'Salford Quays', room: 860, commute: '15 min on the tram', vibe: 'Waterside flats, MediaCity' },
-    { id: 'chorlton', name: 'Chorlton', room: 800, commute: '20 min on the tram', vibe: 'Leafy, independent shops' },
-    { id: 'didsbury', name: 'Didsbury', room: 850, commute: '25 min on the tram', vibe: 'Quiet, green, popular with professionals' },
-    { id: 'levenshulme', name: 'Levenshulme', room: 700, commute: '20 min by train or bus', vibe: 'Good value, friendly' },
+    { id: 'city-centre', name: 'City Centre', room: 840, commute: 'Walk to most offices', vibe: 'Flats, bars, everything close' },
+    { id: 'ancoats', name: 'Ancoats and Northern Quarter', room: 810, commute: '10 min walk to the centre', vibe: 'Converted mills, cafes, young crowd' },
+    { id: 'salford-quays', name: 'Salford Quays', room: 760, commute: '15 min on the tram', vibe: 'Waterside flats, MediaCity' },
+    { id: 'chorlton', name: 'Chorlton', room: 710, commute: '20 min on the tram', vibe: 'Leafy, independent shops' },
+    { id: 'didsbury', name: 'Didsbury', room: 750, commute: '25 min on the tram', vibe: 'Quiet, green, popular with professionals' },
+    { id: 'levenshulme', name: 'Levenshulme', room: 620, commute: '20 min by train or bus', vibe: 'Good value, friendly' },
   ],
   london: [
-    { id: 'islington', name: 'Islington', room: 1300, commute: '15 min to the City', vibe: 'Central, busy, pricey' },
-    { id: 'hackney', name: 'Hackney', room: 1150, commute: '20 min on the Overground', vibe: 'Creative, markets, nightlife' },
-    { id: 'brixton', name: 'Brixton', room: 1100, commute: '20 min on the Victoria line', vibe: 'Lively, music, food' },
-    { id: 'stratford', name: 'Stratford', room: 1050, commute: '15 min on the Elizabeth line', vibe: 'New builds, Olympic Park' },
-    { id: 'walthamstow', name: 'Walthamstow', room: 1000, commute: '25 min on the Victoria line', vibe: 'Village feel, wetlands' },
-    { id: 'croydon', name: 'Croydon', room: 900, commute: '20 min by train', vibe: 'Best value, big town centre' },
+    { id: 'islington', name: 'Islington', room: 1070, commute: '15 min to the City', vibe: 'Central, busy, pricey' },
+    { id: 'hackney', name: 'Hackney', room: 950, commute: '20 min on the Overground', vibe: 'Creative, markets, nightlife' },
+    { id: 'brixton', name: 'Brixton', room: 910, commute: '20 min on the Victoria line', vibe: 'Lively, music, food' },
+    { id: 'stratford', name: 'Stratford', room: 870, commute: '15 min on the Elizabeth line', vibe: 'New builds, Olympic Park' },
+    { id: 'walthamstow', name: 'Walthamstow', room: 830, commute: '25 min on the Victoria line', vibe: 'Village feel, wetlands' },
+    { id: 'croydon', name: 'Croydon', room: 740, commute: '20 min by train', vibe: 'Best value, big town centre' },
   ],
 }
 
