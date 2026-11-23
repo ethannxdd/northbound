@@ -1,6 +1,26 @@
+import { Link } from 'react-router-dom'
 import { monthlyBudget, salaryFor, takeHome } from '@shared/engine'
+import type { ScenarioInput } from '@shared/types'
+import type { RuleOverrides } from '@shared/rules'
 import { useApp } from '../lib/app'
 import { gbp } from '../lib/format'
+
+const HOUSING: Record<string, string> = { room: 'a room in a share', studio: 'a studio', onebed: 'a 1-bed flat' }
+const KEEP = 300
+
+/** The salary that leaves `keep` pounds a month, found by bisection on take-home pay. */
+export function salaryToKeep(s: ScenarioInput, onDate: string, ov: RuleOverrides | undefined, keep: number): number {
+  const b = monthlyBudget(s, onDate, ov)
+  const need = b.outgoings + keep - b.partnerTakeHome
+  let lo = 0
+  let hi = 200000
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2
+    if (takeHome(mid, onDate, ov).monthly < need) lo = mid
+    else hi = mid
+  }
+  return Math.ceil(hi / 500) * 500
+}
 
 /** Once you're paid: salary to take-home, each monthly cost with a bar, and what's left. */
 export default function PaidCard() {
@@ -8,31 +28,64 @@ export default function PaidCard() {
   const budget = monthlyBudget(input, plan.landDate, overrides)
   const pay = takeHome(salaryFor(input), plan.landDate, overrides)
   const income = budget.takeHome + budget.partnerTakeHome
+  const max = Math.max(...budget.items.map((i) => i.gbp), 1)
+  const thin = budget.left < KEEP
+  const room = input.housing !== 'room' ? monthlyBudget({ ...input, housing: 'room' }, plan.landDate, overrides).left : null
+  const tone = budget.left < 0 ? 'danger' : budget.left < 150 ? 'warn' : budget.left < KEEP ? 'warn' : 'ok'
+
   return (
-    <section className="card" aria-labelledby="paid">
-      <h2 id="paid" className="h2">
-        Once you're paid
-      </h2>
-      <p className="muted small" style={{ margin: '4px 0 14px' }}>
-        {gbp(salaryFor(input))} a year becomes <b style={{ color: 'var(--text)' }}>{gbp(pay.monthly)}</b> a month after {gbp(pay.tax / 12)} tax and {gbp(pay.ni / 12)} National Insurance.
-        {budget.partnerTakeHome > 0 && ` With your partner's pay, the household brings home ${gbp(income)}.`}
-      </p>
-      {budget.items.map((i) => (
-        <div className="spend" key={i.key}>
-          <span>{i.label}</span>
-          <span>{gbp(i.gbp)}</span>
-          <div className="bar">
-            <i style={{ width: `${Math.min(100, (i.gbp / income) * 100)}%` }} />
-          </div>
+    <section className="card paid" aria-labelledby="paid">
+      <div className="card-h">
+        <h2 id="paid" className="h2">
+          Once you're paid
+        </h2>
+        <span className="muted small">Always in pounds</span>
+      </div>
+      <div className="pay-tiles">
+        <div>
+          <span>Salary</span>
+          <b>{gbp(salaryFor(input))}</b>
         </div>
-      ))}
-      <div className={`spend left${budget.left < 0 ? ' neg' : ''}`}>
-        <span>{budget.left < 0 ? 'Short each month' : 'Left each month'}</span>
-        <span>{gbp(Math.abs(budget.left))}</span>
-        <div className="bar">
-          <i style={{ width: `${Math.min(100, (Math.abs(budget.left) / income) * 100)}%` }} />
+        <div>
+          <span>Income tax</span>
+          <b>−{gbp(pay.tax / 12)}</b>
+          <small>a month</small>
+        </div>
+        <div>
+          <span>National Insurance</span>
+          <b>−{gbp(pay.ni / 12)}</b>
+          <small>a month</small>
+        </div>
+        <div className="ok">
+          <span>Take-home</span>
+          <b>{gbp(income)}</b>
+          <small>{budget.partnerTakeHome > 0 ? 'household, a month' : 'a month'}</small>
         </div>
       </div>
+      <ul className="budget">
+        {budget.items.map((i) => (
+          <li key={i.key}>
+            <span>{i.label}</span>
+            <span className="bbar" aria-hidden="true">
+              <i style={{ width: `${(i.gbp / max) * 100}%` }} />
+            </span>
+            <b>{gbp(i.gbp)}</b>
+          </li>
+        ))}
+      </ul>
+      <div className="left-row">
+        <span>{budget.left < 0 ? 'Short each month' : 'Left each month'}</span>
+        <b className={`${tone}-text`}>{gbp(Math.abs(budget.left))}</b>
+      </div>
+      {thin && (
+        <div className={`note ${budget.left < 0 ? 'danger' : 'warn'}`} role="status">
+          {budget.left < 0
+            ? `You'd be ${gbp(-budget.left)} short every month in ${HOUSING[input.housing]}.`
+            : `${gbp(budget.left)} a month is very thin for ${HOUSING[input.housing]}.`}
+          {room !== null && room > budget.left ? ` A room in a share leaves ${gbp(room)}.` : ''} To keep {gbp(KEEP)} a month you'd need a salary of about {gbp(salaryToKeep(input, plan.landDate, overrides, KEEP))}.{' '}
+          <Link to="/money">See your number</Link>
+        </div>
+      )}
     </section>
   )
 }
