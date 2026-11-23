@@ -1,18 +1,18 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AREAS, CITIES, rentFor } from '@shared/cities'
-import { longMonthYear, todayIso } from '@shared/dates'
-import { monthlyBudget, partnerCanCome, upfrontCosts } from '@shared/engine'
-import { addMonths } from '@shared/dates'
+import { addMonths, longMonthYear, monthYear, todayIso } from '@shared/dates'
+import { monthlyBudget, partnerCanCome, plan as planOf, planTotal, upfrontCosts, type GroupId } from '@shared/engine'
 import type { ScenarioInput } from '@shared/types'
 import { toInput, useActions, useApp, type Id } from '../lib/app'
 import { gbp, zar } from '../lib/format'
-import { MoneyInput, Seg, Toggle, useWide } from '../lib/ui'
-import SavingPlan from '../components/SavingPlan'
+import { AnimatedMoney, MoneyInput, Seg, Toggle, useWide } from '../lib/ui'
+
+const GROUP_COLOR: Record<GroupId, string> = { paper: 'var(--l-paper)', move: 'var(--l-move)', runway: 'var(--l-money)' }
 
 export default function Editor() {
   const { id } = useParams()
-  const { scenarios, active, planFor, savings, overrides, today, liveRate, effective } = useApp()
+  const { scenarios, active, planFor, savings, overrides, today, liveRate, effective, extrasFor } = useApp()
   const { saveScenario, deleteScenario } = useActions()
   const navigate = useNavigate()
   const location = useLocation()
@@ -24,16 +24,26 @@ export default function Editor() {
   const [draft, setDraft] = useState<ScenarioInput>(() => (existing ? toInput(existing) : { ...toInput(active), name: `${active.name} (copy)` }))
   const isMain = !!existing && existing._id === active._id
   const [makeMain, setMakeMain] = useState(isNew || isMain)
+  const [weaker, setWeaker] = useState(0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const set = <K extends keyof ScenarioInput>(k: K, v: ScenarioInput[K]) => setDraft((d) => ({ ...d, [k]: v }))
-  const p = planFor(draft, existing?._id ?? active._id)
+
+  const quotesFrom = existing?._id ?? active._id
+  const p = planFor(draft, quotesFrom)
+  const eff = effective(draft)
+  const ex = extrasFor(quotesFrom)
+  const t = planTotal(upfrontCosts(eff, p.landDate, overrides), ex.quotes, ex.customs, eff.rate)
   const applyDate = addMonths(p.landDate, -3)
   const partnerOk = partnerCanCome(draft, applyDate, overrides)
-  const before = existing ? planFor(toInput(existing), existing._id) : null
-  const diff = before ? p.targetZar - before.targetZar : 0
-  const costs = upfrontCosts(effective(draft), p.landDate, overrides)
-  const budget = monthlyBudget(draft, p.landDate, overrides)
+  const budget = monthlyBudget(eff, p.landDate, overrides)
+  const main = planFor(toInput(active), active._id)
+  const saved = existing ? planFor(toInput(existing), existing._id) : null
+  const vsMain = p.targetZar - main.targetZar
+  const vsSaved = saved ? p.targetZar - saved.targetZar : 0
+  const perMonth = draft.landMode === 'date' && p.remainingZar > 0 && p.fundsDeadline > today ? Math.ceil(p.neededPerMonthZar / 100) * 100 : savings.monthlyZar
+  const weak = weaker ? planOf({ ...eff, rate: eff.rate * (1 + weaker / 100) }, savings, today, overrides, ex) : null
+  const typical = CITIES[draft.city].itSupportSalary
 
   async function save() {
     if (!draft.name.trim()) return setError('Give this scenario a name.')
@@ -50,7 +60,7 @@ export default function Editor() {
 
   async function remove() {
     if (!existing) return
-    if (!window.confirm(`Delete "${existing.name}"? This can't be undone.`)) return
+    if (!window.confirm(`Delete "${existing.name}"? Its quotes go with it. This can't be undone.`)) return
     try {
       await deleteScenario({ id: existing._id })
       navigate('/')
@@ -59,221 +69,254 @@ export default function Editor() {
     }
   }
 
+  const compare = isMain
+    ? Math.abs(vsSaved) >= 1000
+      ? `${vsSaved > 0 ? '+' : '−'}${zar(Math.abs(vsSaved), 1000)} compared with the saved version of your main scenario.`
+      : 'Compared with your main scenario: the same, because this is it. Switch city or housing to see the difference here.'
+    : Math.abs(vsMain) < 1000
+      ? `About the same as your main scenario, ${active.name}.`
+      : `${vsMain > 0 ? '+' : '−'}${zar(Math.abs(vsMain), 1000)} compared with your main scenario, ${active.name}.`
+
   return (
-    <div>
-      <div className="editor-top">
-        <button type="button" className="btn quiet sm" onClick={leave}>
-          Cancel
-        </button>
-        <h1 className="editor-title">{isNew ? 'New scenario' : `Edit ${existing.name}`}</h1>
-        <button type="button" className="btn grad sm" onClick={() => void save()} disabled={busy}>
-          {busy ? 'Saving…' : 'Save'}
-        </button>
-      </div>
-      <div className="editor-grid">
-      <div className="editor-form">
-      <h2 className="form-h">The basics</h2>
-
-      <div className="field">
-        <label htmlFor="name">Name</label>
-        <input id="name" className="input" value={draft.name} onChange={(e) => set('name', e.target.value)} />
-      </div>
-
-      <div className="field">
-        <span className="lbl">Land</span>
-        <Seg label="When to land" value={draft.landMode} onChange={(v) => set('landMode', v)} options={[{ value: 'date', label: 'On a set date' }, { value: 'saved', label: "When I've saved enough" }]} />
-        <div style={{ marginTop: 8 }}>
-          {draft.landMode === 'date' ? (
-            <input aria-label="Landing date" className="input" type="date" value={draft.landDate} min={todayIso()} onChange={(e) => e.target.value && set('landDate', e.target.value)} />
-          ) : (
-            <div className="card row" style={{ padding: '10px 12px' }}>
-              <b>{p.readyDate ? `Around ${longMonthYear(p.landDate)}` : 'Add a monthly saving first'}</b>
-              <span className="small muted">at {zar(savings.monthlyZar, 100)} a month</span>
-            </div>
-          )}
-        </div>
-        {draft.landMode === 'date' && draft.landDate < p.earliestLand && <p className="error">Your paperwork can't be ready before {longMonthYear(p.earliestLand)} at the current certificate wait.</p>}
-      </div>
-
-      <h2 className="form-h">Where and who</h2>
-      <div className="field">
-        <span className="lbl">City</span>
-        <Seg label="City" value={draft.city} onChange={(v) => setDraft((d) => ({ ...d, city: v, area: undefined }))} options={Object.values(CITIES).map((c) => ({ value: c.id, label: c.name }))} />
-      </div>
-
-      <div className="field">
-        <span className="lbl">Home</span>
-        <Seg label="Housing" value={draft.housing} onChange={(v) => set('housing', v)} options={[{ value: 'room', label: 'Room' }, { value: 'studio', label: 'Studio' }, { value: 'onebed', label: '1-bed' }]} />
-      </div>
-
-      <div className="field">
-        <label htmlFor="area">Neighbourhood</label>
-        <select id="area" className="input" value={draft.area ?? ''} onChange={(e) => set('area', e.target.value || undefined)}>
-          <option value="">City average</option>
-          {AREAS[draft.city].map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}, {gbp(rentFor(draft.city, draft.housing, a.id))}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="field">
-        <span className="lbl">Who's coming</span>
-        <Seg label="Household" value={draft.partner ? 'two' : 'one'} onChange={(v) => set('partner', v === 'two')} options={[{ value: 'one', label: 'Just me' }, { value: 'two', label: 'With a partner' }]} />
-        {draft.partner && (
-          <div className="card" style={{ marginTop: 8, display: 'grid', gap: 10 }}>
-            <div className="toggle-row">
-              <span>Married or civil partners</span>
-              <Toggle on={draft.partnerMarried} onChange={(v) => set('partnerMarried', v)} label="Married or civil partners" />
-            </div>
-            {!draft.partnerMarried && (
-              <label className="small" style={{ display: 'grid', gap: 4, fontWeight: 700 }}>
-                Together since
-                <input className="input" type="date" value={draft.partnerSince ?? ''} onChange={(e) => set('partnerSince', e.target.value || null)} />
-              </label>
-            )}
-            <p className={partnerOk ? 'ok-text' : 'error'} style={{ margin: 0 }}>
-              {partnerOk ? 'They can come with you.' : `Unmarried partners need 2 years together by ${longMonthYear(applyDate)}, when you apply. Otherwise they join later.`}
-            </p>
-            <div className="toggle-row">
-              <span>They'll work in the UK</span>
-              <Toggle on={draft.partnerWorks} onChange={(v) => set('partnerWorks', v)} label="Partner will work" />
-            </div>
-            {draft.partnerWorks && (
-              <label className="small" style={{ display: 'grid', gap: 4, fontWeight: 700 }}>
-                Their expected salary
-                <MoneyInput prefix="£" value={draft.partnerSalary} onChange={(n) => set('partnerSalary', n)} />
-              </label>
-            )}
-          </div>
-        )}
-      </div>
-
-      <h2 className="form-h">Money and timing</h2>
-      <Slider id="hunt" label="Time to find work" value={draft.jobHuntMonths} min={0} max={9} step={1} show={(v) => (v === 0 ? 'Job lined up' : `${v} month${v === 1 ? '' : 's'}`)} onChange={(v) => set('jobHuntMonths', v)} />
-      <div className="field">
-        <label htmlFor="salary">
-          Your UK salary <output>{draft.ukSalary > 0 ? gbp(draft.ukSalary) : `Typical, ${gbp(CITIES[draft.city].itSupportSalary)}`}</output>
-        </label>
-        <MoneyInput id="salary" prefix="£" value={draft.ukSalary} onChange={(n) => set('ukSalary', n)} />
-        <p className="hint">Leave empty to use a typical IT support salary in {CITIES[draft.city].name}.</p>
-      </div>
-      <div className="field">
-        <span className="lbl">Rand to the pound</span>
-        <Seg label="Exchange rate" value={draft.rateMode === 'live' ? 'live' : 'fixed'} onChange={(v) => set('rateMode', v)} options={[{ value: 'live', label: liveRate ? `Live, R${liveRate.toFixed(2)}` : 'Live rate' }, { value: 'fixed', label: 'Set my own' }]} />
-        {draft.rateMode !== 'live' ? (
-          <div style={{ marginTop: 10 }}>
-            <Slider id="rate" label="Your rate" value={draft.rate} min={15} max={35} step={0.1} show={(v) => `R${v.toFixed(2)}`} onChange={(v) => set('rate', v)} />
-          </div>
-        ) : (
-          <p className="hint">Follows the European Central Bank's daily rate, so your number moves with the rand.</p>
-        )}
-      </div>
-      <Slider id="certs" label="Wait for SA certificates" value={draft.certLeadMonths} min={2} max={18} step={1} show={(v) => `${v} months`} onChange={(v) => set('certLeadMonths', v)} />
-      <Slider id="nights" label="Nights before you find a room" value={draft.tempNights} min={3} max={30} step={1} show={(v) => `${v} nights`} onChange={(v) => set('tempNights', v)} />
-      <div className="field">
-        <label htmlFor="flight">Flight, per person</label>
-        <MoneyInput id="flight" prefix="£" value={draft.flightGbp} onChange={(n) => set('flightGbp', n)} />
-      </div>
-      <div className="field">
-        <label htmlFor="buffer">Extra safety buffer</label>
-        <MoneyInput id="buffer" prefix="£" value={draft.bufferGbp} onChange={(n) => set('bufferGbp', n)} />
-      </div>
-      <div className="field">
-        {isMain ? (
-          <p className="hint" style={{ margin: 0 }}>
-            This is your main scenario: Home, the map, Money and your Loot goal follow it.
-          </p>
-        ) : (
-          <div className="toggle-row">
-            <span>
-              <b>Make this my main scenario</b>
-              <br />
-              <span className="small muted">Home, the map, Money and your Loot goal's target will follow it.</span>
-            </span>
-            <Toggle on={makeMain} onChange={setMakeMain} label="Make this my main scenario" />
-          </div>
-        )}
-      </div>
-      {error && (
-        <p className="error" role="alert" style={{ padding: '0 20px' }}>
-          {error}
-        </p>
-      )}
-      {!isNew && (
-        <div className="field">
-          <button type="button" className="btn quiet block" onClick={() => void remove()} style={{ color: 'var(--warn)' }}>
-            Delete this scenario
-          </button>
-        </div>
-      )}
-
-      </div>
-      {wide ? (
-        <aside className="card lift editor-summary" aria-live="polite" aria-label="What this scenario needs">
-          <small className="muted">You'd need</small>
-          <div className="num">{zar(p.targetZar, 1000)}</div>
-          <div className="muted small">
-            {gbp(p.targetGbp, 100)}. Landing {draft.landMode === 'saved' ? 'around ' : ''}
-            {longMonthYear(p.landDate)}.
-          </div>
-          <SavingPlan plan={p} mode={draft.landMode} monthlyZar={savings.monthlyZar} today={today} compact />
-          {before && Math.abs(diff) >= 1000 && (
-            <p className={`diff ${diff > 0 ? 'up' : 'down'}`}>
-              {diff > 0 ? '+' : '−'}
-              {zar(Math.abs(diff), 1000)} compared with the saved version
-            </p>
-          )}
-          <ul className="sum-list">
-            {costs.groups.map((g) => (
-              <li key={g.id}>
-                <span>{g.label}</span>
-                <b>{zar(g.total * effective(draft).rate, 1000)}</b>
-              </li>
-            ))}
-            <li>
-              <span>Left each month once paid</span>
-              <b>{gbp(budget.left)}</b>
-            </li>
-          </ul>
-          <button type="button" className="btn grad block" onClick={() => void save()} disabled={busy}>
-            {busy ? 'Saving…' : isNew ? 'Save scenario' : 'Save changes'}
-          </button>
-          <button type="button" className="btn quiet block" onClick={leave} style={{ marginTop: 8 }}>
+    <div className="main">
+      <div className="editor-head">
+        <h1 className="h1">{isNew ? 'New scenario' : `Edit ${existing.name}`}</h1>
+        <div className="btns" style={{ display: 'flex', gap: 8 }}>
+          <button type="button" className="btn quiet" onClick={leave}>
             Cancel
           </button>
-        </aside>
-      ) : (
-        <div className="editor-result" aria-live="polite">
-          <span>
-            <small>You'd need{before && Math.abs(diff) >= 1000 ? `, ${diff > 0 ? '+' : '−'}${zar(Math.abs(diff), 1000)}` : ''}</small>
-            <span className="num" style={{ fontSize: 30 }}>
-              {zar(p.targetZar, 1000)}
-            </span>
-            <small>
-              {draft.landMode === 'date' && p.remainingZar > 0 && p.fundsDeadline > today
-                ? `Save ${zar(Math.ceil(p.neededPerMonthZar / 100) * 100)} a month to land ${longMonthYear(p.landDate)}`
-                : `Landing ${draft.landMode === 'saved' ? 'around ' : ''}${longMonthYear(p.landDate)}`}
-            </small>
-          </span>
-          <button type="button" className="btn grad sm" onClick={() => void save()} disabled={busy}>
-            Save
+          <button type="button" className="btn primary" onClick={() => void save()} disabled={busy}>
+            {busy ? 'Saving…' : 'Save'}
           </button>
         </div>
-      )}
       </div>
+
+      <div className="editor-layout">
+        <form className="editor-form2" onSubmit={(e) => (e.preventDefault(), void save())}>
+          <div className="field">
+            <label htmlFor="sname">Scenario name</label>
+            <input id="sname" className="input strong" value={draft.name} onChange={(e) => set('name', e.target.value)} />
+          </div>
+
+          <Section title="When to land">
+            <div className="opt-cards" role="group" aria-label="When to land">
+              <button type="button" aria-pressed={draft.landMode === 'date'} onClick={() => set('landMode', 'date')}>
+                <b>On a set date</b>
+                <small>Northbound tells you what to save each month</small>
+              </button>
+              <button type="button" aria-pressed={draft.landMode === 'saved'} onClick={() => set('landMode', 'saved')}>
+                <b>When I've saved enough</b>
+                <small>The date moves with your savings</small>
+              </button>
+            </div>
+            {draft.landMode === 'date' ? (
+              <div className="field" style={{ margin: 0 }}>
+                <label htmlFor="ldate">Landing date</label>
+                <input id="ldate" className="input" type="date" value={draft.landDate} min={todayIso()} onChange={(e) => e.target.value && set('landDate', e.target.value)} />
+                <p className={draft.landDate < p.earliestLand ? 'error' : 'hint'}>
+                  {draft.landDate < p.earliestLand ? "Your paperwork can't be ready by then. " : ''}Earliest possible with your paperwork: {monthYear(p.earliestLand)}
+                </p>
+              </div>
+            ) : (
+              <p className="hint" style={{ margin: 0 }}>
+                {p.readyDate ? `Around ${longMonthYear(p.landDate)}` : 'Add a monthly saving first'} at {zar(savings.monthlyZar, 100)} a month. Earliest possible with your paperwork: {monthYear(p.earliestLand)}.
+              </p>
+            )}
+          </Section>
+
+          <Section title="Where and who">
+            <SegRow label="City">
+              <Seg label="City" value={draft.city} onChange={(v) => setDraft((d) => ({ ...d, city: v, area: undefined }))} options={Object.values(CITIES).map((c) => ({ value: c.id, label: c.name }))} />
+            </SegRow>
+            <SegRow label="Home">
+              <Seg label="Home" value={draft.housing} onChange={(v) => set('housing', v)} options={[{ value: 'room', label: 'Room in a share' }, { value: 'studio', label: 'Studio' }, { value: 'onebed', label: '1-bed' }]} />
+            </SegRow>
+            <SegRow label="Who's coming">
+              <Seg label="Who's coming" value={draft.partner ? 'two' : 'one'} onChange={(v) => set('partner', v === 'two')} options={[{ value: 'one', label: 'Just me' }, { value: 'two', label: 'With a partner' }]} />
+            </SegRow>
+            {draft.partner && (
+              <div className="inner-card">
+                <div className="toggle-row">
+                  <span>Married or civil partners</span>
+                  <Toggle on={draft.partnerMarried} onChange={(v) => set('partnerMarried', v)} label="Married or civil partners" />
+                </div>
+                {!draft.partnerMarried && (
+                  <div className="field" style={{ margin: 0 }}>
+                    <label htmlFor="since">Together since</label>
+                    <input id="since" className="input" type="date" value={draft.partnerSince ?? ''} onChange={(e) => set('partnerSince', e.target.value || null)} />
+                  </div>
+                )}
+                <p className={partnerOk ? 'ok-text' : 'error'} style={{ margin: 0 }}>
+                  {partnerOk ? 'They can come with you.' : `Unmarried partners need 2 years together by ${longMonthYear(applyDate)}, when you apply. Otherwise they join later.`}
+                </p>
+                <div className="toggle-row">
+                  <span>They'll work in the UK</span>
+                  <Toggle on={draft.partnerWorks} onChange={(v) => set('partnerWorks', v)} label="Partner will work" />
+                </div>
+                {draft.partnerWorks && (
+                  <div className="field" style={{ margin: 0 }}>
+                    <label htmlFor="psal">Their expected salary</label>
+                    <MoneyInput id="psal" prefix="£" value={draft.partnerSalary} onChange={(n) => set('partnerSalary', n)} />
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="field" style={{ margin: 0 }}>
+              <label htmlFor="area">Neighbourhood</label>
+              <select id="area" className="input" value={draft.area ?? ''} onChange={(e) => set('area', e.target.value || undefined)}>
+                <option value="">City average, {gbp(rentFor(draft.city, draft.housing))}</option>
+                {AREAS[draft.city].map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}, {gbp(rentFor(draft.city, draft.housing, a.id))}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </Section>
+
+          <Section title="Money and timing">
+            <Slider id="hunt" label="Time to find work" value={draft.jobHuntMonths} min={0} max={9} step={1} show={(v) => (v === 0 ? 'Job lined up' : `${v} month${v === 1 ? '' : 's'}`)} hint="Living costs for these months are in your runway" onChange={(v) => set('jobHuntMonths', v)} />
+            <Slider
+              id="salary"
+              label="Your UK salary"
+              value={draft.ukSalary || typical}
+              min={18000}
+              max={70000}
+              step={500}
+              show={(v) => (draft.ukSalary ? gbp(v) : `${gbp(v)}, typical`)}
+              hint={`A typical IT support salary in ${CITIES[draft.city].name} is ${gbp(typical)}`}
+              onChange={(v) => set('ukSalary', v === typical ? 0 : v)}
+            />
+            <div className="field">
+              <span className="lbl">Rand to the pound</span>
+              <Seg label="Exchange rate" value={draft.rateMode === 'live' ? 'live' : 'fixed'} onChange={(v) => set('rateMode', v)} options={[{ value: 'live', label: liveRate ? `Live, R${liveRate.toFixed(2)}` : 'Live rate' }, { value: 'fixed', label: 'Set my own' }]} />
+            </div>
+            {draft.rateMode !== 'live' && <Slider id="rate" label="Your rate" value={draft.rate} min={15} max={35} step={0.1} show={(v) => `R${v.toFixed(2)}`} onChange={(v) => set('rate', v)} />}
+            <Slider
+              id="weaker"
+              label="If the rand weakens"
+              value={weaker}
+              min={0}
+              max={30}
+              step={1}
+              show={(v) => (v ? `${v}%, R${(eff.rate * (1 + v / 100)).toFixed(2)}` : 'Not at all')}
+              hint={weak ? `You'd need ${zar(weak.targetZar, 1000)}, ${zar(weak.targetZar - p.targetZar, 1000)} more. Only a what-if: not saved.` : 'A what-if: see how a weaker rand changes your number'}
+              onChange={setWeaker}
+            />
+            <Slider id="certs" label="Wait for SA certificates" value={draft.certLeadMonths} min={2} max={18} step={1} show={(v) => `${v} months`} hint="Home Affairs is often slower than it says" onChange={(v) => set('certLeadMonths', v)} />
+            <Slider id="nights" label="Monthly let before you find a place" value={draft.tempNights} min={0} max={45} step={1} show={(v) => `${v} nights`} onChange={(v) => set('tempNights', v)} />
+            <Slider id="flight" label="Flight, per person" value={draft.flightGbp} min={250} max={1500} step={10} show={(v) => gbp(v)} onChange={(v) => set('flightGbp', v)} />
+            <Slider id="buffer" label="Extra safety buffer" value={draft.bufferGbp} min={0} max={5000} step={100} show={(v) => (v ? gbp(v) : 'None')} onChange={(v) => set('bufferGbp', v)} />
+          </Section>
+
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+          {!isNew && (
+            <button type="button" className="btn quiet danger" style={{ alignSelf: 'flex-start' }} onClick={() => void remove()}>
+              Delete this scenario
+            </button>
+          )}
+        </form>
+
+        {wide ? (
+          <aside className="editor-aside glass" aria-live="polite" aria-label="What this scenario needs">
+            <span className="muted small">You'd need</span>
+            <AnimatedMoney className="bignum" value={p.targetZar} format={(n) => zar(n, 1000)} />
+            <span className="muted small">
+              {gbp(p.targetGbp, 100)} · landing {draft.landMode === 'saved' ? 'around ' : ''}
+              {monthYear(p.landDate)}
+            </span>
+            <div className="ea-groups">
+              {t.groups.map((g) => (
+                <div key={g.id}>
+                  <span>
+                    <i style={{ background: GROUP_COLOR[g.id] }} aria-hidden="true" />
+                    {g.label}
+                  </span>
+                  <b>{gbp(g.planGbp)}</b>
+                </div>
+              ))}
+            </div>
+            <div className="ea-tiles">
+              <div>
+                <span>Left each month</span>
+                <b className={budget.left < 0 ? 'danger-text' : budget.left < 150 ? 'warn-text' : ''}>{budget.left < 0 ? `−${gbp(-budget.left)}` : gbp(budget.left)}</b>
+              </div>
+              <div>
+                <span>{draft.landMode === 'date' ? 'Save a month' : 'Saving a month'}</span>
+                <b>{zar(perMonth, 100)}</b>
+              </div>
+            </div>
+            <div className="ea-note">{compare}</div>
+            {!isMain && (
+              <label className="check-row">
+                <input type="checkbox" checked={makeMain} onChange={(e) => setMakeMain(e.target.checked)} />
+                Make this my main scenario
+              </label>
+            )}
+            <button type="button" className="btn primary lg block" onClick={() => void save()} disabled={busy}>
+              {busy ? 'Saving…' : isNew ? 'Save scenario' : 'Save changes'}
+            </button>
+          </aside>
+        ) : (
+          <div className="editor-result" aria-live="polite">
+            <span>
+              <small>You'd need{Math.abs(isMain ? vsSaved : vsMain) >= 1000 ? `, ${(isMain ? vsSaved : vsMain) > 0 ? '+' : '−'}${zar(Math.abs(isMain ? vsSaved : vsMain), 1000)}` : ''}</small>
+              <span className="num" style={{ fontSize: 30 }}>
+                {zar(p.targetZar, 1000)}
+              </span>
+              <small>
+                {draft.landMode === 'date' && p.remainingZar > 0 && p.fundsDeadline > today ? `Save ${zar(perMonth)} a month to land ${longMonthYear(p.landDate)}` : `Landing ${draft.landMode === 'saved' ? 'around ' : ''}${longMonthYear(p.landDate)}`}
+              </small>
+            </span>
+            <button type="button" className="btn primary sm" onClick={() => void save()} disabled={busy}>
+              Save
+            </button>
+          </div>
+        )}
+      </div>
+      {!wide && !isMain && (
+        <label className="check-row" style={{ marginBottom: 90 }}>
+          <input type="checkbox" checked={makeMain} onChange={(e) => setMakeMain(e.target.checked)} />
+          Make this my main scenario
+        </label>
+      )}
     </div>
   )
 }
 
-function Slider({ id, label, value, min, max, step, show, onChange }: { id: string; label: string; value: number; min: number; max: number; step: number; show: (v: number) => string; onChange: (v: number) => void }) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  const id = `sec-${title.replace(/\W+/g, '-').toLowerCase()}`
   return (
-    <div className="field">
+    <section className="card ed-sec" aria-labelledby={id}>
+      <h2 id={id} className="h3">
+        {title}
+      </h2>
+      {children}
+    </section>
+  )
+}
+
+function SegRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="seg-row">
+      <span className="lbl">{label}</span>
+      {children}
+    </div>
+  )
+}
+
+function Slider({ id, label, value, min, max, step, show, hint, onChange }: { id: string; label: string; value: number; min: number; max: number; step: number; show: (v: number) => string; hint?: string; onChange: (v: number) => void }) {
+  return (
+    <div className="field slider">
       <label htmlFor={id}>
         {label} <output htmlFor={id}>{show(value)}</output>
       </label>
       <input id={id} type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} />
+      {hint && <p className="hint">{hint}</p>}
     </div>
   )
 }
