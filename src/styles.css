@@ -666,3 +666,53 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height:
 .qh-main small { color: var(--muted); font-size: 12.5px; }
 .qh-note { color: var(--text-2) !important; }
 @media (max-width: 900px) { .totals { grid-template-columns: 1fr; } }
+
+/* ---------- map: three lines in a grid ---------- */
+.map-layout { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; flex-direction: row; }
+.map-card { flex: 999 1 640px; min-width: 0; border-radius: var(--r-hero); padding: 28px; display: flex; flex-direction: column; gap: 22px; }
+.map-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.legend-lines { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--text-2); }
+.legend-lines span { display: flex; align-items: center; gap: 6px; }
+.legend-lines span::before { content: ""; width: 14px; height: 4px; border-radius: 2px; background: var(--k); }
+.map-aside { flex: 1 1 360px; min-width: 0; border-radius: var(--r-card); padding: 24px; position: sticky; top: 100px; background: var(--glass-sheet); }
+.gmap { display: flex; flex-direction: column; gap: 0; }
+.glines { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.gline { display: flex; flex-direction: column; padding: 18px 16px 6px; border-radius: var(--r-tile); background: var(--fill); }
+.gname { font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--lc); padding-bottom: 12px; }
+.gstop { display: flex; gap: 12px; min-height: 64px; text-align: left; background: none; border: 0; padding: 0; color: inherit; cursor: pointer; border-radius: 12px; }
+.gstop .gdot { width: 18px; flex: none; display: flex; flex-direction: column; align-items: center; }
+.gstop .gdot::before { content: ""; width: 16px; height: 16px; border-radius: 999px; border: 3px solid var(--lc); background: var(--surface); box-sizing: border-box; flex: none; }
+.gstop .gdot::after { content: ""; flex: 1; width: 4px; background: var(--lc); opacity: .85; }
+.gline .gstop:last-child .gdot::after { opacity: .35; }
+.gstop.now .gdot::before { background: var(--text); }
+.gstop.done .gdot::before { background: var(--lc); }
+.gstop .gtxt { display: flex; flex-direction: column; gap: 2px; padding-bottom: 14px; }
+.gstop .gtxt b { font-size: 14px; font-weight: 600; line-height: 1.3; }
+.gstop .gtxt small { font-size: 12px; color: var(--muted); }
+.gstop.now .gtxt small { color: var(--danger); }
+.gstop.done .gtxt b { color: var(--muted); }
+.gstop.sel .gtxt b { color: var(--accent); }
+.gstop:hover .gtxt b { text-decoration: underline; text-underline-offset: 3px; }
+.gjoin { display: flex; flex-direction: column; align-items: center; padding-top: 4px; }
+.gjoin .bar { width: 80%; height: 4px; border-radius: 2px; background: var(--l-trunk); }
+.gjoin .stem { width: 4px; height: 22px; background: var(--l-trunk); }
+.gdecision { padding: 12px 20px; border-radius: 999px; background: var(--l-trunk); color: var(--bg); font-size: 15px; font-weight: 700; border: 0; cursor: pointer; }
+.gdecision.sel { box-shadow: 0 0 0 3px var(--accent); }
+.gtrunk { display: flex; flex-direction: column; padding: 8px 0 0 36%; }
+.gtrunk .gstop { min-height: 58px; }
+.gtrunk .gstop .gdot { width: 22px; }
+.gtrunk .gstop.big .gdot::before { width: 24px; height: 24px; }
+.gtrunk .gstop.big .gtxt b { font-size: 18px; font-weight: 700; }
+.gtrunk .gstop .gtxt b { font-size: 15px; font-weight: 700; }
+.gtrunk .gstop:last-child .gdot::after { display: none; }
+.sd-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.stop-detail { display: flex; flex-direction: column; gap: 4px; }
+.stop-detail .linechip { text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px; font-weight: 700; }
+.sd-quote { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-ctl); background: var(--fill); border: 1px solid var(--hair-strong); font-size: 13px; color: var(--text-2); margin-bottom: 14px; }
+.stop-detail .btns { display: flex; gap: 10px; }
+.stop-detail .btns > * { flex: 1; }
+@media (max-width: 760px) {
+  .glines { grid-template-columns: 1fr; }
+  .gtrunk { padding-left: 16px; }
+  .map-card { padding: 20px; }
+}

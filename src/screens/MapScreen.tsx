@@ -1,51 +1,46 @@
 import { useState } from 'react'
 import { CITIES } from '@shared/cities'
 import RemindersControls from '../components/Reminders'
-import { PageHead } from '../components/Shell'
 import TransitMap, { StopDetail, useTimeline } from '../components/TransitMap'
 import { useApp } from '../lib/app'
-import { useOpening, useWide } from '../lib/ui'
+import { useWide } from '../lib/ui'
 
 export default function MapScreen() {
   const { input, done, savings } = useApp()
   const tasks = useTimeline()
   const wide = useWide()
   const [selected, setSelected] = useState<string | null>(null)
-  useOpening()
   const finished = tasks.filter((t) => done.has(t.key)).length
   const next = tasks.find((t) => !done.has(t.key) && !(t.key === 'saving' && savings.monthlyZar > 0))
   const shown = tasks.find((t) => t.key === (selected ?? next?.key)) ?? tasks[0]
-
-  const key = (
-    <div className="key" style={{ marginBottom: 6 }}>
-      <span style={{ ['--k' as string]: 'var(--l-paper)' }}>Paperwork</span>
-      <span style={{ ['--k' as string]: 'var(--l-money)' }}>Money</span>
-      <span style={{ ['--k' as string]: 'var(--l-move)' }}>Move</span>
-    </div>
-  )
+  const city = CITIES[input.city].name
 
   return (
-    <div>
-      <PageHead title={`Cape Town to ${CITIES[input.city].name}`} sub={`${finished} of ${tasks.length} steps done. Three lines meet at your visa decision.`}>
-        <div style={{ marginTop: 14 }}>
-          <RemindersControls compact />
-        </div>
-      </PageHead>
-      {wide ? (
-        <div className="container map-desk" style={{ marginTop: 18 }}>
-          <div>
-            {key}
-            <TransitMap selectedKey={shown?.key} onSelect={setSelected} />
+    <div className="main map-layout">
+      <section aria-labelledby="map-title" className="card map-card">
+        <div className="map-head">
+          <div className="stack" style={{ gap: 4 }}>
+            <h1 id="map-title" className="h1">
+              Your route north
+            </h1>
+            <p className="muted small" style={{ margin: 0 }}>
+              Three lines meet at the visa decision, then run as one to {city}. {finished} of {tasks.length} steps done.
+            </p>
           </div>
-          <aside className="detail-col" aria-label="Step details">
-            <div className="card lift">{shown && <StopDetail task={shown} />}</div>
-          </aside>
+          <div className="legend-lines">
+            <span style={{ ['--k' as string]: 'var(--l-paper)' }}>Paperwork</span>
+            <span style={{ ['--k' as string]: 'var(--l-money)' }}>Money</span>
+            <span style={{ ['--k' as string]: 'var(--l-move)' }}>Move</span>
+          </div>
         </div>
-      ) : (
-        <div className="wrap" style={{ paddingTop: 12 }}>
-          {key}
-          <TransitMap />
-        </div>
+        <TransitMap selectedKey={wide ? shown?.key : undefined} onSelect={wide ? setSelected : undefined} />
+        <div className="divider" />
+        <RemindersControls compact />
+      </section>
+      {wide && shown && (
+        <aside aria-label="Selected stop" className="map-aside glass">
+          <StopDetail task={shown} />
+        </aside>
       )}
     </div>
   )

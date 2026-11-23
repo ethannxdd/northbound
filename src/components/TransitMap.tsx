@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { gbp } from '../lib/format'
 import { Link } from 'react-router-dom'
 import { monthYear, dayMonthYear } from '@shared/dates'
 import { buildTimeline, type Line, type Task } from '@shared/timeline'
@@ -27,9 +28,6 @@ const SHORT: Record<string, string> = {
 
 export const LINE_COLOR: Record<Line, string> = { paper: 'var(--l-paper)', money: 'var(--l-money)', move: 'var(--l-move)', trunk: 'var(--l-trunk)' }
 export const LINE_NAME: Record<Line, string> = { paper: 'Paperwork line', money: 'Money line', move: 'Move line', trunk: 'Main line' }
-const X: Record<Exclude<Line, 'trunk'>, number> = { paper: 30, money: 50, move: 70 }
-const LINE_CLASS: Record<Line, string> = { paper: 'lp', money: 'lm', move: 'lv', trunk: 'lt' }
-const FILL_CLASS: Record<Line, string> = { paper: 'fp', money: 'fm', move: 'fv', trunk: 'ft' }
 
 export function useTimeline() {
   const { input, plan, today, overrides } = useApp()
@@ -51,78 +49,86 @@ export function shortTitle(t: Task, city: string) {
  * The move as a transit map. With onSelect, the parent shows the details (desktop panel);
  * without it, tapping a stop opens a sheet (phone).
  */
-export default function TransitMap({ animate = true, selectedKey, onSelect }: { animate?: boolean; selectedKey?: string | null; onSelect?: (key: string) => void }) {
+const LINES: Exclude<Line, 'trunk'>[] = ['paper', 'money', 'move']
+const LINE_SHORT: Record<Line, string> = { paper: 'Paperwork', money: 'Money', move: 'Move', trunk: 'Main line' }
+
+/** Which cost lines a stop pays for, so its panel can show your quote. */
+export const STOP_COSTS: Record<string, string[]> = {
+  'sa-certs': ['saCerts'],
+  'gro-cert': ['groCert'],
+  'tb-test': ['tbTest'],
+  'apply-visa': ['visaFee', 'ihs'],
+  'book-travel': ['flight', 'monthlyLet'],
+  'find-room': ['deposit', 'firstRent'],
+}
+
+/**
+ * The move as a transit map: three lines side by side that meet at the visa decision,
+ * then the main line to landing and settling. With onSelect, the parent shows the details
+ * (desktop panel); without it, tapping a stop opens a sheet (phone).
+ */
+export default function TransitMap({ selectedKey, onSelect }: { animate?: boolean; selectedKey?: string | null; onSelect?: (key: string) => void }) {
   const { done, today, input } = useApp()
   const tasks = useTimeline()
   const [openKey, setOpenKey] = useState<string | null>(null)
   const city = CITIES[input.city].name
   const select = (k: string) => (onSelect ? onSelect(k) : setOpenKey(k))
-
-  const layout = useMemo(() => {
-    const split = tasks.findIndex((t) => t.key === 'visa-decision')
-    const pre = tasks.slice(0, split)
-    const post = tasks.slice(split)
-    const rows: { t: Task; x: number; y: number }[] = []
-    let y = 40
-    for (const t of pre) {
-      rows.push({ t, x: X[t.line as Exclude<Line, 'trunk'>], y })
-      y += 26
-    }
-    const merge = y + 26
-    y = merge
-    for (const t of post) {
-      rows.push({ t, x: 70, y })
-      y += t.milestone ? 54 : 44
-    }
-    return { rows, merge, height: y - 20 }
-  }, [tasks])
-
-  const m = layout.merge
+  const split = tasks.findIndex((t) => t.key === 'visa-decision')
+  const pre = tasks.slice(0, split)
+  const decision = tasks[split]
+  const post = tasks.slice(split + 1)
   const open = tasks.find((t) => t.key === openKey) ?? null
   const status = (t: Task) => (done.has(t.key) ? 'done' : t.due <= today ? 'now' : 'later')
+  const when = (t: Task) => (status(t) === 'done' ? 'Done' : status(t) === 'now' ? 'Due now' : monthYear(t.due))
+
+  const Stop = ({ t, big = false }: { t: Task; big?: boolean }) => {
+    const st = status(t)
+    return (
+      <button
+        type="button"
+        className={`gstop ${st}${big ? ' big' : ''}${selectedKey === t.key ? ' sel' : ''}`}
+        aria-pressed={onSelect ? selectedKey === t.key : undefined}
+        aria-label={`${t.title}. ${when(t)}`}
+        onClick={() => select(t.key)}
+      >
+        <span className="gdot" aria-hidden="true" />
+        <span className="gtxt">
+          <b>{shortTitle(t, city)}</b>
+          <small>{when(t)}</small>
+        </span>
+      </button>
+    )
+  }
 
   return (
     <>
-      <div className="map">
-        <svg viewBox={`0 0 340 ${layout.height}`} role="group" aria-label="Your move as a transit map. Select a stop for details.">
-          <g fill="none" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
-            <path d={`M30 14 V${m - 26} Q30 ${m} 56 ${m} H74`} className={`lp${animate ? ' draw' : ''}`} pathLength={1} style={{ ['--d' as string]: '100ms' }} />
-            <path d={`M50 14 V${m - 26} Q50 ${m - 10} 66 ${m - 8} H74`} className={`lm${animate ? ' draw' : ''}`} pathLength={1} style={{ ['--d' as string]: '200ms' }} />
-            <path d={`M70 14 V${m - 8}`} className={`lv${animate ? ' draw' : ''}`} pathLength={1} style={{ ['--d' as string]: '300ms' }} />
-            <path d={`M70 ${m + 8} V${layout.height - 14}`} className={`lt${animate ? ' draw' : ''}`} pathLength={1} style={{ ['--d' as string]: '800ms' }} />
-          </g>
-          {layout.rows.map(({ t, x, y }) => {
-            const st = status(t)
-            const merge = t.key === 'visa-decision'
-            const big = merge || t.milestone
-            const sel = selectedKey === t.key
-            return (
-              <g
-                key={t.key}
-                className={`stoprow${sel ? ' sel' : ''}`}
-                role="button"
-                tabIndex={0}
-                aria-pressed={onSelect ? sel : undefined}
-                aria-label={`${t.title}. ${st === 'done' ? 'Done' : st === 'now' ? 'Due now' : `Due ${monthYear(t.due)}`}`}
-                onClick={() => select(t.key)}
-                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), select(t.key))}
-              >
-                <rect className="hit focus" x="88" y={y - (big ? 15 : 12)} width="250" height={big ? 30 : 24} rx="6" />
-                {merge ? (
-                  <rect x="56" y={y - 11} width="28" height="22" rx="11" strokeWidth="3" className={`lt st${st === 'done' ? ' ft' : ''}`} />
-                ) : (
-                  <circle cx={x} cy={y} r={t.key === 'settle' ? 9 : t.milestone ? 8 : 6} strokeWidth={t.key === 'settle' ? 4 : 3} className={`${LINE_CLASS[t.line]} st${st === 'done' ? ' ' + FILL_CLASS[t.line] : ''}`} />
-                )}
-                <text x="98" y={y + 4} fontSize={big ? 15 : 13.5} fontWeight={big ? 800 : st === 'now' ? 700 : 400} className={st === 'done' ? 'done' : ''}>
-                  {shortTitle(t, city)}
-                </text>
-                <text x="332" y={y + 4} textAnchor="end" fontSize="13" className={st === 'now' ? 'now' : 'when'}>
-                  {st === 'done' ? 'Done' : st === 'now' ? 'Now' : monthYear(t.due)}
-                </text>
-              </g>
-            )
-          })}
-        </svg>
+      <div className="gmap" role="group" aria-label="Your move as a transit map. Select a stop for details.">
+        <div className="glines">
+          {LINES.map((l) => (
+            <div key={l} className="gline" style={{ ['--lc' as string]: LINE_COLOR[l] }}>
+              <span className="gname">{LINE_SHORT[l]}</span>
+              {pre
+                .filter((t) => t.line === l)
+                .map((t) => (
+                  <Stop key={t.key} t={t} />
+                ))}
+            </div>
+          ))}
+        </div>
+        {decision && (
+          <div className="gjoin">
+            <span className="bar" aria-hidden="true" />
+            <span className="stem" aria-hidden="true" />
+            <button type="button" className={`gdecision${selectedKey === decision.key ? ' sel' : ''}${done.has(decision.key) ? ' done' : ''}`} aria-pressed={onSelect ? selectedKey === decision.key : undefined} onClick={() => select(decision.key)}>
+              Visa decision · {done.has(decision.key) ? 'Done' : monthYear(decision.due)}
+            </button>
+          </div>
+        )}
+        <div className="gtrunk" style={{ ['--lc' as string]: 'var(--l-trunk)' }}>
+          {post.map((t) => (
+            <Stop key={t.key} t={t} big={!!t.milestone} />
+          ))}
+        </div>
       </div>
       {!onSelect && <StopSheet task={open} onClose={() => setOpenKey(null)} />}
     </>
@@ -131,54 +137,70 @@ export default function TransitMap({ animate = true, selectedKey, onSelect }: { 
 
 /** What a stop is, what it costs, and the steps in order. Used in the sheet and the desktop panel. */
 export function StopDetail({ task: t }: { task: Task }) {
-  const { done, ticked, today } = useApp()
+  const { done, ticked, today, totals } = useApp()
   const { toggleDone } = useActions()
   const isDone = done.has(t.key)
   const viaPaperwork = isDone && !ticked.has(t.key)
+  const costKeys = STOP_COSTS[t.key] ?? []
+  const lines = totals.groups.flatMap((g) => g.lines).filter((l) => costKeys.includes(l.key))
+  const quoted = lines.filter((l) => l.mineGbp !== null)
+  const facts = [
+    t.cost && { k: 'Cost', v: t.cost },
+    t.takes && { k: 'Takes', v: t.takes },
+    t.from && { k: 'Where', v: t.from },
+  ].filter(Boolean) as { k: string; v: string }[]
   return (
     <div className="stop-detail" style={{ ['--lc' as string]: LINE_COLOR[t.line] }}>
-      <span className="linechip">{LINE_NAME[t.line]}</span>
+      <div className="sd-top">
+        <span className="linechip">{LINE_NAME[t.line]}</span>
+        <span className={`tag${isDone ? ' ok' : t.due <= today ? ' danger' : ''}`}>{isDone ? 'Done' : t.due <= today ? 'Due now' : `Due ${dayMonthYear(t.due)}`}</span>
+      </div>
       <h2>{t.title}</h2>
-      <div style={{ fontWeight: 700, fontSize: 14, color: isDone ? 'var(--ok)' : t.due <= today ? 'var(--now)' : 'var(--muted)' }}>{isDone ? 'Done' : t.due <= today ? 'Due now' : `Due ${dayMonthYear(t.due)}`}</div>
-      {(t.cost || t.takes || t.from) && (
+      {facts.length > 0 && (
         <div className="facts3">
-          {t.cost && (
-            <div>
-              <small>Costs</small>
-              <b>{t.cost}</b>
+          {facts.map((f) => (
+            <div key={f.k}>
+              <small>{f.k}</small>
+              <b>{f.v}</b>
             </div>
-          )}
-          {t.takes && (
-            <div>
-              <small>Takes</small>
-              <b>{t.takes}</b>
-            </div>
-          )}
-          {t.from && (
-            <div>
-              <small>From</small>
-              <b>{t.from}</b>
-            </div>
-          )}
+          ))}
         </div>
       )}
-      <ol className="steps" style={{ marginTop: t.cost || t.takes || t.from ? 0 : 14 }}>
+      <ol className="steps">
         {t.steps.map((s) => (
           <li key={s}>{s}</li>
         ))}
       </ol>
-      <div className="btns" style={{ gridTemplateColumns: t.url ? '1fr 1fr' : '1fr' }}>
+      {lines.length > 0 && (
+        <div className="sd-quote">
+          <span>
+            Your quote:{' '}
+            {quoted.length ? (
+              <b className="mine-text">
+                {gbp(quoted.reduce((a, l) => a + (l.mineGbp ?? 0), 0))}
+                {quoted.length < lines.length ? ` for ${quoted.map((l) => l.label).join(', ')}` : ''}
+              </b>
+            ) : (
+              'not added yet'
+            )}
+          </span>
+          <Link to={`/money/quote/${(lines.find((l) => l.mineGbp === null) ?? lines[0]).key}`} className="strong mine-text">
+            + Add quote
+          </Link>
+        </div>
+      )}
+      <div className="btns">
         {t.url && (
-          <a className="btn quiet" href={t.url} target="_blank" rel="noreferrer">
+          <a className="btn quiet lg" href={t.url} target="_blank" rel="noreferrer">
             Open website
           </a>
         )}
         {viaPaperwork ? (
-          <Link to="/paperwork" className="btn quiet">
+          <Link to="/paperwork" className="btn quiet lg">
             Done in your paperwork tracker
           </Link>
         ) : (
-          <button type="button" className={`btn ${isDone ? 'quiet' : 'grad'}`} onClick={() => void toggleDone({ taskKey: t.key, today })}>
+          <button type="button" className={`btn lg ${isDone ? 'quiet' : 'primary'}`} onClick={() => void toggleDone({ taskKey: t.key, today })}>
             {isDone ? 'Mark as not done' : 'Mark as done'}
           </button>
         )}
