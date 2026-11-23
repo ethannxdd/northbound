@@ -4,6 +4,7 @@ import { dayMonthYear, monthYear, monthsBetween } from '@shared/dates'
 import { progress } from '@shared/engine'
 import { LootCard } from '../components/Shell'
 import SavingPlan from '../components/SavingPlan'
+import FundingCard from '../components/FundingCard'
 import { useApp } from '../lib/app'
 import { pct, plural, zar } from '../lib/format'
 
@@ -26,7 +27,7 @@ type Kind = 'end' | 'you' | 'passed' | 'ahead'
 export default function Progress() {
   const { input, plan, savings, goal, deposits, goalUpdatedAt, savingsSource, today, goalMissing, profile, active } = useApp()
   const city = CITIES[input.city].name
-  const prog = progress(savings.savedZar, plan.targetZar)
+  const prog = progress(savings.savedZar, plan.saveTargetZar)
   const dateMode = input.landMode === 'date'
   const needed = Math.ceil(plan.neededPerMonthZar / 100) * 100
   const monthsLeft = Math.max(0, monthsBetween(today, plan.fundsDeadline))
@@ -34,10 +35,10 @@ export default function Progress() {
   const offPace = plan.remainingZar > 0 && (dateMode ? !plan.onTrack : savings.monthlyZar <= 0)
 
   // The route, top (city) to bottom (Cape Town), with you placed by how much you've saved.
-  const stops: { name: string; sub: string; kind: Kind; at: number }[] = [{ name: city, sub: `100% · ${zar(plan.targetZar)}`, kind: prog.pct >= 1 ? 'you' : 'end', at: 1 }]
+  const stops: { name: string; sub: string; kind: Kind; at: number }[] = [{ name: city, sub: `100% · ${zar(plan.saveTargetZar)}`, kind: prog.pct >= 1 ? 'you' : 'end', at: 1 }]
   for (const w of WAYPOINTS) {
     if (Math.abs(w.at - prog.pct) < 0.04) continue
-    stops.push({ name: w.name, sub: `${pct(w.at)} · ${zar(plan.targetZar * w.at, 1000)}`, kind: prog.pct >= w.at ? 'passed' : 'ahead', at: w.at })
+    stops.push({ name: w.name, sub: `${pct(w.at)} · ${zar(plan.saveTargetZar * w.at, 1000)}`, kind: prog.pct >= w.at ? 'passed' : 'ahead', at: w.at })
   }
   if (prog.pct < 1) stops.push({ name: prog.pct > 0 ? `You're ${prog.place.over}` : "You're still in Cape Town", sub: `${pct(prog.pct)} · ${zar(savings.savedZar)} saved`, kind: 'you', at: prog.pct })
   stops.sort((a, b) => b.at - a.at)
@@ -58,6 +59,7 @@ export default function Progress() {
         <h1 className="h1">How far you've come</h1>
         <p className="muted" style={{ margin: 0 }}>
           {pct(prog.pct)} of the way · {zar(savings.savedZar, 100)} saved, {zar(plan.remainingZar, 1000)} to go
+          {plan.borrowedZar > 0 ? ` · the move costs ${zar(plan.targetZar, 1000)}, ${zar(plan.borrowedZar, 1000)} of it borrowed` : ''}
           {savingsSource === 'loot' && goal ? ` · following your Loot goal "${goal.name}", ${ago(goalUpdatedAt)}` : ''}
         </p>
       </div>
@@ -121,9 +123,16 @@ export default function Progress() {
                   <b>{plan.paceLandDate ? monthYear(plan.paceLandDate) : 'Later'}</b>
                   <small>{plan.paceLandDate ? 'the landing your pace supports' : 'once you have a monthly saving'}</small>
                 </Link>
+                <Link to="/settings/loans" className="fix mine">
+                  <span>Borrow part</span>
+                  <b>{zar(Math.max(0, plan.remainingZar - savings.monthlyZar * monthsLeft), 1000)}</b>
+                  <small>a loan or card for the gap; repayments show in Life</small>
+                </Link>
               </div>
             </section>
           )}
+
+          <FundingCard />
 
           {deposits.length > 0 && (
             <section className="card" aria-labelledby="dep">

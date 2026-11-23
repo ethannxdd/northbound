@@ -27,21 +27,25 @@ export default function FirstRun() {
   const [monthly, setMonthly] = useState(0)
   const [rent, setRent] = useState(0)
   const [income, setIncome] = useState(0)
+  const [borrow, setBorrow] = useState<'no' | 'yes'>('no')
+  const [loan, setLoan] = useState(0)
+  const [loanMonths, setLoanMonths] = useState(60)
+  const [loanRate, setLoanRate] = useState(15)
+  const [card, setCard] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   const today = firstOfMonth(todayIso())
-  const total = 4
+  const total = 5
+  const borrowing = borrow === 'yes' ? { loanZar: loan, loanMonths, loanRatePct: loanRate, cardZar: card, cardRatePct: 20 } : {}
   const me = useMe()
   const liveRate = me?.fx.length ? Math.round(me.fx[me.fx.length - 1].zarPerGbp * 100) / 100 : null
 
   function next() {
     setError(null)
     if (step === 0 && when === 'pick' && pick <= todayIso()) return setError('Pick a date in the future.')
-    if (step === 3) {
-      if (when === 'saved' && monthly <= 0 && saved <= 0) return setError('Enter what you save each month, so the date can be worked out.')
-      return void finish()
-    }
+    if (step === 3 && when === 'saved' && monthly <= 0 && saved <= 0) return setError('Enter what you save each month, so the date can be worked out.')
+    if (step === 4) return void finish()
     setStep(step + 1)
   }
 
@@ -60,13 +64,13 @@ export default function FirstRun() {
     }
   }
   const draft = draftScenario()
-  const live = planOf(liveRate ? { ...draft, rate: liveRate } : draft, { savedZar: saved, monthlyZar: monthly }, todayIso())
+  const live = planOf(liveRate ? { ...draft, rate: liveRate } : draft, { savedZar: saved, monthlyZar: monthly }, todayIso(), undefined, { borrowing })
 
   async function finish() {
     setBusy(true)
     const scenario = draftScenario()
     try {
-      await onboard({ savedZar: saved, monthlyZar: monthly, homeRentZar: rent, homeIncomeZar: income, scenario })
+      await onboard({ savedZar: saved, monthlyZar: monthly, homeRentZar: rent, homeIncomeZar: income, scenario, ...borrowing })
       navigate('/', { replace: true })
     } catch {
       setError("Couldn't save. Check your connection and try again.")
@@ -170,6 +174,34 @@ export default function FirstRun() {
           </>
         )}
 
+        {step === 4 && (
+          <>
+            <h1 className="q">Do you plan to borrow?</h1>
+            <p className="hint">A loan or a card lowers what you save, not what the move costs. You can skip this and add it later.</p>
+            <Chip on={borrow === 'no'} onClick={() => setBorrow('no')} title="No, I'll save it all" />
+            <Chip on={borrow === 'yes'} onClick={() => setBorrow('yes')} title="Yes, part of it" sub="A personal loan, a credit card, or both" />
+            {borrow === 'yes' && (
+              <>
+                <label htmlFor="loan">Personal loan</label>
+                <MoneyInput id="loan" value={loan} onChange={setLoan} />
+                <div className="two-col">
+                  <div>
+                    <label htmlFor="loan-months">Over (months)</label>
+                    <input id="loan-months" className="input" type="number" min={6} max={120} value={loanMonths} onChange={(e) => setLoanMonths(Math.max(6, Math.min(120, Number(e.target.value) || 60)))} />
+                  </div>
+                  <div>
+                    <label htmlFor="loan-rate">Interest a year (%)</label>
+                    <input id="loan-rate" className="input" type="number" min={0} max={40} step={0.25} value={loanRate} onChange={(e) => setLoanRate(Math.max(0, Math.min(40, Number(e.target.value) || 0)))} />
+                  </div>
+                </div>
+                <label htmlFor="card">Credit card limit you'll use</label>
+                <MoneyInput id="card" value={card} onChange={setCard} />
+                <p className="hint">Cards are planned at 20% a year, cleared over 2 years. Change it later in Settings.</p>
+              </>
+            )}
+          </>
+        )}
+
         {error && (
           <p className="error" role="alert">
             {error}
@@ -182,7 +214,7 @@ export default function FirstRun() {
             </button>
           )}
           <button type="submit" className="btn primary lg" disabled={busy}>
-            {step === 3 ? (busy ? 'Working it out…' : 'Show my number') : 'Continue'}
+            {step === 4 ? (busy ? 'Working it out…' : 'Show my number') : 'Continue'}
           </button>
         </div>
       </form>

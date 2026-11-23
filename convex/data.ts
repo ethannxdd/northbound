@@ -55,7 +55,18 @@ const scenarioArg = v.object(scenarioFields)
 
 /** First run: creates the profile and the first scenario together. */
 export const onboard = mutation({
-  args: { savedZar: v.number(), monthlyZar: v.number(), homeRentZar: v.number(), homeIncomeZar: v.number(), scenario: scenarioArg },
+  args: {
+    savedZar: v.number(),
+    monthlyZar: v.number(),
+    homeRentZar: v.number(),
+    homeIncomeZar: v.number(),
+    scenario: scenarioArg,
+    loanZar: v.optional(v.number()),
+    loanMonths: v.optional(v.number()),
+    loanRatePct: v.optional(v.number()),
+    cardZar: v.optional(v.number()),
+    cardRatePct: v.optional(v.number()),
+  },
   handler: async (ctx, a) => {
     const uid = await requireUser(ctx)
     const scenarioId = await ctx.db.insert('scenarios', { userId: uid, ...a.scenario })
@@ -67,6 +78,11 @@ export const onboard = mutation({
       homeIncomeZar: a.homeIncomeZar,
       activeScenarioId: scenarioId,
       onboarded: true,
+      loanZar: a.loanZar,
+      loanMonths: a.loanMonths,
+      loanRatePct: a.loanRatePct,
+      cardZar: a.cardZar,
+      cardRatePct: a.cardRatePct,
     }
     if (existing) await ctx.db.patch(existing._id, fields)
     else await ctx.db.insert('profiles', { userId: uid, syncLootTarget: true, ...fields })
@@ -85,9 +101,18 @@ export const updateProfile = mutation({
     remindersOn: v.optional(v.boolean()),
     landedOn: v.optional(v.union(v.string(), v.null())),
     englishLevel: v.optional(v.string()),
+    loanZar: v.optional(v.number()),
+    loanMonths: v.optional(v.number()),
+    loanRatePct: v.optional(v.number()),
+    cardZar: v.optional(v.number()),
+    cardRatePct: v.optional(v.number()),
   },
   handler: async (ctx, a) => {
     const uid = await requireUser(ctx)
+    for (const k of ['loanZar', 'loanMonths', 'loanRatePct', 'cardZar', 'cardRatePct'] as const) {
+      const n = a[k]
+      if (n !== undefined && (!Number.isFinite(n) || n < 0 || n > 100_000_000)) throw new Error('Enter a number of 0 or more')
+    }
     const p = await profileOf(ctx, uid)
     if (!p) throw new Error('Finish setting up first')
     const { lootGoalId, landedOn, ...rest } = a

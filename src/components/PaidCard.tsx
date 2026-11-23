@@ -24,8 +24,9 @@ export function salaryToKeep(s: ScenarioInput, onDate: string, ov: RuleOverrides
 
 /** Once you're paid: salary to take-home, each monthly cost with a bar, and what's left. */
 export default function PaidCard() {
-  const { input, plan, overrides } = useApp()
-  const budget = monthlyBudget(input, plan.landDate, overrides)
+  const { input, plan, overrides, borrowing } = useApp()
+  const budget = monthlyBudget(input, plan.landDate, overrides, borrowing)
+  const repay = budget.items.filter((i) => i.key === 'loanRepay' || i.key === 'cardRepay').reduce((a, i) => a + i.gbp, 0)
   const pay = takeHome(salaryFor(input), plan.landDate, overrides)
   const income = budget.takeHome + budget.partnerTakeHome
   const max = Math.max(...budget.items.map((i) => i.gbp), 1)
@@ -64,7 +65,7 @@ export default function PaidCard() {
       </div>
       <ul className="budget">
         {budget.items.map((i) => (
-          <li key={i.key}>
+          <li key={i.key} className={i.key.endsWith('Repay') ? 'repay' : ''}>
             <span>{i.label}</span>
             <span className="bbar" aria-hidden="true">
               <i style={{ width: `${(i.gbp / max) * 100}%` }} />
@@ -77,7 +78,12 @@ export default function PaidCard() {
         <span>{budget.left < 0 ? 'Short each month' : 'Left each month'}</span>
         <b className={`${tone}-text`}>{gbp(Math.abs(budget.left))}</b>
       </div>
-      {thin && (
+      {repay > 0 && budget.left < 100 && (
+        <div className="note danger" role="status">
+          Your loan and card repayments of {gbp(repay)} a month leave {budget.left < 0 ? `you ${gbp(-budget.left)} short` : `only ${gbp(budget.left)}`} each month. Borrow less, over longer, or <Link to="/settings/loans">change the loan</Link>.
+        </div>
+      )}
+      {thin && repay === 0 && (
         <div className={`note ${budget.left < 0 ? 'danger' : 'warn'}`} role="status">
           {budget.left < 0
             ? `You'd be ${gbp(-budget.left)} short every month in ${HOUSING[input.housing]}.`

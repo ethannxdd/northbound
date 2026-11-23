@@ -19,7 +19,7 @@ export default function Trip() {
   const wide = useWide()
   const [openKey, setOpenKey] = useState<string | null>(null)
   const city = CITIES[input.city]
-  const prog = progress(savings.savedZar, plan.targetZar)
+  const prog = progress(savings.savedZar, plan.saveTargetZar)
   const monthsToGo = Math.max(0, monthsBetween(today, plan.landDate))
   const upcoming = tasks.filter((t) => !done.has(t.key) && !(t.key === 'saving' && savings.monthlyZar > 0)).slice(0, 3)
   const open = tasks.find((t) => t.key === openKey) ?? null
@@ -60,6 +60,7 @@ export default function Trip() {
               <AnimatedMoney className="bignum" value={plan.targetZar} format={(n) => zar(n)} />
               <span className="sub">
                 {gbp(plan.targetGbp)} to land in {city.name} with {plural(runway, 'month')} of runway
+                {plan.borrowedZar > 0 ? ` · ${zar(plan.saveTargetZar, 1000)} from savings after borrowing` : ''}
               </span>
             </div>
             <div className="hero-stats">

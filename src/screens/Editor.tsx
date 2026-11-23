@@ -7,6 +7,7 @@ import type { ScenarioInput } from '@shared/types'
 import { toInput, useActions, useApp, type Id } from '../lib/app'
 import { gbp, zar } from '../lib/format'
 import { AnimatedMoney, MoneyInput, Seg, Toggle, useWide } from '../lib/ui'
+import LoansFields from '../components/LoansFields'
 
 const GROUP_COLOR: Record<GroupId, string> = { paper: 'var(--l-paper)', move: 'var(--l-move)', runway: 'var(--l-money)' }
 
@@ -36,7 +37,7 @@ export default function Editor() {
   const t = planTotal(upfrontCosts(eff, p.landDate, overrides), ex.quotes, ex.customs, eff.rate)
   const applyDate = addMonths(p.landDate, -3)
   const partnerOk = partnerCanCome(draft, applyDate, overrides)
-  const budget = monthlyBudget(eff, p.landDate, overrides)
+  const budget = monthlyBudget(eff, p.landDate, overrides, ex.borrowing)
   const main = planFor(toInput(active), active._id)
   const saved = existing ? planFor(toInput(existing), existing._id) : null
   const vsMain = p.targetZar - main.targetZar
@@ -207,6 +208,13 @@ export default function Editor() {
             <Slider id="nights" label="Monthly let before you find a place" value={draft.tempNights} min={0} max={45} step={1} show={(v) => `${v} nights`} onChange={(v) => set('tempNights', v)} />
             <Slider id="flight" label="Flight, per person" value={draft.flightGbp} min={250} max={1500} step={10} show={(v) => gbp(v)} onChange={(v) => set('flightGbp', v)} />
             <Slider id="buffer" label="Extra safety buffer" value={draft.bufferGbp} min={0} max={5000} step={100} show={(v) => (v ? gbp(v) : 'None')} onChange={(v) => set('bufferGbp', v)} />
+          </Section>
+
+          <Section title="Loans and credit">
+            <p className="hint" style={{ margin: 0 }}>
+              These apply to every scenario and save as you go.
+            </p>
+            <LoansFields />
           </Section>
 
           {error && (

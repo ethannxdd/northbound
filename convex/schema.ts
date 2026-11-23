@@ -65,6 +65,12 @@ export default defineSchema({
     /** For the settlement tracker, once you're in the UK */
     landedOn: v.optional(v.string()),
     englishLevel: v.optional(v.string()),
+    /** Borrowing towards the move, in rand. Applies to every scenario. */
+    loanZar: v.optional(v.number()),
+    loanMonths: v.optional(v.number()),
+    loanRatePct: v.optional(v.number()),
+    cardZar: v.optional(v.number()),
+    cardRatePct: v.optional(v.number()),
   }).index('by_user', ['userId']),
 
   scenarios: defineTable({ userId: v.string(), ...scenarioFields }).index('by_user', ['userId']),

@@ -47,7 +47,7 @@ export default function Compare() {
     const input = effective(o.input)
     const ex = extrasFor(o.id)
     const t = planTotal(upfrontCosts(input, p.landDate, overrides), ex.quotes, ex.customs, input.rate)
-    const budget = monthlyBudget(input, p.landDate, overrides)
+    const budget = monthlyBudget(input, p.landDate, overrides, ex.borrowing)
     return { o, p, t, budget, flag: flagFor(budget.left), main: o.id === active._id }
   })
 

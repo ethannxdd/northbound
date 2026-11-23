@@ -69,8 +69,62 @@ export interface MonthlyBudget {
   left: number
 }
 
-/** What a month costs the household in the UK, and what's left once everyone is paid. */
-export function monthlyBudget(s: ScenarioInput, onDate: string, ov?: RuleOverrides): MonthlyBudget {
+// ---------- loans and credit ----------
+
+/** Borrowing towards the move, in rand. Lives on the profile, so it applies to every scenario. */
+export interface Borrowing {
+  loanZar?: number
+  loanMonths?: number
+  /** Yearly interest rate, in percent */
+  loanRatePct?: number
+  /** Credit card limit you plan to use */
+  cardZar?: number
+  cardRatePct?: number
+}
+
+/** A credit card balance is planned as paid off over this many months. */
+export const CARD_PAYOFF_MONTHS = 24
+
+/** Standard amortisation: the fixed monthly payment that clears `principal` over `months` at `ratePct` a year. */
+export function repayment(principal: number, ratePct: number, months: number): number {
+  if (principal <= 0 || months <= 0) return 0
+  const r = ratePct / 100 / 12
+  if (r === 0) return principal / months
+  return (principal * r) / (1 - Math.pow(1 + r, -months))
+}
+
+export interface Repayments {
+  /** Rand a month */
+  loanZar: number
+  cardZar: number
+  totalZar: number
+  /** Total borrowed, rand */
+  borrowedZar: number
+  /** Interest over the whole term, rand */
+  interestZar: number
+}
+
+export function repayments(b: Borrowing | undefined): Repayments {
+  const loan = Math.max(0, b?.loanZar ?? 0)
+  const card = Math.max(0, b?.cardZar ?? 0)
+  const loanMonths = b?.loanMonths && b.loanMonths > 0 ? b.loanMonths : 60
+  const loanZar = repayment(loan, b?.loanRatePct ?? 0, loanMonths)
+  const cardZar = repayment(card, b?.cardRatePct ?? 0, CARD_PAYOFF_MONTHS)
+  return {
+    loanZar,
+    cardZar,
+    totalZar: loanZar + cardZar,
+    borrowedZar: loan + card,
+    interestZar: Math.max(0, loanZar * loanMonths - loan) + Math.max(0, cardZar * CARD_PAYOFF_MONTHS - card),
+  }
+}
+
+/**
+ * What a month costs the household in the UK, and what's left once everyone is paid.
+ * With borrowing, the loan and card repayments are lines too, so "left" includes them.
+ * The runway (what you save before going) never includes repayments.
+ */
+export function monthlyBudget(s: ScenarioInput, onDate: string, ov?: RuleOverrides, borrowing?: Borrowing): MonthlyBudget {
   const c = CITIES[s.city]
   const p = people(s)
   const items: LineItem[] = [
@@ -81,6 +135,9 @@ export function monthlyBudget(s: ScenarioInput, onDate: string, ov?: RuleOverrid
     { key: 'phone', label: 'Phone', gbp: c.phone * p },
     { key: 'other', label: 'Everything else', gbp: c.other * p },
   ]
+  const rp = repayments(borrowing)
+  if (rp.loanZar > 0) items.push({ key: 'loanRepay', label: 'Loan repayment', gbp: rp.loanZar / s.rate, basis: `${borrowing?.loanMonths ?? 60} months at ${borrowing?.loanRatePct ?? 0}%` })
+  if (rp.cardZar > 0) items.push({ key: 'cardRepay', label: 'Card repayment', gbp: rp.cardZar / s.rate, basis: `Cleared over ${CARD_PAYOFF_MONTHS} months at ${borrowing?.cardRatePct ?? 0}%` })
   const outgoings = items.reduce((a, i) => a + i.gbp, 0)
   const mine = takeHome(salaryFor(s), onDate, ov).monthly
   const partner = s.partner && s.partnerWorks ? takeHome(s.partnerSalary, onDate, ov).monthly : 0
@@ -315,6 +372,11 @@ export interface Plan {
   /** The plan total in pounds: your quotes where you have them */
   targetGbp: number
   targetZar: number
+  /** Borrowing towards the move, rand */
+  borrowedZar: number
+  /** What you need to save yourself: the full cost less what you borrow */
+  saveTargetZar: number
+  /** Still to save: the save target less what you have */
   remainingZar: number
   /** When your savings reach the target at your current pace, or null if they never will */
   readyDate: string | null
@@ -328,6 +390,7 @@ export interface Plan {
 export interface PlanExtras {
   quotes?: QuoteLike[]
   customs?: CustomCostLike[]
+  borrowing?: Borrowing
 }
 
 function readyDateFor(remainingZar: number, monthlyZar: number, today: string): string | null {
@@ -350,11 +413,12 @@ export function plan(s: ScenarioInput, savings: SavingsState, today: string, ov?
   const earliestLand = earliestLanding(s, today, ov)
   const target = (land: string) => planTotal(upfrontCosts(s, land, ov), extras.quotes, extras.customs, s.rate).planGbp
 
+  const borrowed = repayments(extras.borrowing).borrowedZar
   let land = s.landMode === 'date' ? s.landDate : earliestLand
   if (s.landMode === 'saved') {
     // The number depends on the date (rules in force) and the date on the number, so settle them together.
     for (let i = 0; i < 4; i++) {
-      const zar = target(land) * s.rate
+      const zar = target(land) * s.rate - borrowed
       const ready = readyDateFor(zar - savings.savedZar, savings.monthlyZar, today)
       const next = ready ? maxDate(addMonths(ready, window), earliestLand) : addMonths(today, 120)
       if (next === land) break
@@ -365,14 +429,15 @@ export function plan(s: ScenarioInput, savings: SavingsState, today: string, ov?
   const targetGbp = target(land)
   const baselineGbp = upfrontCosts(s, land, ov).total
   const targetZar = targetGbp * s.rate
-  const remainingZar = Math.max(0, targetZar - savings.savedZar)
+  const saveTargetZar = Math.max(0, targetZar - borrowed)
+  const remainingZar = Math.max(0, saveTargetZar - savings.savedZar)
   const fundsDeadline = addMonths(land, -window)
   const readyDate = readyDateFor(remainingZar, savings.monthlyZar, today)
   const monthsToDeadline = Math.max(1, monthsBetween(today, fundsDeadline))
   const neededPerMonthZar = remainingZar / monthsToDeadline
   const onTrack = readyDate !== null && readyDate <= fundsDeadline && land >= earliestLand
   const paceLandDate = readyDate ? maxDate(addMonths(readyDate, window), earliestLand) : null
-  return { landDate: land, fundsDeadline, earliestLand, baselineGbp, targetGbp, targetZar, remainingZar, readyDate, neededPerMonthZar, onTrack, paceLandDate }
+  return { landDate: land, fundsDeadline, earliestLand, baselineGbp, targetGbp, targetZar, borrowedZar: Math.min(borrowed, targetZar), saveTargetZar, remainingZar, readyDate, neededPerMonthZar, onTrack, paceLandDate }
 }
 
 // ---------- partner ----------

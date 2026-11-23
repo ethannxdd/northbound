@@ -27,7 +27,7 @@ export function savingPlanText(plan: Plan, mode: LandMode, monthlyZar: number, t
     return {
       tone: monthlyZar > 0 && gap <= 0 ? ('ok' as const) : ('warn' as const),
       headline: `Save ${zar(needed)} a month`,
-      detail: `to have ${zar(plan.targetZar, 1000)} in your account by ${longMonthYear(plan.fundsDeadline)}, ready to land on ${longMonthYear(plan.landDate)}. ${status}`,
+      detail: `to have ${zar(plan.saveTargetZar, 1000)} in your account by ${longMonthYear(plan.fundsDeadline)}, ready to land on ${longMonthYear(plan.landDate)}. ${status}`,
       needed,
     }
   }
@@ -37,7 +37,7 @@ export function savingPlanText(plan: Plan, mode: LandMode, monthlyZar: number, t
   return {
     tone: 'ok' as const,
     headline: `Save ${zar(monthlyZar, 100)} a month`,
-    detail: `and you'll have ${zar(plan.targetZar, 1000)} by ${longMonthYear(plan.readyDate)}, so you can land around ${longMonthYear(plan.landDate)}.`,
+    detail: `and you'll have ${zar(plan.saveTargetZar, 1000)} by ${longMonthYear(plan.readyDate)}, so you can land around ${longMonthYear(plan.landDate)}.`,
   }
 }
 

@@ -332,9 +332,9 @@ function RateCard({
 }
 
 function RunwayCard() {
-  const { input, plan, overrides } = useApp()
+  const { input, plan, overrides, borrowing } = useApp()
   const series = useMemo(() => runwaySeries(input, plan.landDate, overrides), [input, plan.landDate, overrides])
-  const budget = monthlyBudget(input, plan.landDate, overrides)
+  const budget = monthlyBudget(input, plan.landDate, overrides, borrowing)
   const months = runwayMonths(input)
   const max = Math.max(...series, 1)
   return (

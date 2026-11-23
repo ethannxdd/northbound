@@ -977,3 +977,16 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height:
   .auth-sub { font-size: 15px; }
   .auth-body { align-content: center; }
 }
+
+/* ---------- loans and funding ---------- */
+.loans-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px 14px; }
+.loans .sfield label, .loans .field label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+.loans .field { margin: 0; }
+.fund-bar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--fill-2); }
+.fund-bar span { display: block; height: 100%; }
+.fund-rows { list-style: none; margin: 0; padding: 0; }
+.fund-rows li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--hair); }
+.fr-l { display: flex; flex-direction: column; gap: 2px; }
+.fr-k { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.fr-k i { width: 10px; height: 10px; border-radius: 3px; }
+.fund-rows small { font-size: 12.5px; color: var(--muted); padding-left: 20px; }

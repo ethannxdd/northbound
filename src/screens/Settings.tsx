@@ -8,6 +8,7 @@ import { dayMonthYear, longDate, monthYear } from '@shared/dates'
 import { sortQuotes } from '@shared/engine'
 import { gbp } from '../lib/format'
 import RemindersControls from '../components/Reminders'
+import LoansFields from '../components/LoansFields'
 import { BackLink } from '../components/Shell'
 import Icon from '../components/Icon'
 import { useActions, useApp, useMe } from '../lib/app'
@@ -22,6 +23,7 @@ export const SECTIONS = [
   { id: 'settling', label: 'Settling in the UK', icon: 'flag', blurb: 'Your 5-year path, earnings and English' },
   { id: 'loot', label: 'Loot', icon: 'loot', blurb: 'Link Loot and follow a savings goal' },
   { id: 'savings', label: 'Savings plan', icon: 'savings', blurb: 'What you save each month, and life in Cape Town now' },
+  { id: 'loans', label: 'Loans and credit', icon: 'rand', blurb: 'Borrowing towards the move, and what it costs a month' },
   { id: 'quotes', label: 'My quotes', icon: 'money', blurb: 'Every price you found, with its history' },
   { id: 'reminders', label: 'Reminders and calendar', icon: 'bell', blurb: 'Phone nudges and a calendar of every step' },
   { id: 'share', label: 'Share your plan', icon: 'share', blurb: 'A read-only link for family or a partner' },
@@ -103,6 +105,12 @@ function SectionBody({ id }: { id: SectionId }) {
       return <ScenariosSection />
     case 'quotes':
       return <QuotesSection />
+    case 'loans':
+      return (
+        <Block note="Applies to every scenario. Borrowing lowers what you save, not what the move costs.">
+          <LoansFields />
+        </Block>
+      )
     case 'settling':
       return null
     case 'reminders':
@@ -210,7 +218,7 @@ function LootSection() {
     setBusy(true)
     setError(null)
     try {
-      const gid = picked === NEW ? (await createLootGoal(session.user.id, plan.targetZar, plan.landDate)).id : picked
+      const gid = picked === NEW ? (await createLootGoal(session.user.id, plan.saveTargetZar, plan.landDate)).id : picked
       await updateProfile({ lootGoalId: gid })
       setChanging(false)
       navigate('/progress')
@@ -278,7 +286,7 @@ function LootSection() {
             <button type="button" role="radio" aria-checked={picked === NEW} aria-pressed={picked === NEW} className="goal" onClick={() => setPicked(NEW)}>
               <span className="radio" />
               <b>Create a new goal in Loot</b>
-              <small>Named "UK move", target {zar(plan.targetZar, 1000)}</small>
+              <small>Named "UK move", target {zar(plan.saveTargetZar, 1000)}</small>
             </button>
           </div>
           {error && (

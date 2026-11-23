@@ -4,7 +4,7 @@ import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 import { todayIso } from '@shared/dates'
 import { tasksDoneByDocs, type DocStatus } from '@shared/documents'
-import { plan, planTotal, upfrontCosts, type Plan, type PlanExtras, type PlanTotal } from '@shared/engine'
+import { plan, planTotal, upfrontCosts, type Borrowing, type Plan, type PlanExtras, type PlanTotal } from '@shared/engine'
 import type { RuleOverrides } from '@shared/rules'
 import type { SavingsState, ScenarioInput } from '@shared/types'
 import { useLootSession } from './auth'
@@ -55,6 +55,8 @@ interface AppData {
   fx: FxPoint[]
   liveRate: number | null
   today: string
+  /** Loans and credit towards the move, from the profile */
+  borrowing: Borrowing
   /** Quotes and own costs on the main scenario */
   quotes: QuoteDoc[]
   customs: CustomCostDoc[]
@@ -98,11 +100,17 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
     return { savedZar: saved, monthlyZar: monthly }
   }, [linked.goal, linked.deposits, profile.savedZar, profile.monthlyZar])
 
+  const borrowing = useMemo<Borrowing>(
+    () => ({ loanZar: profile.loanZar, loanMonths: profile.loanMonths, loanRatePct: profile.loanRatePct, cardZar: profile.cardZar, cardRatePct: profile.cardRatePct }),
+    [profile.loanZar, profile.loanMonths, profile.loanRatePct, profile.cardZar, profile.cardRatePct],
+  )
   const extrasFor = useMemo(
     () =>
       (id?: string): PlanExtras =>
-        id ? { quotes: me.quotes.filter((q) => q.scenarioId === id), customs: me.customCosts.filter((c) => c.scenarioId === id).map((c) => ({ id: c._id as string, group: c.group, label: c.label })) } : {},
-    [me.quotes, me.customCosts],
+        id
+          ? { borrowing, quotes: me.quotes.filter((q) => q.scenarioId === id), customs: me.customCosts.filter((c) => c.scenarioId === id).map((c) => ({ id: c._id as string, group: c.group, label: c.label })) }
+          : { borrowing },
+    [me.quotes, me.customCosts, borrowing],
   )
   const planFor = useMemo(() => (s: ScenarioInput, id?: string) => plan(effective(s), savings, today, overrides, extrasFor(id)), [effective, savings, today, overrides, extrasFor])
   const p = useMemo(() => planFor(input, active._id), [planFor, input, active._id])
@@ -113,9 +121,10 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
   const goal = linked.goal
   useEffect(() => {
     if (!goal || !profile.syncLootTarget) return
-    const t = window.setTimeout(() => void syncLootTarget(goal, p.targetZar, p.landDate).catch(() => {}), 1500)
+    // The goal is what you save yourself: the plan total less any borrowing.
+    const t = window.setTimeout(() => void syncLootTarget(goal, p.saveTargetZar, p.landDate).catch(() => {}), 1500)
     return () => window.clearTimeout(t)
-  }, [goal, profile.syncLootTarget, p.targetZar, p.landDate])
+  }, [goal, profile.syncLootTarget, p.saveTargetZar, p.landDate])
 
   const docs = useMemo(() => Object.fromEntries(me.documents.map((d) => [d.docKey, d])), [me.documents])
   const ticked = useMemo(() => new Set(me.done.map((d) => d.taskKey)), [me.done])
@@ -147,6 +156,7 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
     fx: me.fx,
     liveRate,
     today,
+    borrowing,
     quotes: me.quotes.filter((q) => q.scenarioId === active._id),
     customs: me.customCosts.filter((c) => c.scenarioId === active._id),
     totals,
