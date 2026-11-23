@@ -1,161 +1,219 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CITIES, photoUrl } from '@shared/cities'
-import { longMonthYear, monthsBetween, monthYear } from '@shared/dates'
-import { progress } from '@shared/engine'
-import type { Task } from '@shared/timeline'
-import Icon from '../components/Icon'
-import SavingPlan from '../components/SavingPlan'
-import { LootCard, ScenarioSwitcher } from '../components/Shell'
-import TransitMap, { LINE_COLOR, StopSheet, shortTitle, useTimeline } from '../components/TransitMap'
+import { dayMonthYear, monthYear, monthsBetween } from '@shared/dates'
+import { progress, runwayMonths, upfrontCosts } from '@shared/engine'
+import type { Line, Task } from '@shared/timeline'
+import { ScenarioSwitcher } from '../components/Shell'
+import { LINE_COLOR, StopSheet, shortTitle, useTimeline } from '../components/TransitMap'
 import { useApp } from '../lib/app'
-import { gbp, pct, words, zar, zarShort } from '../lib/format'
-import { useOpening, useWide } from '../lib/ui'
+import { gbp, pct, plural, zar } from '../lib/format'
+import { AnimatedMoney, useWide } from '../lib/ui'
 
-/** Home: your move as an upcoming trip. */
+const LINE_LABEL: Record<Line, string> = { paper: 'Paperwork', money: 'Money', move: 'Move', trunk: 'Main line' }
+
+/** Home: your number on the city photo, how far you've come, and what's next. */
 export default function Trip() {
-  const { input, plan, savings, done, today, savingsSource, active, goal } = useApp()
+  const { input, plan, savings, done, today, savingsSource, active, deposits, profile, overrides } = useApp()
   const tasks = useTimeline()
   const wide = useWide()
   const [openKey, setOpenKey] = useState<string | null>(null)
-  useOpening()
   const city = CITIES[input.city]
   const prog = progress(savings.savedZar, plan.targetZar)
   const monthsToGo = Math.max(0, monthsBetween(today, plan.landDate))
-  const upcoming = tasks.filter((t) => !done.has(t.key) && !(t.key === 'saving' && savings.monthlyZar > 0)).slice(0, wide ? 4 : 3)
+  const upcoming = tasks.filter((t) => !done.has(t.key) && !(t.key === 'saving' && savings.monthlyZar > 0)).slice(0, 3)
   const open = tasks.find((t) => t.key === openKey) ?? null
-  const perMonth = input.landMode === 'date' && plan.remainingZar > 0 && plan.fundsDeadline > today ? Math.ceil(plan.neededPerMonthZar / 100) * 100 : savings.monthlyZar
-
-  const stats = (
-    <div className="stats">
-      <div>
-        <b>{monthsToGo}</b>
-        <small>months to go</small>
-      </div>
-      <div>
-        <b>{pct(prog.pct)}</b>
-        <small>saved</small>
-      </div>
-      <div>
-        <b>{zarShort(perMonth)}</b>
-        <small>{input.landMode === 'date' ? 'needed a month' : 'a month'}</small>
-      </div>
-    </div>
-  )
-
-  const comingUp = (
-    <section aria-labelledby="up">
-      <div className="section-h">
-        <h2 id="up" className="h2">
-          Coming up
-        </h2>
-        <Link to="/map">See the map</Link>
-      </div>
-      <div className="stack" style={{ gap: 8 }}>
-        {upcoming.map((t) => (
-          <StepCard key={t.key} t={t} today={today} city={city.name} onOpen={() => setOpenKey(t.key)} />
-        ))}
-        {upcoming.length === 0 && <p className="muted">Every step is done. Enjoy the move.</p>}
-      </div>
-    </section>
-  )
-
-  const numberCard = (
-    <div className="card lift trip-number">
-      <span className="muted small">You need</span>
-      <span className="num">{zar(plan.targetZar, 1000)}</span>
-      <span className="muted small">
-        {gbp(plan.targetGbp, 100)} at R{input.rate.toFixed(2)}. {pct(prog.pct)} saved, {zar(plan.remainingZar, 1000)} to go.
-      </span>
-      <div className="track reveal-x" style={{ ['--d' as string]: '200ms', margin: '8px 0 4px' }}>
-        <i style={{ width: `${prog.pct * 100}%` }} />
-      </div>
-      <SavingPlan plan={plan} mode={input.landMode} monthlyZar={savings.monthlyZar} today={today} compact />
-      <Link to={`/scenario/${active._id}`} className="btn grad block" style={{ marginTop: 6 }}>
-        Edit this plan
-      </Link>
-      <Link to="/progress" className="btn quiet block">
-        How far you've come
-      </Link>
-      {savingsSource === 'loot' && goal && <span className="tiny muted" style={{ textAlign: 'center' }}>Synced with your Loot goal "{goal.name}"</span>}
-    </div>
-  )
+  const needed = Math.ceil(plan.neededPerMonthZar / 100) * 100
+  const perMonth = input.landMode === 'date' && plan.remainingZar > 0 && plan.fundsDeadline > today ? needed : savings.monthlyZar
+  const itemCount = useMemo(() => upfrontCosts(input, plan.landDate, overrides).groups.reduce((a, g) => a + g.items.length, 0), [input, plan.landDate, overrides])
+  const quoted = 0
+  const runway = runwayMonths(input)
+  const lastDeposit = deposits[0]
+  const pace = paceNote(plan, input.landMode, savings.monthlyZar, needed, today)
 
   return (
-    <div className="trip">
-      <div className="hero">
-        <img src={photoUrl(city.photo, wide ? 2000 : 1000)} alt={`${city.name} from above`} />
-        <div className="hero-top on-photo">
-          <span className="brand">northbound</span>
-          <ScenarioSwitcher />
-        </div>
-        <div className="hero-text">
-          <div className="kicker">
-            Your move, Ancestry visa{wide ? `, ${monthsToGo} months to go` : ''}
-          </div>
-          <h1 className="display">Cape Town to {city.name}</h1>
-          <p className="lede" style={{ display: wide ? 'block' : 'none' }}>
-            {input.landMode === 'saved' ? 'Land around' : 'Landing'} {longMonthYear(plan.landDate)} with {words(input.jobHuntMonths)} month{input.jobHuntMonths === 1 ? '' : 's'} to find work.
-          </p>
-        </div>
-        <span className="credit">Photo: {city.photoCredit}</span>
+    <div className="main">
+      <div className="trip-bar">
+        <ScenarioSwitcher />
+        <Link to={`/scenario/${active._id}`} className="btn solid">
+          Edit scenario
+        </Link>
       </div>
 
-      {wide ? (
-        <div className="trip-grid">
-          <div className="col">
-            <div className="card">{stats}</div>
-            <div className="card">{comingUp}</div>
-            {savingsSource !== 'loot' && <LootCard />}
+      <div className="trip-row">
+        <section aria-label="Your number" className="hero-card span2">
+          <div className="photo-slot">
+            <img src={photoUrl(city.photo, wide ? 1800 : 1000)} alt={`${city.name} from above`} />
           </div>
-          <div className="col">
-            <div className="card">
-              <div className="section-h">
-                <h2 className="h2">Itinerary</h2>
-                <Link to="/map">Open map</Link>
+          <div className="chips">
+            <span className="glass-chip">
+              {input.landMode === 'saved' ? 'Landing around' : 'Landing'} {monthYear(plan.landDate)}
+            </span>
+            <span className="glass-chip sub">UK Ancestry visa</span>
+            <span className="glass-chip sub" style={{ marginLeft: 'auto', fontSize: 11 }}>
+              Photo: {city.photoCredit}
+            </span>
+          </div>
+          <div className="hero-panel glass">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span className="lbl">Save before you go</span>
+              <AnimatedMoney className="bignum" value={plan.targetZar} format={(n) => zar(n)} />
+              <span className="sub">
+                {gbp(plan.targetGbp)} to land in {city.name} with {plural(runway, 'month')} of runway
+              </span>
+            </div>
+            <div className="hero-stats">
+              <div>
+                <b>{monthsToGo}</b>
+                <small>months to go</small>
               </div>
-              <TransitMap />
+              <div>
+                <b>{pct(prog.pct)}</b>
+                <small>saved</small>
+              </div>
+              <div>
+                <b>{zar(perMonth, 100)}</b>
+                <small>{input.landMode === 'date' ? 'needed a month' : 'saving a month'}</small>
+              </div>
+              <div className="mine">
+                <b>
+                  {quoted} of {itemCount}
+                </b>
+                <small>costs you've quoted</small>
+              </div>
             </div>
           </div>
-          <div className="col">{numberCard}</div>
-        </div>
-      ) : (
-        <div className="trip-grid">
-          {stats}
-          {numberCard}
-          {comingUp}
-          {savingsSource !== 'loot' && <LootCard />}
-          <Link to="/paperwork" className="loot-card">
-            <Icon name="docs" size={22} />
-            <span>
-              <b>Paperwork tracker</b>
-              <small>Certificates, passport, TB test and statements</small>
-            </span>
-            <Icon name="chevron" size={18} />
-          </Link>
-        </div>
-      )}
+        </section>
+
+        <section aria-labelledby="far" className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16, borderRadius: 'var(--r-hero)' }}>
+          <div className="card-h">
+            <h2 id="far" className="h2">
+              <Link to="/progress">How far you've come</Link>
+            </h2>
+            {savingsSource === 'loot' ? (
+              <span className="tag ok">Loot linked</span>
+            ) : (
+              <Link to="/settings/loot" className="tag mine">
+                Link Loot
+              </Link>
+            )}
+          </div>
+          <div className="mini-route">
+            <div className="rail" aria-hidden="true">
+              <span className="end" />
+              <span className="gap" style={{ flex: Math.max(0.08, 1 - prog.pct) }} />
+              <span className="you">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20V4M6 10l6-6 6 6" />
+                </svg>
+              </span>
+              <span className="gone" style={{ flex: Math.max(0.08, prog.pct) }} />
+              <span className="start" />
+            </div>
+            <div className="labels">
+              <div>
+                <b>{city.name}</b>
+                <small>{plan.remainingZar > 0 ? `${zar(plan.remainingZar)} still to go` : 'Fully saved'}</small>
+              </div>
+              <div>
+                <span className="here">{prog.place.over === 'there' ? 'You have it all' : `You're ${prog.place.over}`}</span>
+                <small>
+                  {zar(savings.savedZar)} saved
+                  {lastDeposit ? ` · +${zar(Number(lastDeposit.amount))} from Loot on ${dayMonthYear(lastDeposit.created_at.slice(0, 10))}` : ''}
+                </small>
+              </div>
+              <div>
+                <b>Cape Town</b>
+                <small>Started {monthYear(new Date(profile._creationTime).toISOString().slice(0, 10))}</small>
+              </div>
+            </div>
+          </div>
+          {pace && (
+            <div className={`note ${pace.tone}`} role="status">
+              {pace.text}
+            </div>
+          )}
+        </section>
+      </div>
+
+      <div className="trip-row">
+        <section aria-labelledby="next" className="card span2" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="card-h">
+            <h2 id="next" className="h2">
+              Next stops
+            </h2>
+            <Link to="/map">Open the map</Link>
+          </div>
+          {upcoming.map((t) => (
+            <NextStop key={t.key} t={t} today={today} city={city.name} onOpen={() => setOpenKey(t.key)} />
+          ))}
+          {upcoming.length === 0 && <p className="muted">Every step is done. Enjoy the move.</p>}
+        </section>
+
+        <Link to="/money" className="card link" aria-label="Baseline versus your quotes. Review costs">
+          <h2 className="h2">Baseline vs your quotes</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="vs-row">
+              <span>
+                <span className="key-base" aria-hidden="true" />
+                Baseline
+              </span>
+              <b>{gbp(plan.targetGbp)}</b>
+            </div>
+            <div className="vs-row">
+              <span>
+                <span className="key-mine" aria-hidden="true" />
+                With your quotes
+              </span>
+              <b>{gbp(plan.targetGbp)}</b>
+            </div>
+          </div>
+          <div className="note">No quotes yet. Add the prices you find and Northbound uses them instead of the baseline.</div>
+          <span className="go">Review costs</span>
+        </Link>
+      </div>
+
       <StopSheet task={open} onClose={() => setOpenKey(null)} />
     </div>
   )
 }
 
-export function StepCard({ t, today, city, onOpen }: { t: Task; today: string; city: string; onOpen: () => void }) {
+/** The off-pace warning, in plain words. Null when there's nothing to say. */
+function paceNote(plan: ReturnType<typeof useApp>['plan'], mode: 'date' | 'saved', monthlyZar: number, needed: number, today: string): { tone: 'warn' | 'ok'; text: string } | null {
+  if (plan.remainingZar <= 0) return { tone: 'ok', text: 'You have the full amount. Keep it in your own account until you apply for the visa.' }
+  if (mode === 'date') {
+    if (plan.fundsDeadline <= today) return { tone: 'warn', text: `The money needed to be in your account by ${monthYear(plan.fundsDeadline)}. Move the date, or switch to "When I've saved enough".` }
+    if (monthlyZar <= 0) return { tone: 'warn', text: `Set what you save each month to see if you're on track. You need ${zar(needed)} a month.` }
+    if (plan.onTrack) return { tone: 'ok', text: `At ${zar(monthlyZar, 100)} a month you're on track for ${monthYear(plan.fundsDeadline)}.` }
+    const late = plan.readyDate ? monthsBetween(plan.fundsDeadline, plan.readyDate) : 0
+    return {
+      tone: 'warn',
+      text: `At ${zar(monthlyZar, 100)} a month you'd have it all by ${plan.readyDate ? monthYear(plan.readyDate) : 'never'}, ${plural(late, 'month')} after the visa deadline. Save ${zar(needed)} a month, or move the date.`,
+    }
+  }
+  if (monthlyZar <= 0 || !plan.readyDate) return { tone: 'warn', text: 'Add a monthly saving so Northbound can work out when you can go.' }
+  return null
+}
+
+function NextStop({ t, today, city, onOpen }: { t: Task; today: string; city: string; onOpen: () => void }) {
   const now = t.due <= today
-  const [y, m] = t.due.split('-')
-  const mon = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(m) - 1]
+  const detail = [t.from, t.cost ?? t.takes].filter(Boolean).join(', ')
   return (
-    <button type="button" className="resv" onClick={onOpen}>
-      <span className="bar" style={{ background: LINE_COLOR[t.line] }} aria-hidden="true" />
-      <span className={`date${now ? ' now' : ''}`} aria-hidden="true">
-        <small>{now ? 'NOW' : mon}</small>
-        <b>{now ? '●' : y.slice(2)}</b>
-      </span>
+    <button type="button" className="linkrow" onClick={onOpen} style={{ ['--k' as string]: LINE_COLOR[t.line] }}>
+      <span className="dot" aria-hidden="true" />
       <span className="txt">
         <b>{shortTitle(t, city)}</b>
-        <small>{[t.from, t.cost ?? t.takes].filter(Boolean).join(', ') || (now ? 'Due now' : `Due ${monthYear(t.due)}`)}</small>
+        <small>
+          {LINE_LABEL[t.line]}
+          {detail ? ` · ${detail}` : ''}
+        </small>
       </span>
-      <Icon name="chevron" size={18} />
+      <span className={`tag${now ? ' danger' : ''}`}>{now ? 'Due now' : monthYear(t.due)}</span>
     </button>
   )
+}
+
+/** Kept for screens that still list steps the old way. */
+export function StepCard({ t, today, city, onOpen }: { t: Task; today: string; city: string; onOpen: () => void }) {
+  return <NextStop t={t} today={today} city={city} onOpen={onOpen} />
 }

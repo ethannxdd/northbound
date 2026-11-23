@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from 'react'
+import { prefersReducedMotion, rubberBand, spring, useAnimatedNumber } from './motion'
 
 /** Removes the "pre" class after first paint, which plays each screen's one opening animation. */
 export function useOpening(dep?: unknown) {
@@ -97,46 +98,205 @@ export function Loading({ label = 'Loading' }: { label?: string }) {
   )
 }
 
+/**
+ * A sheet that moves on springs, so it can be grabbed mid-flight and reversed.
+ * Phone: slides up from the bottom. Desktop: a centred dialog that grows out of
+ * the button that opened it. Drag it down to dismiss (rubber-bands at the top,
+ * and a flick carries its speed into the exit). Reduced motion: a short cross-fade.
+ */
 export function Sheet({ open, onClose, children, label }: { open: boolean; onClose: () => void; children: ReactNode; label: string }) {
   const [mounted, setMounted] = useState(open)
-  const [entered, setEntered] = useState(false)
+  const wide = useWide()
   const panel = useRef<HTMLDivElement>(null)
-  const returnTo = useRef<HTMLElement | null>(null)
-  useEffect(() => {
-    if (open) {
-      returnTo.current = document.activeElement as HTMLElement | null
-      setMounted(true)
-      const id = requestAnimationFrame(() =>
-        requestAnimationFrame(() => {
-          setEntered(true)
-          panel.current?.focus()
-        }),
-      )
-      return () => cancelAnimationFrame(id)
+  const scrim = useRef<HTMLDivElement>(null)
+  const opener = useRef<HTMLElement | null>(null)
+  const m = useRef({ t: 0, drag: 0, dx: 0, dy: 0, stop: () => {}, stopDrag: () => {}, dismissed: false })
+  const drag = useRef<{ id: number; y0: number; active: boolean; samples: { y: number; at: number }[] } | null>(null)
+
+  const paint = () => {
+    const el = panel.current
+    const sc = scrim.current
+    if (!el || !sc) return
+    const { t, drag: d, dx, dy } = m.current
+    const reduce = prefersReducedMotion()
+    const h = el.offsetHeight + 24
+    const fade = Math.max(0, Math.min(1, t))
+    if (reduce) {
+      el.style.transform = wide ? 'translate(-50%, -50%)' : 'translateY(0)'
+      el.style.opacity = String(fade)
+    } else if (wide) {
+      const k = 1 - t
+      el.style.transform = `translate(-50%, -50%) translate(${dx * k}px, ${dy * k + d}px) scale(${0.55 + 0.45 * t})`
+      el.style.opacity = String(Math.min(1, fade * 1.6) * (1 - Math.max(0, Math.min(1, d / 500))))
+    } else {
+      el.style.transform = `translateY(${(1 - t) * h + d}px)`
+      el.style.opacity = '1'
     }
-    setEntered(false)
-    returnTo.current?.focus?.()
-    const t = window.setTimeout(() => setMounted(false), 300)
-    return () => window.clearTimeout(t)
+    sc.style.opacity = String(fade * (1 - Math.max(0, Math.min(1, d / h))))
+  }
+
+  const animateT = (to: number, done?: () => void) => {
+    m.current.stop()
+    m.current.stop = spring({
+      from: m.current.t,
+      to,
+      response: prefersReducedMotion() ? 0.22 : 0.35,
+      onUpdate: (x) => {
+        m.current.t = x
+        paint()
+      },
+      onDone: done,
+    })
+  }
+
+  useLayoutEffect(() => {
+    if (open) {
+      opener.current = document.activeElement as HTMLElement | null
+      m.current.dismissed = false
+      setMounted(true)
+    }
   }, [open])
+
+  useLayoutEffect(() => {
+    if (!mounted) return
+    if (open) {
+      const r = opener.current && opener.current !== document.body ? opener.current.getBoundingClientRect() : null
+      m.current.dx = r ? r.left + r.width / 2 - window.innerWidth / 2 : 0
+      m.current.dy = r ? r.top + r.height / 2 - window.innerHeight / 2 : 40
+      m.current.drag = 0
+      paint()
+      animateT(1)
+      panel.current?.focus({ preventScroll: true })
+      return
+    }
+    const finish = () => {
+      setMounted(false)
+      m.current.t = 0
+      m.current.drag = 0
+    }
+    if (m.current.dismissed) finish()
+    else animateT(0, finish)
+    opener.current?.focus?.({ preventScroll: true })
+  }, [open, mounted])
+
+  useEffect(() => {
+    if (!mounted) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+      m.current.stop()
+      m.current.stopDrag()
+    }
+  }, [mounted])
+
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
+
+  const onPointerDown = (e: RPointerEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    const inGrab = !!target.closest('.sheet-grab')
+    const interactive = !!target.closest('input, select, textarea, button, a, label, [contenteditable]')
+    if (!inGrab && (e.pointerType !== 'mouse' || interactive || (panel.current?.scrollTop ?? 0) > 0)) return
+    drag.current = { id: e.pointerId, y0: e.clientY - m.current.drag, active: inGrab, samples: [{ y: e.clientY, at: e.timeStamp }] }
+    if (inGrab) panel.current?.setPointerCapture(e.pointerId)
+  }
+  const onPointerMove = (e: RPointerEvent<HTMLDivElement>) => {
+    const g = drag.current
+    if (!g || g.id !== e.pointerId) return
+    const dy = e.clientY - g.y0
+    if (!g.active) {
+      if (dy < 6) return
+      g.active = true
+      panel.current?.setPointerCapture(e.pointerId)
+    }
+    m.current.stopDrag()
+    m.current.drag = dy >= 0 ? dy : -rubberBand(-dy, 120)
+    g.samples.push({ y: e.clientY, at: e.timeStamp })
+    if (g.samples.length > 6) g.samples.shift()
+    paint()
+  }
+  const onPointerUp = (e: RPointerEvent<HTMLDivElement>) => {
+    const g = drag.current
+    drag.current = null
+    if (!g || g.id !== e.pointerId || !g.active) return
+    const first = g.samples[0]
+    const last = g.samples[g.samples.length - 1]
+    const dt = Math.max(1, last.at - first.at) / 1000
+    const v = last.at - first.at > 120 ? 0 : (last.y - first.y) / dt
+    const d = m.current.drag
+    const reduce = prefersReducedMotion()
+    if (d > 120 || (v > 650 && d > 0)) {
+      m.current.dismissed = true
+      if (reduce) {
+        onClose()
+        return
+      }
+      m.current.stopDrag = spring({
+        from: d,
+        to: window.innerHeight,
+        velocity: Math.max(v, 900),
+        response: 0.35,
+        onUpdate: (x) => {
+          m.current.drag = x
+          paint()
+        },
+        onDone: onClose,
+      })
+      return
+    }
+    m.current.stopDrag = spring({
+      from: d,
+      to: 0,
+      velocity: v,
+      response: 0.35,
+      onUpdate: (x) => {
+        m.current.drag = x
+        paint()
+      },
+    })
+  }
+
   if (!mounted) return null
   return (
     <>
-      <div className={`scrim${entered ? '' : ' enter'}`} onClick={onClose} />
-      <div ref={panel} tabIndex={-1} className={`sheet${entered ? '' : ' enter'}`} role="dialog" aria-modal="true" aria-label={label}>
-        <div className="handle" />
+      <div ref={scrim} className="scrim" onClick={onClose} />
+      <div
+        ref={panel}
+        tabIndex={-1}
+        className="sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
+        <div className="sheet-grab" aria-hidden="true">
+          <div className="handle" />
+        </div>
         <button type="button" className="iconbtn sheet-close" onClick={onClose} aria-label="Close">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
         </button>
         {children}
       </div>
     </>
+  )
+}
+
+/** The big number, gliding between values. */
+export function AnimatedMoney({ value, format, className }: { value: number; format: (n: number) => string; className?: string }) {
+  const shown = useAnimatedNumber(value)
+  return (
+    <span className={className}>
+      <span aria-hidden="true">{format(shown)}</span>
+      <span className="sr-only">{format(value)}</span>
+    </span>
   )
 }
 

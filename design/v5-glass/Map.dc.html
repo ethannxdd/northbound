@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Map — the move as a transit map</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#05070B;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;letter-spacing:-0.005em}
+a,button,input,select,textarea{-webkit-tap-highlight-color:transparent}
+a,button{transition:transform 220ms cubic-bezier(.2,.9,.25,1),background-color 200ms ease,border-color 200ms ease,opacity 200ms ease,box-shadow 220ms ease}
+a:active,button:active{transform:scale(.97);transition-duration:90ms}
+:focus-visible{outline:2px solid #4AA8FF;outline-offset:3px}
+::selection{background:rgba(74,168,255,.35)}
+html{scroll-behavior:smooth}
+main,form:not(main form){animation:nb-rise 520ms cubic-bezier(.2,.9,.25,1) both}
+@keyframes nb-rise{from{opacity:0;transform:translateY(10px) scale(.995)}}
+@media (prefers-reduced-motion:reduce){main,form{animation:none!important}*{transition:none!important;scroll-behavior:auto!important}}
+@media (prefers-reduced-transparency:reduce){header{background:#05070B!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF;opacity:.92}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #05070B; color: #F5F5F7; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, system-ui, sans-serif">
+
+  <header style="position: sticky; top: 0; z-index: 5; background: rgba(5,7,11,0.72); backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%); box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 18px 32px -26px rgba(0,0,0,0.95)">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 14px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: -0.6px">
+        <span style="width: 34px; height: 34px; border-radius: 11px; background: {{accent}}; display: flex; align-items: center; justify-content: center">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#05070B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4M6 10l6-6 6 6"></path></svg>
+        </span>
+        northbound
+      </a>
+      <nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px; padding: 5px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08)">
+        <a href="Main.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Trip</a>
+        <a href="Map.dc.html" style="padding: 9px 16px; border-radius: 999px; background: rgba(255,255,255,0.14); font-size: 14px; font-weight: 600">Map</a>
+        <a href="Costs.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Money</a>
+        <a href="Progress.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Progress</a>
+        <a href="Paperwork.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Paperwork</a>
+        <a href="Life.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Life</a>
+        <a href="Compare.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Compare</a>
+      </nav>
+      <a href="Settings.dc.html" aria-label="Your profile and settings" style="width: 40px; height: 40px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: #1B2431; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600">EQ</a>
+    </div>
+  </header>
+
+  <main style="max-width: 1280px; margin: 0 auto; padding: 32px 32px 80px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+
+    <section aria-label="Transit map" style="flex: 999 1 640px; min-width: 0; border-radius: 34px; padding: 28px; background: #0E131A; border: 1px solid rgba(255,255,255,0.07); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 22px">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <h1 style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.9px">Your route north</h1>
+          <p style="margin: 0; font-size: 14px; color: #98A4B3">Three lines meet at the visa decision, then run as one to Manchester.</p>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: #CAD3DE">
+          <span style="display: flex; align-items: center; gap: 6px"><span style="width: 14px; height: 4px; border-radius: 2px; background: #C08BFF"></span>Paperwork</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span style="width: 14px; height: 4px; border-radius: 2px; background: #5FE3B0"></span>Money</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span style="width: 14px; height: 4px; border-radius: 2px; background: #64D2FF"></span>Move</span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+        <sc-for list="{{lines}}" as="l" hint-placeholder-count="3">
+          <div style="display: flex; flex-direction: column; gap: 0; padding: 18px 16px 0; border-radius: 22px; background: rgba(255,255,255,0.03)">
+            <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: {{l.color}}; padding-bottom: 12px">{{l.name}}</span>
+            <sc-for list="{{l.stops}}" as="s" hint-placeholder-count="3">
+              <div style="display: flex; gap: 12px; min-height: 64px">
+                <div style="width: 18px; display: flex; flex-direction: column; align-items: center">
+                  <span style="width: 16px; height: 16px; border-radius: 999px; border: 3px solid {{l.color}}; background: {{s.fill}}; box-sizing: border-box; flex: none"></span>
+                  <span style="flex: 1; width: 4px; background: {{l.color}}; opacity: 0.85"></span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 14px">
+                  <span style="font-size: 14px; font-weight: 600; line-height: 1.3">{{s.name}}</span>
+                  <span style="font-size: 12px; color: {{s.dateColor}}">{{s.date}}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 0">
+        <div style="width: 80%; height: 4px; border-radius: 2px; background: #F5F5F7"></div>
+        <div style="width: 4px; height: 22px; background: #F5F5F7"></div>
+        <div style="padding: 12px 20px; border-radius: 999px; background: #F5F5F7; color: #05070B; font-size: 15px; font-weight: 700">Visa decision · Jul 2029</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; padding-left: 36%">
+        <sc-for list="{{trunk}}" as="t" hint-placeholder-count="5">
+          <div style="display: flex; gap: 14px; min-height: 58px">
+            <div style="width: 22px; display: flex; flex-direction: column; align-items: center">
+              <span style="width: 4px; height: 8px; background: #F5F5F7"></span>
+              <span style="width: {{t.size}}; height: {{t.size}}; border-radius: 999px; border: 3px solid #F5F5F7; background: {{t.fill}}; box-sizing: border-box; flex: none"></span>
+              <span style="flex: 1; width: 4px; background: #F5F5F7"></span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px; padding-top: 6px">
+              <span style="font-size: {{t.fs}}; font-weight: 700">{{t.name}}</span>
+              <span style="font-size: 12px; color: #98A4B3">{{t.date}}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <aside aria-label="Selected stop" style="flex: 1 1 360px; min-width: 0; border-radius: 30px; padding: 24px; background: rgba(20,28,38,0.78); backdrop-filter: blur(50px) saturate(180%); -webkit-backdrop-filter: blur(50px) saturate(180%); border: 1px solid rgba(255,255,255,0.14); box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #C08BFF"><span style="width: 10px; height: 10px; border-radius: 999px; background: #C08BFF"></span>Paperwork line</span>
+        <span style="padding: 5px 10px; border-radius: 999px; background: rgba(255,111,111,0.14); color: #FF9A9A; font-size: 12px; font-weight: 600">Due now</span>
+      </div>
+      <h2 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2">Order unabridged birth certificates</h2>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+        <div style="padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #98A4B3">Cost</span><span style="font-size: 15px; font-weight: 700">R150</span><span style="font-size: 11px; color: #98A4B3">estimate</span></div>
+        <div style="padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #98A4B3">Takes</span><span style="font-size: 15px; font-weight: 700">6–8 wks</span><span style="font-size: 11px; color: #98A4B3">often longer</span></div>
+        <div style="padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #98A4B3">Where</span><span style="font-size: 15px; font-weight: 700">Home Affairs</span><span style="font-size: 11px; color: #98A4B3">in person</span></div>
+      </div>
+      <ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.5; color: #CAD3DE">
+        <li>Ask for the unabridged version. An abridged certificate isn't accepted.</li>
+        <li>Order one for you and one for your dad.</li>
+        <li>Log the order date on Paperwork, so the map can track it.</li>
+      </ol>
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08)">
+        <span style="font-size: 13px; color: #CAD3DE">Your quote: not added yet</span>
+        <a href="AddCost.dc.html" style="font-size: 13px; font-weight: 600; color: {{accent}}">+ Add quote</a>
+      </div>
+      <div style="display: flex; gap: 10px">
+        <a href="https://www.dha.gov.za" style="flex: 1; height: 50px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.14); font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center">Open website</a>
+        <button type="button" style="flex: 1; height: 50px; border-radius: 16px; border: 0; background: {{accent}}; color: #05070B; font: 700 15px -apple-system, BlinkMacSystemFont, Inter, sans-serif">Mark as done</button>
+      </div>
+    </aside>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#4AA8FF","options":["#4AA8FF","#64D2FF","#7D7AFF","#5FE3B0"]},"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const stop = (name, date, now) => ({ name, date, fill: now ? '#F5F5F7' : '#0E131A', dateColor: now ? '#FF9A9A' : '#98A4B3' });
+    const t = (name, date, big) => ({ name, date, size: big ? '24px' : '16px', fs: big ? '18px' : '15px', fill: big ? '#F5F5F7' : '#0E131A' });
+    return {
+      accent: this.props.accent ?? '#4AA8FF',
+      lines: [
+        { name: 'Paperwork', color: '#C08BFF', stops: [
+          stop('Unabridged certificates', 'Due now', true),
+          stop('Grandmother’s GRO certificate', 'Feb 2027'),
+          stop('Grandmother’s marriage certificate', 'Mar 2027'),
+          stop('Renew passport if needed', 'Jan 2029'),
+          stop('TB test', 'May 2029')
+        ]},
+        { name: 'Money', color: '#5FE3B0', stops: [
+          stop('Set up the monthly saving', 'Dec 2026'),
+          stop('Reach your number', 'Jun 2029'),
+          stop('Bank statements for proof of funds', 'Jun 2029')
+        ]},
+        { name: 'Move', color: '#64D2FF', stops: [
+          stop('Start the UK job search', 'Mar 2029'),
+          stop('Apply for the visa', 'Jun 2029')
+        ]}
+      ],
+      trunk: [
+        t('Book flight and monthly let', 'Jul 2029'),
+        t('SA admin: bank, SARS, contracts', 'Aug 2029'),
+        t('Land in Manchester', '1 Sep 2029', true),
+        t('Find a flat', 'Oct 2029'),
+        t('First payday', 'Jan 2030'),
+        t('Settle', 'From 2034, if conditions are met', true)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

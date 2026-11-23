@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cost breakdown — Manchester plan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#05070B;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;letter-spacing:-0.005em}
+a,button,input,select,textarea{-webkit-tap-highlight-color:transparent}
+a,button{transition:transform 220ms cubic-bezier(.2,.9,.25,1),background-color 200ms ease,border-color 200ms ease,opacity 200ms ease,box-shadow 220ms ease}
+a:active,button:active{transform:scale(.97);transition-duration:90ms}
+:focus-visible{outline:2px solid #4AA8FF;outline-offset:3px}
+::selection{background:rgba(74,168,255,.35)}
+html{scroll-behavior:smooth}
+main,form:not(main form){animation:nb-rise 520ms cubic-bezier(.2,.9,.25,1) both}
+@keyframes nb-rise{from{opacity:0;transform:translateY(10px) scale(.995)}}
+@media (prefers-reduced-motion:reduce){main,form{animation:none!important}*{transition:none!important;scroll-behavior:auto!important}}
+@media (prefers-reduced-transparency:reduce){header{background:#05070B!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF;opacity:.92}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #05070B; color: #F5F5F7; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, system-ui, sans-serif">
+
+  <header style="position: sticky; top: 0; z-index: 5; background: rgba(5,7,11,0.72); backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%); box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 18px 32px -26px rgba(0,0,0,0.95)">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 16px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: -0.6px">
+        <span style="width: 34px; height: 34px; border-radius: 11px; background: {{accent}}; display: flex; align-items: center; justify-content: center">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#05070B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4M6 10l6-6 6 6"></path></svg>
+        </span>
+        northbound
+      </a>
+      <nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px; padding: 5px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08)">
+        <a href="Main.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Trip</a>
+        <a href="Map.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Map</a>
+        <a href="Costs.dc.html" style="padding: 9px 16px; border-radius: 999px; background: rgba(255,255,255,0.14); font-size: 14px; font-weight: 600">Money</a>
+        <a href="Progress.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Progress</a>
+        <a href="Paperwork.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Paperwork</a>
+        <a href="Life.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Life</a>
+        <a href="Compare.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Compare</a>
+      </nav>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <button type="button" style="height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.06); color: #F5F5F7; font: 500 13px -apple-system, BlinkMacSystemFont, Inter, sans-serif"><span style="color: #98A4B3">£1 =</span> R21.80</button>
+        <a href="Settings.dc.html" aria-label="Your profile and settings" style="width: 40px; height: 40px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: #1B2431; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600">EQ</a>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width: 1280px; margin: 0 auto; padding: 32px 32px 80px; display: flex; flex-direction: column; gap: 26px">
+
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <a href="Main.dc.html" style="font-size: 14px; font-weight: 500; color: #98A4B3">Manchester · studio · solo</a>
+        <h1 style="margin: 0; font-size: 36px; font-weight: 700; letter-spacing: -1px">Save before you go</h1>
+        <p style="margin: 0; font-size: 14px; color: #98A4B3">Baseline from the Rules page, last checked 23 Nov 2026 · £1 = R21.80</p>
+      </div>
+      <a href="AddCost.dc.html" style="height: 44px; padding: 0 20px; border-radius: 999px; background: #F5F5F7; color: #05070B; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Add my quote
+      </a>
+    </div>
+
+    <section aria-label="Totals" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+      <div style="padding: 22px; border-radius: 26px; background: #0E131A; border: 1px solid rgba(255,255,255,0.07); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 6px">
+        <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: #98A4B3"><span style="width: 10px; height: 10px; border-radius: 3px; background: #A9B4C8"></span>Baseline</span>
+        <span style="font-size: 30px; font-weight: 700; letter-spacing: -0.8px">£16,926</span>
+        <span style="font-size: 13px; color: #98A4B3">R368,997 · 12 of 13 items priced</span>
+      </div>
+      <div style="padding: 22px; border-radius: 26px; background: #0E131A; border: 1px solid rgba(255,255,255,0.07); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 6px">
+        <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: #98A4B3"><span style="width: 10px; height: 10px; border-radius: 999px; background: {{accent}}"></span>My quotes</span>
+        <span style="font-size: 30px; font-weight: 700; letter-spacing: -0.8px">£7,883</span>
+        <span style="font-size: 13px; color: #98A4B3">R171,849 · 5 of 13 items quoted</span>
+      </div>
+      <div style="padding: 22px; border-radius: 26px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 13px; font-weight: 500; color: #CAD3DE">Plan total · your quote where you have one</span>
+        <span style="font-size: 30px; font-weight: 700; letter-spacing: -0.8px">£17,108</span>
+        <span style="font-size: 13px; color: #CAD3DE">R372,954 · this becomes your number and your Loot goal target</span>
+      </div>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <button type="button" style="height: 38px; padding: 0 16px; border-radius: 999px; border: 0; background: #F5F5F7; color: #05070B; font: 600 13px -apple-system, BlinkMacSystemFont, Inter, sans-serif">All 13</button>
+        <button type="button" style="height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: #CAD3DE; font: 500 13px -apple-system, BlinkMacSystemFont, Inter, sans-serif">Needs my quote · 8</button>
+        <button type="button" style="height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: #CAD3DE; font: 500 13px -apple-system, BlinkMacSystemFont, Inter, sans-serif">Over baseline · 1</button>
+        <button type="button" style="height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: #CAD3DE; font: 500 13px -apple-system, BlinkMacSystemFont, Inter, sans-serif">My extra costs · 1</button>
+      </div>
+      <button type="button" style="height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: #CAD3DE; font: 500 13px -apple-system, BlinkMacSystemFont, Inter, sans-serif">Show: £ and R</button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 22px">
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+        <section style="border-radius: 28px; background: #0E131A; border: 1px solid rgba(255,255,255,0.07); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); overflow: hidden">
+          <div style="padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.07)">
+            <h2 style="margin: 0; font-size: 17px; font-weight: 600">{{g.name}}</h2>
+            <span style="font-size: 13px; color: #98A4B3">{{g.sub}}</span>
+          </div>
+          <div style="overflow-x: auto">
+            <div style="min-width: 860px">
+              <div style="display: grid; grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; padding: 10px 24px; font-size: 12px; font-weight: 500; color: #8492A3">
+                <span>Item</span><span>Claude</span><span>Mine</span><span style="text-align: right">Difference</span>
+              </div>
+              <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="2">
+                <div style="display: grid; grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; align-items: center; padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.06)">
+                  <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+                    <span style="font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px">{{r.name}}<sc-if value="{{r.custom}}" hint-placeholder-val="{{ false }}"><span style="padding: 3px 8px; border-radius: 999px; background: rgba(74,168,255,0.14); color: #9CCEFF; font-size: 11px; font-weight: 600">My extra</span></sc-if></span>
+                    <span style="font-size: 13px; color: #98A4B3">{{r.basis}}</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 2px">
+                    <sc-if value="{{r.hasClaude}}" hint-placeholder-val="{{ true }}">
+                      <span style="font-size: 15px; font-weight: 600; color: #C3CCDB">{{r.cGbp}}</span>
+                      <span style="font-size: 12px; color: #98A4B3">{{r.cZar}}</span>
+                    </sc-if>
+                    <sc-if value="{{r.noClaude}}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size: 13px; color: #8492A3">No baseline yet</span>
+                    </sc-if>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 2px">
+                    <sc-if value="{{r.hasMine}}" hint-placeholder-val="{{ true }}">
+                      <span style="font-size: 15px; font-weight: 600; color: {{accent}}">{{r.mGbp}}</span>
+                      <span style="font-size: 12px; color: #98A4B3">{{r.mZar}}</span>
+                    </sc-if>
+                    <sc-if value="{{r.noMine}}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size: 13px; color: #8492A3">—</span>
+                    </sc-if>
+                  </div>
+                  <div style="display: flex; justify-content: flex-end">
+                    <sc-if value="{{r.isMatch}}" hint-placeholder-val="{{ false }}">
+                      <span style="padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,0.08); font-size: 13px; font-weight: 600; color: #CAD3DE">= Matches</span>
+                    </sc-if>
+                    <sc-if value="{{r.isUnder}}" hint-placeholder-val="{{ false }}">
+                      <span style="padding: 6px 12px; border-radius: 999px; background: rgba(95,214,138,0.14); font-size: 13px; font-weight: 600; color: #5FD68A">{{r.delta}}</span>
+                    </sc-if>
+                    <sc-if value="{{r.isOnly}}" hint-placeholder-val="{{ false }}">
+                      <span style="padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(74,168,255,0.4); font-size: 13px; font-weight: 600; color: #9CCEFF">Yours only</span>
+                    </sc-if>
+                    <sc-if value="{{r.isOver}}" hint-placeholder-val="{{ false }}">
+                      <span style="padding: 6px 12px; border-radius: 999px; background: rgba(255,193,69,0.14); font-size: 13px; font-weight: 600; color: #FFC145">{{r.delta}}</span>
+                    </sc-if>
+                    <sc-if value="{{r.isMissing}}" hint-placeholder-val="{{ true }}">
+                      <a href="AddCost.dc.html" style="height: 36px; padding: 0 14px; border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px">+ Add quote</a>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </section>
+      </sc-for>
+    </div>
+
+    <a href="AddCost.dc.html" style="height: 60px; border-radius: 22px; border: 1px dashed rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 600; color: #CAD3DE">+ Add my own cost</a>
+
+    <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #8492A3; max-width: 760px">Every baseline figure comes from the Rules page, with its source and the date it was last checked. Tap any figure to see how it was worked out.</p>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#4AA8FF","options":["#4AA8FF","#64D2FF","#7D7AFF","#5FE3B0"]},"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const row = (name, basis, cGbp, cZar, mGbp, mZar, status, delta, custom) => ({
+      name, basis, cGbp, cZar, mGbp, mZar, delta, custom: !!custom,
+      hasClaude: !!cGbp, noClaude: !cGbp,
+      hasMine: !!mGbp, noMine: !mGbp,
+      isMatch: status === 'match', isUnder: status === 'under', isOver: status === 'over',
+      isOnly: status === 'only', isMissing: status === 'missing'
+    });
+    return {
+      accent: this.props.accent ?? '#4AA8FF',
+      groups: [
+        { name: 'Paperwork and visa', sub: '£6,003 · R130,865', rows: [
+          row('UK Ancestry visa fee', 'GOV.UK, from 8 Apr 2026', '£726', 'R15,827', '£726', 'R15,827', 'match'),
+          row('Immigration Health Surcharge, 5 years', '£1,035 a year, paid upfront', '£5,175', 'R112,815', '£5,175', 'R112,815', 'match'),
+          row('TB test, approved Cape Town clinic', 'Estimate · check the clinic price', '£83', 'R1,800', '', '', 'missing'),
+          row('Grandmother’s birth certificate (GRO)', 'GRO online, with index reference', '£13', 'R273', '', '', 'missing'),
+          row('Unabridged birth certificates × 2', 'Home Affairs · estimate', '£7', 'R150', '', '', 'missing')
+        ]},
+        { name: 'Getting there', sub: '£4,362 · R95,092 + £120 of yours', rows: [
+          row('One-way flight, Cape Town → Manchester', 'Typical one-stop fare', '£450', 'R9,810', '£412', 'R8,982', 'under', '−£38 under'),
+          row('Monthly let, first 30 nights', '30 nights × £45 · bills-included let', '£1,350', 'R29,430', '£1,450', 'R31,610', 'over', '+£100 over'),
+          row('Studio deposit (5 weeks)', 'Legal cap · on a £1,050 studio', '£1,212', 'R26,422', '', '', 'missing'),
+          row('First month’s rent, studio', 'Manchester studio, city average', '£1,050', 'R22,890', '', '', 'missing'),
+          row('Bedding, SIM, basics', 'Bare-basics setup', '£300', 'R6,540', '', '', 'missing'),
+          row('Extra checked bag', 'Added by you', '', '', '£120', 'R2,616', 'only', '', true)
+        ]},
+        { name: 'Runway, 4 months', sub: '£6,562 · R143,052', rows: [
+          row('Month 1 living, rent already paid', 'Food, bills, transport, phone, other', '£853', 'R18,595', '', '', 'missing'),
+          row('Months 2 to 4 living', '£1,903 a month with rent', '£5,709', 'R124,456', '', '', 'missing')
+        ]}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

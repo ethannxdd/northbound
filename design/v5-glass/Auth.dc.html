@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in — Passage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#05070B;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;letter-spacing:-0.005em}
+a,button,input,select,textarea{-webkit-tap-highlight-color:transparent}
+a,button{transition:transform 220ms cubic-bezier(.2,.9,.25,1),background-color 200ms ease,border-color 200ms ease,opacity 200ms ease,box-shadow 220ms ease}
+a:active,button:active{transform:scale(.97);transition-duration:90ms}
+:focus-visible{outline:2px solid #4AA8FF;outline-offset:3px}
+::selection{background:rgba(74,168,255,.35)}
+html{scroll-behavior:smooth}
+main,form:not(main form){animation:nb-rise 520ms cubic-bezier(.2,.9,.25,1) both}
+@keyframes nb-rise{from{opacity:0;transform:translateY(10px) scale(.995)}}
+@media (prefers-reduced-motion:reduce){main,form{animation:none!important}*{transition:none!important;scroll-behavior:auto!important}}
+@media (prefers-reduced-transparency:reduce){header{background:#05070B!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}}
+a{color:#F5F5F7}a:hover{color:#FFFFFF;opacity:.92}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #05070B; color: #F5F5F7; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, system-ui, sans-serif; display: flex; flex-wrap: wrap">
+
+  <div style="flex: 999 1 560px; min-width: 0; position: relative; min-height: 520px; margin: 16px; border-radius: 36px; overflow: hidden; background: repeating-linear-gradient(135deg, #18202A 0 14px, #1B2430 14px 28px); display: flex; flex-direction: column; justify-content: space-between">
+    <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #6E7884; font-size: 13px; font-weight: 500">Full-bleed photo — UK street at dusk</div>
+    <div style="position: relative; padding: 32px; display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 21px; letter-spacing: -0.6px">
+      <span style="width: 36px; height: 36px; border-radius: 12px; background: {{accent}}; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#05070B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4M6 10l6-6 6 6"></path></svg>
+      </span>
+      northbound
+    </div>
+    <div style="position: relative; margin: 20px; padding: 28px; max-width: 520px; border-radius: 28px; background: rgba(14,20,28,0.62); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); border: 1px solid rgba(255,255,255,0.12); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 10px">
+      <h1 style="margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -1px; line-height: 1.1">Cape Town to the UK, every step and every rand.</h1>
+      <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #C3CDD9">Your number, your route and your runway, with a baseline for every cost next to the quotes you find yourself.</p>
+    </div>
+  </div>
+
+  <div style="flex: 1 1 440px; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 48px 32px">
+    <form style="width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 22px">
+      <div style="display: flex; gap: 4px; padding: 5px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08)">
+        <button type="button" style="flex: 1; height: 40px; border-radius: 999px; border: 0; background: rgba(255,255,255,0.14); color: #F5F5F7; font: 600 14px -apple-system, BlinkMacSystemFont, Inter, sans-serif">Sign in</button>
+        <button type="button" style="flex: 1; height: 40px; border-radius: 999px; border: 0; background: transparent; color: #98A4B3; font: 500 14px -apple-system, BlinkMacSystemFont, Inter, sans-serif">Create account</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h2 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.7px">Welcome back</h2>
+        <p style="margin: 0; font-size: 15px; color: #98A4B3">Your plans and quote history are saved to your account.</p>
+      </div>
+      <div style="border-radius: 20px; background: #0E131A; border: 1px solid rgba(255,255,255,0.1); overflow: hidden">
+        <div style="padding: 12px 16px 10px; display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid rgba(255,255,255,0.08)">
+          <label for="email" style="font-size: 12px; font-weight: 500; color: #98A4B3">Email</label>
+          <input id="email" type="email" placeholder="you@example.com" style="border: 0; outline: 0; background: transparent; color: #F5F5F7; font: 500 16px -apple-system, BlinkMacSystemFont, Inter, sans-serif; padding: 0">
+        </div>
+        <div style="padding: 12px 16px 10px; display: flex; flex-direction: column; gap: 4px">
+          <label for="pw" style="font-size: 12px; font-weight: 500; color: #98A4B3">Password</label>
+          <input id="pw" type="password" placeholder="••••••••" style="border: 0; outline: 0; background: transparent; color: #F5F5F7; font: 500 16px -apple-system, BlinkMacSystemFont, Inter, sans-serif; padding: 0">
+        </div>
+      </div>
+      <a href="Main.dc.html" style="height: 52px; border-radius: 16px; background: {{accent}}; color: #05070B; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Continue</a>
+      <div style="display: flex; align-items: center; gap: 12px; color: #8492A3; font-size: 13px">
+        <span style="flex: 1; height: 1px; background: rgba(255,255,255,0.1)"></span>or<span style="flex: 1; height: 1px; background: rgba(255,255,255,0.1)"></span>
+      </div>
+      <button type="button" style="height: 52px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.14); background: transparent; color: #F5F5F7; font: 600 15px -apple-system, BlinkMacSystemFont, Inter, sans-serif">Sign in with your Loot account</button>
+      <button type="button" style="height: 52px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.14); background: transparent; color: #F5F5F7; font: 600 15px -apple-system, BlinkMacSystemFont, Inter, sans-serif">Continue with Google</button>
+      <a href="#forgot" style="align-self: center; font-size: 14px; font-weight: 500; color: #98A4B3">Forgot password?</a>
+    </form>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#4AA8FF","options":["#4AA8FF","#64D2FF","#7D7AFF","#5FE3B0"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#4AA8FF' };
+  }
+}
+</script>
+</body>
+</html>

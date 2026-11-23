@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Compare scenarios</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#05070B;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;letter-spacing:-0.005em}
+a,button,input,select,textarea{-webkit-tap-highlight-color:transparent}
+a,button{transition:transform 220ms cubic-bezier(.2,.9,.25,1),background-color 200ms ease,border-color 200ms ease,opacity 200ms ease,box-shadow 220ms ease}
+a:active,button:active{transform:scale(.97);transition-duration:90ms}
+:focus-visible{outline:2px solid #4AA8FF;outline-offset:3px}
+::selection{background:rgba(74,168,255,.35)}
+html{scroll-behavior:smooth}
+main,form:not(main form){animation:nb-rise 520ms cubic-bezier(.2,.9,.25,1) both}
+@keyframes nb-rise{from{opacity:0;transform:translateY(10px) scale(.995)}}
+@media (prefers-reduced-motion:reduce){main,form{animation:none!important}*{transition:none!important;scroll-behavior:auto!important}}
+@media (prefers-reduced-transparency:reduce){header{background:#05070B!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF;opacity:.92}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #05070B; color: #F5F5F7; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, system-ui, sans-serif">
+
+  <header style="position: sticky; top: 0; z-index: 5; background: rgba(5,7,11,0.72); backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%); box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 18px 32px -26px rgba(0,0,0,0.95)">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 14px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: -0.6px">
+        <span style="width: 34px; height: 34px; border-radius: 11px; background: {{accent}}; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#05070B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4M6 10l6-6 6 6"></path></svg></span>
+        northbound
+      </a>
+      <nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 2px; padding: 5px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08)">
+        <a href="Main.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Trip</a>
+        <a href="Map.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Map</a>
+        <a href="Costs.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Money</a>
+        <a href="Progress.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Progress</a>
+        <a href="Paperwork.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Paperwork</a>
+        <a href="Life.dc.html" style="padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #98A4B3">Life</a>
+        <a href="Compare.dc.html" style="padding: 9px 16px; border-radius: 999px; background: rgba(255,255,255,0.14); font-size: 14px; font-weight: 600">Compare</a>
+      </nav>
+      <a href="Settings.dc.html" aria-label="Your profile and settings" style="width: 40px; height: 40px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: #1B2431; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600">EQ</a>
+    </div>
+  </header>
+
+  <main style="max-width: 1280px; margin: 0 auto; padding: 32px 32px 80px; display: flex; flex-direction: column; gap: 22px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-size: 36px; font-weight: 700; letter-spacing: -1px">Compare</h1>
+        <p style="margin: 0; font-size: 15px; color: #98A4B3">Up to four scenarios side by side, each with the same savings pace</p>
+      </div>
+      <a href="Editor.dc.html" style="height: 44px; padding: 0 18px; border-radius: 999px; background: #F5F5F7; color: #05070B; font-size: 14px; font-weight: 600; display: flex; align-items: center">+ New scenario</a>
+    </div>
+
+    <section aria-label="The difference in words" style="padding: 22px 24px; border-radius: 26px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08)">
+      <p style="margin: 0; font-size: 18px; line-height: 1.55; font-weight: 500">A room in Manchester needs <b>R34,678 less</b> up front than a studio and leaves <b>£340 more</b> each month. A London studio costs <b>R83,652 more</b> than Manchester's and runs <b style="color: #FF9A9A">£272 short</b> every month on a typical IT support salary.</p>
+    </section>
+
+    <div style="overflow-x: auto">
+      <div style="min-width: 980px; display: grid; grid-template-columns: minmax(0, 1.1fr) repeat(3, minmax(0, 1fr)); gap: 0; border-radius: 30px; background: #0E131A; border: 1px solid rgba(255,255,255,0.07); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); overflow: hidden">
+        <div style="padding: 20px 22px; border-bottom: 1px solid rgba(255,255,255,0.08)"></div>
+        <sc-for list="{{cols}}" as="c" hint-placeholder-count="3">
+          <div style="padding: 20px 22px; border-bottom: 1px solid rgba(255,255,255,0.08); border-left: 1px solid rgba(255,255,255,0.06); background: {{c.headBg}}; display: flex; flex-direction: column; gap: 8px">
+            <div style="height: 90px; border-radius: 16px; background: repeating-linear-gradient(135deg, #111923 0 12px, #15202B 12px 24px); display: flex; align-items: center; justify-content: center; color: #6E7884; font-size: 11px">{{c.photo}}</div>
+            <span style="font-size: 16px; font-weight: 700">{{c.name}}</span>
+            <span style="align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: {{c.flagBg}}; color: {{c.flagFg}}; font-size: 12px; font-weight: 600">{{c.flag}}</span>
+          </div>
+        </sc-for>
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="9">
+          <div style="padding: 14px 22px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 2px; background: {{r.bg}}">
+            <span style="font-size: 14px; font-weight: {{r.w}}">{{r.label}}</span>
+            <span style="font-size: 12px; color: #8492A3">{{r.sub}}</span>
+          </div>
+          <sc-for list="{{r.vals}}" as="v" hint-placeholder-count="3">
+            <div style="padding: 14px 22px; border-top: 1px solid rgba(255,255,255,0.06); border-left: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 2px; background: {{r.bg}}">
+              <span style="font-size: {{r.fs}}; font-weight: {{r.w}}; color: {{v.color}}">{{v.main}}</span>
+              <span style="font-size: 12px; color: #8492A3">{{v.sub}}</span>
+            </div>
+          </sc-for>
+        </sc-for>
+      </div>
+    </div>
+    <p style="margin: 0; font-size: 13px; color: #8492A3">All three use £1 = R21.80, a 30-night monthly let, a 3-month job hunt, a £28,000 (Manchester) or £33,000 (London) salary, and your R5,500 a month savings pace.</p>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#4AA8FF","options":["#4AA8FF","#64D2FF","#7D7AFF","#5FE3B0"]},"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = (main, sub, color) => ({ main, sub: sub || '', color: color || '#F5F5F7' });
+    const row = (label, sub, vals, big) => ({ label, sub, vals, fs: big ? '22px' : '15px', w: big ? '700' : '600', bg: big ? 'rgba(255,255,255,0.03)' : 'transparent' });
+    return {
+      accent: this.props.accent ?? '#4AA8FF',
+      cols: [
+        { name: 'Manchester · room', photo: 'Photo — Manchester', flag: 'Works', flagBg: 'rgba(95,214,138,0.14)', flagFg: '#5FD68A', headBg: 'transparent' },
+        { name: 'Manchester · studio', photo: 'Photo — Manchester', flag: 'Main · very tight', flagBg: 'rgba(255,193,69,0.14)', flagFg: '#FFC145', headBg: 'rgba(74,168,255,0.05)' },
+        { name: 'London · studio', photo: 'Photo — London', flag: "Doesn't add up", flagBg: 'rgba(255,111,111,0.14)', flagFg: '#FF9A9A', headBg: 'transparent' }
+      ],
+      rows: [
+        row('Save before you go', 'Your number', [v('R334,319', '£15,336'), v('R368,997', '£16,926'), v('R452,649', '£20,764')], true),
+        row('Paperwork and visa', 'Same everywhere', [v('£6,003'), v('£6,003'), v('£6,003')]),
+        row('Getting there', 'Flight, let, deposit, basics', [v('£3,931'), v('£4,362'), v('£6,081')]),
+        row('Runway, 4 months', 'Living costs while job hunting', [v('£5,402'), v('£6,562'), v('£8,680')]),
+        row('Take-home a month', 'After tax and NI', [v('£1,973'), v('£1,973'), v('£2,273')]),
+        row('Outgoings a month', 'Rent, bills, food, transport', [v('£1,563'), v('£1,903'), v('£2,545')]),
+        row('Left each month', 'Once you’re paid', [v('£410', '', '#5FD68A'), v('£70', '', '#FFC145'), v('−£272', '', '#FF9A9A')], true),
+        row('Ready at your pace', 'R5,500 a month from R74,000', [v('Nov 2030'), v('May 2031'), v('Aug 2032')]),
+        row('Your quotes added', 'Costs you’ve priced yourself', [v('2 of 13'), v('5 of 13'), v('0 of 13')])
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

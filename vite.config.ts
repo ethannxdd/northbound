@@ -13,8 +13,8 @@ export default defineConfig({
         name: 'Northbound',
         short_name: 'Northbound',
         description: 'Plan your move from Cape Town to the UK.',
-        theme_color: '#0f141a',
-        background_color: '#0f141a',
+        theme_color: '#05070B',
+        background_color: '#05070B',
         display: 'standalone',
         start_url: '/',
         icons: [

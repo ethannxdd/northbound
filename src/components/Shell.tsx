@@ -2,17 +2,9 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { CITIES, photoUrl } from '@shared/cities'
 import { useActions, useApp } from '../lib/app'
-import { zar } from '../lib/format'
+import { plural, zar } from '../lib/format'
 import { Sheet, useWide } from '../lib/ui'
 import Icon from './Icon'
-
-const TABS = [
-  { to: '/', label: 'Trip', icon: 'home' },
-  { to: '/map', label: 'Map', icon: 'map' },
-  { to: '/money', label: 'Money', icon: 'money' },
-  { to: '/progress', label: 'Progress', icon: 'progress' },
-  { to: '/profile', label: 'Profile', icon: 'account' },
-]
 
 const TOP_NAV = [
   { to: '/', label: 'Trip' },
@@ -36,10 +28,19 @@ const TITLES: Record<string, string> = {
   '/profile': 'Profile',
 }
 
+/** The up-arrow mark on its accent tile. */
+export function BrandMark({ size = 34 }: { size?: number }) {
+  return (
+    <span className="brand-tile" style={{ width: size, height: size }} aria-hidden="true">
+      <svg width={size * 0.53} height={size * 0.53} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 20V4M6 10l6-6 6 6" />
+      </svg>
+    </span>
+  )
+}
+
 export default function Shell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
-  const [scrolled, setScrolled] = useState(false)
-  const overPhoto = pathname === '/'
 
   useEffect(() => {
     const base = TITLES[pathname] ?? (pathname.startsWith('/settings') ? 'Settings' : pathname.startsWith('/scenario') ? 'Scenario' : '')
@@ -47,55 +48,56 @@ export default function Shell({ children }: { children: ReactNode }) {
     window.scrollTo(0, 0)
   }, [pathname])
 
-  useEffect(() => {
-    if (!overPhoto) return
-    const on = () => setScrolled(window.scrollY > 280)
-    on()
-    window.addEventListener('scroll', on, { passive: true })
-    return () => window.removeEventListener('scroll', on)
-  }, [overPhoto])
-
-  const inProfile = /^\/(profile|settings|paperwork|settlement|life|compare|scenario)/.test(pathname)
-
   return (
     <div className="shell">
-      <header className={`topnav${overPhoto ? ' over' : ''}${scrolled ? ' scrolled' : ''}`}>
-        <Link to="/" className="brand brand-mark" aria-label="Northbound, your trip">
-          <img src="/icon.svg" width="30" height="30" alt="" />
-          northbound
-        </Link>
-        <nav aria-label="Main">
-          {TOP_NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
-              {n.label}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="right">
-          <ScenarioSwitcher />
-          <AccountButton />
+      <header className="topbar">
+        <div className="topbar-in">
+          <Link to="/" className="brand brand-mark" aria-label="Northbound, your trip">
+            <BrandMark />
+            northbound
+          </Link>
+          <nav aria-label="Main" className="pills">
+            {TOP_NAV.map((n) => (
+              <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
+                {n.label}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="topbar-right">
+            <RateChip />
+            <AccountButton />
+          </div>
         </div>
       </header>
-      <main className="page">{children}</main>
-      <nav className="tabbar" aria-label="Main">
-        {TABS.map((n) => (
-          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => (isActive || (n.to === '/profile' && inProfile) ? 'active' : '')}>
-            <Icon name={n.icon} size={22} />
-            <span>{n.label}</span>
-          </NavLink>
-        ))}
-      </nav>
+      <main className="page">
+        <div key={pathname} className="rise">
+          {children}
+        </div>
+      </main>
     </div>
+  )
+}
+
+/** Today's rate, or the scenario's fixed one. Opens the scenario, where it's set. */
+function RateChip() {
+  const { input, active, liveRate } = useApp()
+  const live = input.rateMode === 'live' && !!liveRate
+  return (
+    <Link to={`/scenario/${active._id}`} className="rate-chip" aria-label={`Exchange rate: 1 pound is ${input.rate.toFixed(2)} rand, ${live ? 'live' : 'fixed'}. Change it in the scenario`}>
+      <span>£1 =</span> R{input.rate.toFixed(2)} · {live ? 'live' : 'fixed'}
+    </Link>
   )
 }
 
 function AccountButton() {
   const { account } = useApp()
-  const initial = (account.email ?? account.lootEmail ?? '?').slice(0, 1).toUpperCase()
+  const email = account.email ?? account.lootEmail ?? ''
+  const name = email.split('@')[0] ?? ''
+  const parts = name.split(/[._-]+/).filter(Boolean)
+  const initials = (parts.length > 1 ? parts[0][0] + parts[1][0] : name.slice(0, 2) || '?').toUpperCase()
   return (
-    <Link to="/profile" className="acct-btn" aria-label="Your profile">
-      <Icon name="menu" size={18} />
-      <span className="avatar sm">{initial}</span>
+    <Link to="/profile" className="avatar" aria-label="Your profile and settings">
+      {initials}
     </Link>
   )
 }
@@ -130,7 +132,7 @@ export function LootCard() {
 }
 
 /** The main scenario, with a menu to switch, edit or add one. */
-export function ScenarioSwitcher() {
+export function ScenarioSwitcher({ align = 'left' }: { align?: 'left' | 'right' }) {
   const { scenarios, active, planFor } = useApp()
   const { setActive } = useActions()
   const wide = useWide()
@@ -192,11 +194,12 @@ export function ScenarioSwitcher() {
   )
 
   return (
-    <div className="switcher" ref={ref}>
+    <div className={`switcher${align === 'right' ? ' right' : ''}`} ref={ref}>
       <button type="button" className="switch-btn" onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="dialog" aria-label={`Main scenario: ${active.name}. Change or edit`}>
-        <span className="star" aria-hidden="true">★</span>
         <span className="sw-name">{active.name}</span>
-        <Icon name="down" size={16} />
+        <span className="sw-count">
+          {plural(scenarios.length, 'scenario')} <span aria-hidden="true">▾</span>
+        </span>
       </button>
       {wide ? (
         open && (
@@ -219,11 +222,7 @@ export function PageHead({ title, sub, children }: { title: ReactNode; sub?: Rea
   return (
     <header className="pagehead">
       <div className="topline">
-        <Link to="/" className="brand brand-mark">
-          <img src="/icon.svg" width="24" height="24" alt="" />
-          northbound
-        </Link>
-        <ScenarioSwitcher />
+        <ScenarioSwitcher align="right" />
       </div>
       <h1 className="h1">{title}</h1>
       {sub && <p>{sub}</p>}
