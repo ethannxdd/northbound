@@ -41,12 +41,19 @@ export function BrandMark({ size = 34 }: { size?: number }) {
 
 export default function Shell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
+  const section = pathname.split('/')[1]
+  const nav = useRef<HTMLElement>(null)
 
   useEffect(() => {
-    const base = TITLES[pathname] ?? (pathname.startsWith('/settings') ? 'Settings' : pathname.startsWith('/scenario') ? 'Scenario' : '')
+    const base = TITLES[pathname] ?? (pathname.startsWith('/settings') ? 'Settings' : pathname.startsWith('/scenario') ? 'Scenario' : pathname.startsWith('/money') ? 'Money' : '')
     document.title = base ? `${base} · Northbound` : 'Northbound'
-    window.scrollTo(0, 0)
   }, [pathname])
+
+  // New screen: back to the top, and on a phone bring its tab into view. Sheets on the same screen (/money/quote) don't count.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    nav.current?.querySelector('.active')?.scrollIntoView({ inline: 'center', block: 'nearest' })
+  }, [section])
 
   return (
     <div className="shell">
@@ -56,7 +63,7 @@ export default function Shell({ children }: { children: ReactNode }) {
             <BrandMark />
             northbound
           </Link>
-          <nav aria-label="Main" className="pills">
+          <nav aria-label="Main" className="pills" ref={nav}>
             {TOP_NAV.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
                 {n.label}

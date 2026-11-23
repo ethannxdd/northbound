@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from 'react'
 import { prefersReducedMotion, rubberBand, spring, useAnimatedNumber } from './motion'
+import { createPortal } from 'react-dom'
 
 /** Removes the "pre" class after first paint, which plays each screen's one opening animation. */
 export function useOpening(dep?: unknown) {
@@ -262,7 +263,8 @@ export function Sheet({ open, onClose, children, label }: { open: boolean; onClo
   }
 
   if (!mounted) return null
-  return (
+  // Rendered on <body>: a transformed ancestor (the screen's opening animation) would otherwise trap position: fixed.
+  return createPortal(
     <>
       <div ref={scrim} className="scrim" onClick={onClose} />
       <div
@@ -286,7 +288,7 @@ export function Sheet({ open, onClose, children, label }: { open: boolean; onClo
         {children}
       </div>
     </>
-  )
+  , document.body)
 }
 
 /** The big number, gliding between values. */

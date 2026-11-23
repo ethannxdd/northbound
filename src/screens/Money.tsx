@@ -170,10 +170,9 @@ export default function Money() {
                           </th>
                           <td>
                             {l.baselineGbp !== null ? (
-                              <button type="button" className="fig base" aria-expanded={openWhy === l.key} aria-controls={`why-${l.key}`} onClick={() => setOpenWhy(openWhy === l.key ? null : l.key)}>
+                              <button type="button" className="fig base" aria-expanded={openWhy === l.key} aria-controls={`why-${l.key}`} aria-label={`Baseline ${gbp(l.baselineGbp)} for ${l.label}. How it is worked out`} onClick={() => setOpenWhy(openWhy === l.key ? null : l.key)}>
                                 <b>{money(l.baselineGbp)}</b>
                                 {second(l.baselineGbp) && <small>{second(l.baselineGbp)}</small>}
-                                <span className="sr-only">, how it's worked out</span>
                               </button>
                             ) : (
                               <span className="faint small">No baseline</span>
