@@ -1,6 +1,7 @@
 import { v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { requireKey } from './lib/user'
+import { packForScenario } from './plans'
 
 function newToken(): string {
   const bytes = new Uint8Array(18)
@@ -85,6 +86,8 @@ export const view = query({
       customs,
       // Only the total borrowed, so the dates match the owner's view. No loan terms.
       borrowedZar: (profile.loanZar ?? 0) + (profile.cardZar ?? 0),
+      // The imported plan a scenario uses, so the share page can run it.
+      pack: await packForScenario(ctx, share.userId, scenario),
       liveRate: (await ctx.db.query('fxRates').withIndex('by_date').order('desc').first())?.zarPerGbp ?? null,
     }
   },

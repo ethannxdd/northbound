@@ -1,11 +1,11 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { CITIES, HOUSING_LABEL, photoUrl } from '@shared/cities'
+import { CITIES, HOUSING_LABEL, cityPhoto } from '@shared/cities'
 import { monthYear } from '@shared/dates'
-import { monthlyBudget, planTotal, upfrontCosts } from '@shared/engine'
+import { cityOf, currencyOf, monthlyBudget, planTotal, upfrontCosts } from '@shared/engine'
 import type { ScenarioInput } from '@shared/types'
 import { toInput, useActions, useApp } from '../lib/app'
-import { gbp, zar } from '../lib/format'
+import { cur, zar } from '../lib/format'
 
 interface Option {
   id: string
@@ -15,10 +15,10 @@ interface Option {
 
 const MAX = 4
 
-/** Status from what's left each month once you're paid. */
-export function flagFor(left: number): { text: string; tone: 'ok' | 'warn' | 'danger' } {
-  if (left < 0) return { text: "Doesn't add up", tone: 'danger' }
-  if (left < 150) return { text: 'Very tight', tone: 'warn' }
+/** Status from what's left each month once you're paid, in rand so every country compares the same way. */
+export function flagFor(leftZar: number): { text: string; tone: 'ok' | 'warn' | 'danger' } {
+  if (leftZar < 0) return { text: "Doesn't add up", tone: 'danger' }
+  if (leftZar < 3500) return { text: 'Very tight', tone: 'warn' }
   return { text: 'Works', tone: 'ok' }
 }
 
@@ -31,6 +31,7 @@ export default function Compare() {
   const options = useMemo<Option[]>(() => {
     const own = scenarios.map((s) => ({ id: s._id as string, label: s.name, input: toInput(s) }))
     const base = toInput(active)
+    if (base.destinationId) return own
     const other = base.city === 'manchester' ? 'london' : 'manchester'
     own.push({ id: 'other-city', label: `${active.name}, but in ${CITIES[other].name}`, input: { ...base, city: other, name: active.name.replace(CITIES[base.city].name, CITIES[other].name) } })
     return own
@@ -48,7 +49,9 @@ export default function Compare() {
     const ex = extrasFor(o.id)
     const t = planTotal(upfrontCosts(input, p.landDate, overrides), ex.quotes, ex.customs, input.rate)
     const budget = monthlyBudget(input, p.landDate, overrides, ex.borrowing)
-    return { o, p, t, budget, flag: flagFor(budget.left), main: o.id === active._id }
+    const c = currencyOf(input)
+    const fmt = (n: number, roundTo = 1) => cur(n, c.symbol, roundTo)
+    return { o, p, t, budget, fmt, code: c.code, rate: input.rate, city: cityOf(input), flag: flagFor(budget.left * input.rate), main: o.id === active._id }
   })
 
   const first = stats[0]
@@ -56,11 +59,15 @@ export default function Compare() {
     const more = s.p.targetZar - first.p.targetZar
     const left = s.budget.left - first.budget.left
     const upfront = Math.abs(more) < 1000 ? 'needs about the same up front as' : `needs ${zar(Math.abs(more), 1000)} ${more > 0 ? 'more' : 'less'} up front than`
-    const month = Math.abs(left) < 10 ? 'leaves about the same each month' : `leaves ${gbp(Math.abs(left))} ${left > 0 ? 'more' : 'less'} each month`
+    // Same currency: say it in that currency. Different countries: say it in rand.
+    const same = s.code === first.code
+    const leftDiff = same ? left : s.budget.left * s.rate - first.budget.left * first.rate
+    const fmtDiff = same ? s.fmt : (n: number) => zar(n, 10)
+    const month = Math.abs(same ? left : leftDiff / 20) < 10 ? 'leaves about the same each month' : `leaves ${fmtDiff(Math.abs(leftDiff))} ${leftDiff > 0 ? 'more' : 'less'} each month`
     return (
       <span key={s.o.id}>
         <b>{s.o.label}</b> {upfront} {first.o.label}, and {month}
-        {s.budget.left < 0 ? `, which is ${gbp(-s.budget.left)} short` : ''}.{' '}
+        {s.budget.left < 0 ? `, which is ${s.fmt(-s.budget.left)} short` : ''}.{' '}
       </span>
     )
   })
@@ -126,7 +133,10 @@ export default function Compare() {
               <td />
               {stats.map((s, i) => (
                 <th key={s.o.id} scope="col" className={s.main ? 'main-col' : ''}>
-                  <img src={photoUrl(CITIES[s.o.input.city].photo, 500)} alt="" />
+                  {(() => {
+                    const ph = cityPhoto(s.city, 500)
+                    return ph ? <img src={ph} alt="" /> : <span className="ph-blank cmp-ph" aria-hidden="true" />
+                  })()}
                   <select
                     className="input sm"
                     aria-label={`Scenario in column ${i + 1}`}
@@ -140,7 +150,7 @@ export default function Compare() {
                     ))}
                   </select>
                   <span className="cmp-sub">
-                    {CITIES[s.o.input.city].name} · {HOUSING_LABEL[s.o.input.housing].toLowerCase()}
+                    {s.city.name} · {HOUSING_LABEL[s.o.input.housing].toLowerCase()}
                   </span>
                   <span className="cmp-flags">
                     <span className={`tag ${s.flag.tone}`}>{s.main ? `Main · ${s.flag.text.toLowerCase()}` : s.flag.text}</span>
@@ -155,13 +165,13 @@ export default function Compare() {
             </tr>
           </thead>
           <tbody>
-            {row('Save before you go', 'Your number', (s) => <Val main={zar(s.p.targetZar, 1000)} sub={gbp(s.p.targetGbp)} />, true)}
-            {row('Paperwork and visa', 'Fees, surcharge, certificates', (s) => <Val main={gbp(s.t.groups[0].planGbp)} />)}
-            {row('Getting there', 'Flight, let, deposit, basics', (s) => <Val main={gbp(s.t.groups[1].planGbp)} />)}
-            {row('Runway', 'Living costs while job hunting', (s) => <Val main={gbp(s.t.groups[2].planGbp)} sub={s.t.groups[2].label.replace('Runway, ', '')} />)}
-            {row('Take-home a month', 'After tax and NI', (s) => <Val main={gbp(s.budget.takeHome + s.budget.partnerTakeHome)} />)}
-            {row('Outgoings a month', 'Rent, bills, food, transport', (s) => <Val main={gbp(s.budget.outgoings)} />)}
-            {row('Left each month', "Once you're paid", (s) => <Val main={`${s.budget.left < 0 ? '−' : ''}${gbp(Math.abs(s.budget.left))}`} tone={s.flag.tone} />, true)}
+            {row('Save before you go', 'Your number', (s) => <Val main={zar(s.p.targetZar, 1000)} sub={s.fmt(s.p.targetGbp)} />, true)}
+            {row('Paperwork and visa', 'Fees, surcharge, certificates', (s) => <Val main={s.fmt(s.t.groups[0].planGbp)} />)}
+            {row('Getting there', 'Flight, let, deposit, basics', (s) => <Val main={s.fmt(s.t.groups[1].planGbp)} />)}
+            {row('Runway', 'Living costs while job hunting', (s) => <Val main={s.fmt(s.t.groups[2].planGbp)} sub={s.t.groups[2].label.replace('Runway, ', '')} />)}
+            {row('Take-home a month', 'After tax and social charges', (s) => <Val main={s.fmt(s.budget.takeHome + s.budget.partnerTakeHome)} />)}
+            {row('Outgoings a month', 'Rent, bills, food, transport', (s) => <Val main={s.fmt(s.budget.outgoings)} />)}
+            {row('Left each month', "Once you're paid", (s) => <Val main={s.fmt(s.budget.left)} sub={s.code !== 'ZAR' ? zar(s.budget.left * s.rate, 10) : undefined} tone={s.flag.tone} />, true)}
             {row('Ready at your pace', `${zar(savings.monthlyZar, 100)} a month`, (s) => <Val main={s.p.readyDate ? monthYear(s.p.readyDate) : 'Not yet'} sub={s.o.input.landMode === 'saved' ? `land ${monthYear(s.p.landDate)}` : `landing ${monthYear(s.p.landDate)}`} />)}
             {row('Your quotes added', "Costs you've priced yourself", (s) => <Val main={`${s.t.quotedCount} of ${s.t.itemCount}`} sub={s.t.customCount ? `+ ${s.t.customCount} of your own` : undefined} />)}
           </tbody>

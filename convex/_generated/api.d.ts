@@ -17,6 +17,7 @@ import type * as fx from "../fx.js";
 import type * as http from "../http.js";
 import type * as lib_loot from "../lib/loot.js";
 import type * as lib_user from "../lib/user.js";
+import type * as plans from "../plans.js";
 import type * as push from "../push.js";
 import type * as pushSend from "../pushSend.js";
 import type * as quotes from "../quotes.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/loot": typeof lib_loot;
   "lib/user": typeof lib_user;
+  plans: typeof plans;
   push: typeof push;
   pushSend: typeof pushSend;
   quotes: typeof quotes;

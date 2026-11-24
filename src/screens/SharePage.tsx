@@ -1,9 +1,9 @@
 import { useQuery } from 'convex/react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../../convex/_generated/api'
-import { CITIES, photoUrl } from '@shared/cities'
+import { cityPhoto } from '@shared/cities'
 import { monthYear, monthsBetween, todayIso } from '@shared/dates'
-import { plan as planOf, progress } from '@shared/engine'
+import { cityOf, plan as planOf, progress, routePlaces, visaName } from '@shared/engine'
 import { buildTimeline } from '@shared/timeline'
 import { DEFAULT_SCENARIO } from '@shared/types'
 import { tasksDoneByDocs, type DocStatus } from '@shared/documents'
@@ -31,12 +31,13 @@ export default function SharePage() {
     )
   }
   const today = todayIso()
-  const base = { ...DEFAULT_SCENARIO, ...data.input }
-  const input = base.rateMode === 'live' && data.liveRate ? { ...base, rate: Math.round(data.liveRate * 100) / 100 } : base
+  const base = { ...DEFAULT_SCENARIO, ...data.input, pack: data.pack ?? undefined }
+  const input = !base.pack && base.rateMode === 'live' && data.liveRate ? { ...base, rate: Math.round(data.liveRate * 100) / 100 } : base
   const p = planOf(input, { savedZar: data.savedZar, monthlyZar: data.monthlyZar }, today, undefined, { quotes: data.quotes, customs: data.customs, borrowing: { loanZar: data.borrowedZar } })
-  const prog = progress(data.savedZar, p.saveTargetZar)
+  const prog = progress(data.savedZar, p.saveTargetZar, routePlaces(input))
   const done = new Set([...data.done, ...tasksDoneByDocs(data.docStatuses as Record<string, DocStatus>)])
-  const city = CITIES[input.city]
+  const city = cityOf(input)
+  const photo = cityPhoto(city, 1600)
   const timeline = buildTimeline(input, p.landDate, today)
   const tasks = timeline.filter((t) => !done.has(t.key) && t.key !== 'saving').slice(0, 5)
   const stepsDone = timeline.filter((t) => done.has(t.key)).length
@@ -56,11 +57,11 @@ export default function SharePage() {
         <div className="main rise" style={{ maxWidth: 880 }}>
           <section aria-label="The plan" className="hero-card share-hero">
             <div className="photo-slot">
-              <img src={photoUrl(city.photo, 1600)} alt={`${city.name} from above`} />
+              {photo && <img src={photo} alt={`${city.name} from above`} />}
             </div>
             <div className="chips">
               <span className="glass-chip">Cape Town to {city.name}</span>
-              <span className="glass-chip sub">UK Ancestry visa</span>
+              <span className="glass-chip sub">{visaName(input)}</span>
             </div>
             <div className="hero-panel glass">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

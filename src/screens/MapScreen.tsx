@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CITIES } from '@shared/cities'
+import { cityOf } from '@shared/engine'
 import RemindersControls from '../components/Reminders'
 import TransitMap, { StopDetail, useTimeline } from '../components/TransitMap'
 import { useApp } from '../lib/app'
@@ -13,7 +13,7 @@ export default function MapScreen() {
   const finished = tasks.filter((t) => done.has(t.key)).length
   const next = tasks.find((t) => !done.has(t.key) && !(t.key === 'saving' && savings.monthlyZar > 0))
   const shown = tasks.find((t) => t.key === (selected ?? next?.key)) ?? tasks[0]
-  const city = CITIES[input.city].name
+  const city = cityOf(input).name
 
   return (
     <div className="main map-layout">

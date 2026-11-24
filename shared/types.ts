@@ -1,4 +1,5 @@
 import type { CityId, Housing } from './cities'
+import type { DestinationPack } from './pack'
 
 export type LandMode = 'date' | 'saved'
 
@@ -31,6 +32,12 @@ export interface ScenarioInput {
   rateMode?: 'live' | 'fixed'
   /** Neighbourhood id within the city; missing means the city average */
   area?: string
+  /** An imported plan's destination (its Convex id). Missing means the built-in UK Ancestry route. */
+  destinationId?: string
+  /** City id within that plan. `city` is then unused. */
+  destCity?: string
+  /** The plan itself, attached at runtime by the app. Never saved on the scenario. */
+  pack?: DestinationPack
 }
 
 /** Where your savings are now and how fast they grow, in rand. */

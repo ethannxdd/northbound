@@ -22,7 +22,7 @@ export default function QuoteSheet({ open, itemKey, onClose }: { open: boolean; 
 }
 
 function QuoteForm({ initial, onClose }: { initial?: string; onClose: () => void }) {
-  const { totals, quotes, input, today, active } = useApp()
+  const { totals, quotes, input, today, active, cur } = useApp()
   const { addQuote, removeQuote, removeCustom } = useActions()
   const lines = useMemo(() => totals.groups.flatMap((g) => g.lines.map((l) => ({ ...l, group: g.id }))), [totals])
   const startKey = initial === 'new' ? NEW : initial && lines.some((l) => l.key === initial) ? initial : (lines.find((l) => l.mineGbp === null && !l.custom)?.key ?? lines[0]?.key ?? NEW)
@@ -121,7 +121,7 @@ function QuoteForm({ initial, onClose }: { initial?: string; onClose: () => void
           <label htmlFor="q-amt">Amount I found</label>
           <div className="seg mini" role="group" aria-label="Currency">
             <button type="button" aria-pressed={currency === 'GBP'} onClick={() => setCurrency('GBP')}>
-              £ GBP
+              {cur.symbol} {cur.code}
             </button>
             <button type="button" aria-pressed={currency === 'ZAR'} onClick={() => setCurrency('ZAR')}>
               R ZAR
@@ -129,11 +129,11 @@ function QuoteForm({ initial, onClose }: { initial?: string; onClose: () => void
           </div>
         </div>
         <div className="amount-in">
-          <span aria-hidden="true">{currency === 'GBP' ? '£' : 'R'}</span>
+          <span aria-hidden="true">{currency === 'GBP' ? cur.symbol : 'R'}</span>
           <input id="q-amt" type="text" inputMode="decimal" autoComplete="off" value={amountText} onChange={(e) => setAmountText(e.target.value)} placeholder="0" />
         </div>
         <span className="muted small" aria-live="polite">
-          {hasAmount ? (currency === 'GBP' ? `≈ ${zar(amount * input.rate)}` : `≈ ${gbp(amount / input.rate)}`) : 'Type the price you found'} at £1 = R{input.rate.toFixed(2)}
+          {hasAmount ? (currency === 'GBP' ? `≈ ${zar(amount * input.rate)}` : `≈ ${gbp(amount / input.rate)}`) : 'Type the price you found'} at {cur.symbol}1 = R{input.rate.toFixed(2)}
         </span>
         <div className="amount-cmp">
           {line && line.baselineGbp !== null ? (

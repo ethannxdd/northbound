@@ -6,9 +6,12 @@ import type { Task } from '@shared/timeline'
 import { shortTitle, useTimeline } from '../components/TransitMap'
 import { useActions, useApp } from '../lib/app'
 import { gbp, plural, zar } from '../lib/format'
-import { CITIES } from '@shared/cities'
+import { cityOf } from '@shared/engine'
 
 type Filter = 'all' | 'todo' | 'ordered' | 'hand'
+
+/** A document to track: the UK list, or an imported plan's, with its own cost and lead time. */
+type DocItem = DocDef & { cost?: string; takes?: string; url?: string }
 
 /** Paperwork tracker: every document for the Ancestry visa, from ordering to checked. */
 export default function Paperwork() {
@@ -16,15 +19,30 @@ export default function Paperwork() {
   const tasks = useTimeline()
   const [filter, setFilter] = useState<Filter>('all')
   const statusOf = (d: DocDef) => (docs[d.key]?.status ?? 'todo') as DocStatus
-  const required = DOCUMENTS.filter((d) => !d.optional)
+  const pack = input.pack
+  const list: DocItem[] = pack
+    ? pack.documents.map((d) => ({
+        key: `${pack.id}:${d.key}`,
+        name: d.name,
+        from: d.from,
+        check: d.check,
+        optional: d.optional,
+        url: d.url,
+        takes: d.takes,
+        cost: d.cost ? (d.costCurrency === 'ZAR' ? zar(d.cost) : gbp(d.cost)) : undefined,
+      }))
+    : DOCUMENTS
+  const required = list.filter((d) => !d.optional)
   const inHand = required.filter((d) => atLeast(statusOf(d), 'arrived')).length
   const line = (k: string) => totals.groups.flatMap((g) => g.lines).find((l) => l.key === k)?.planGbp ?? 0
-  const totalGbp = line('saCerts') + line('groCert') + line('tbTest') + rule('groCertificate', plan.landDate, overrides)
+  const totalGbp = pack
+    ? totals.groups[0].lines.filter((l) => l.key.startsWith('doc-')).reduce((a, l) => a + l.planGbp, 0)
+    : line('saCerts') + line('groCert') + line('tbTest') + rule('groCertificate', plan.landDate, overrides)
   const counts = {
-    all: DOCUMENTS.length,
-    todo: DOCUMENTS.filter((d) => statusOf(d) === 'todo').length,
-    ordered: DOCUMENTS.filter((d) => statusOf(d) === 'ordered').length,
-    hand: DOCUMENTS.filter((d) => atLeast(statusOf(d), 'arrived')).length,
+    all: list.length,
+    todo: list.filter((d) => statusOf(d) === 'todo').length,
+    ordered: list.filter((d) => statusOf(d) === 'ordered').length,
+    hand: list.filter((d) => atLeast(statusOf(d), 'arrived')).length,
   }
   const keep = (d: DocDef) => {
     const s = statusOf(d)
@@ -47,9 +65,9 @@ export default function Paperwork() {
             <small>{gbp(totalGbp)}</small>
           </div>
           <div>
-            <span>Slowest item</span>
+            <span>{pack ? 'Paperwork time' : 'Slowest item'}</span>
             <b>{plural(input.certLeadMonths, 'month')}</b>
-            <small>Unabridged certificates</small>
+            <small>{pack ? 'Before you can apply' : 'Unabridged certificates'}</small>
           </div>
         </div>
       </div>
@@ -70,15 +88,15 @@ export default function Paperwork() {
       </div>
 
       <div className="doc-grid">
-        {DOCUMENTS.filter(keep).map((d) => (
-          <DocCard key={d.key} d={d} task={tasks.find((t) => t.key === d.task?.key)} city={CITIES[input.city].name} />
+        {list.filter(keep).map((d) => (
+          <DocCard key={d.key} d={d} task={tasks.find((t) => t.key === d.task?.key)} city={cityOf(input).name} />
         ))}
       </div>
     </div>
   )
 }
 
-function DocCard({ d, task, city }: { d: DocDef; task?: Task; city: string }) {
+function DocCard({ d, task, city }: { d: DocItem; task?: Task; city: string }) {
   const { docs, today } = useApp()
   const { setDoc } = useActions()
   const row = docs[d.key]
@@ -111,11 +129,11 @@ function DocCard({ d, task, city }: { d: DocDef; task?: Task; city: string }) {
       <div className="facts3" style={{ margin: 0 }}>
         <div>
           <small>Cost</small>
-          <b>{task?.cost ?? 'Free'}</b>
+          <b>{d.cost ?? task?.cost ?? 'Free'}</b>
         </div>
         <div>
           <small>Takes</small>
-          <b>{task?.takes ?? 'Varies'}</b>
+          <b>{d.takes ?? task?.takes ?? 'Varies'}</b>
         </div>
         <div>
           <small>Map stop</small>

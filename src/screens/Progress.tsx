@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
-import { CITIES } from '@shared/cities'
 import { dayMonthYear, monthYear, monthsBetween } from '@shared/dates'
-import { progress } from '@shared/engine'
+import { cityOf, progress, routePlaces } from '@shared/engine'
 import { LootCard } from '../components/Shell'
 import SavingPlan from '../components/SavingPlan'
 import FundingCard from '../components/FundingCard'
@@ -26,8 +25,9 @@ type Kind = 'end' | 'you' | 'passed' | 'ahead'
 
 export default function Progress() {
   const { input, plan, savings, goal, deposits, goalUpdatedAt, savingsSource, today, goalMissing, profile, active } = useApp()
-  const city = CITIES[input.city].name
-  const prog = progress(savings.savedZar, plan.saveTargetZar)
+  const city = cityOf(input).name
+  const places = routePlaces(input)
+  const prog = progress(savings.savedZar, plan.saveTargetZar, places)
   const dateMode = input.landMode === 'date'
   const needed = Math.ceil(plan.neededPerMonthZar / 100) * 100
   const monthsLeft = Math.max(0, monthsBetween(today, plan.fundsDeadline))
@@ -36,7 +36,9 @@ export default function Progress() {
 
   // The route, top (city) to bottom (Cape Town), with you placed by how much you've saved.
   const stops: { name: string; sub: string; kind: Kind; at: number }[] = [{ name: city, sub: `100% · ${zar(plan.saveTargetZar, 1000)}`, kind: prog.pct >= 1 ? 'you' : 'end', at: 1 }]
-  for (const w of WAYPOINTS) {
+  // The UK route has its own named stops; an imported plan names its own places along the flight.
+  const waypoints = input.pack ? places.filter((x) => x.at > 0 && x.at < 1).map((x) => ({ at: x.at, name: x.over.replace(/^over /, 'Over ') })) : WAYPOINTS
+  for (const w of waypoints) {
     if (Math.abs(w.at - prog.pct) < 0.04) continue
     stops.push({ name: w.name, sub: `${pct(w.at)} · ${zar(plan.saveTargetZar * w.at, 1000)}`, kind: prog.pct >= w.at ? 'passed' : 'ahead', at: w.at })
   }

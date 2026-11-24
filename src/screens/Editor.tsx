@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { AREAS, CITIES, rentFor } from '@shared/cities'
+import { CITIES } from '@shared/cities'
 import { addMonths, longMonthYear, monthYear, todayIso } from '@shared/dates'
-import { monthlyBudget, partnerCanCome, plan as planOf, planTotal, upfrontCosts, type GroupId } from '@shared/engine'
+import { cityOf, currencyOf, monthlyBudget, partnerCanCome, rentOf, plan as planOf, planTotal, upfrontCosts, type GroupId } from '@shared/engine'
 import type { ScenarioInput } from '@shared/types'
 import { toInput, useActions, useApp, type Id } from '../lib/app'
-import { gbp, zar } from '../lib/format'
+import { cur as fmtCur, zar } from '../lib/format'
 import { AnimatedMoney, MoneyInput, Seg, Toggle, useWide } from '../lib/ui'
 import LoansFields from '../components/LoansFields'
 
@@ -44,7 +44,11 @@ export default function Editor() {
   const vsSaved = saved ? p.targetZar - saved.targetZar : 0
   const perMonth = draft.landMode === 'date' && p.remainingZar > 0 && p.fundsDeadline > today ? Math.ceil(p.neededPerMonthZar / 100) * 100 : savings.monthlyZar
   const weak = weaker ? planOf({ ...eff, rate: eff.rate * (1 + weaker / 100) }, savings, today, overrides, ex) : null
-  const typical = CITIES[draft.city].itSupportSalary
+  const pack = eff.pack
+  const dcur = currencyOf(eff)
+  const gbp = (n: number, roundTo = 1) => fmtCur(n, dcur.symbol, roundTo)
+  const city = cityOf(eff)
+  const typical = city.salary
 
   async function save() {
     if (!draft.name.trim()) return setError('Give this scenario a name.')
@@ -127,7 +131,11 @@ export default function Editor() {
 
           <Section title="Where and who">
             <SegRow label="City">
-              <Seg label="City" value={draft.city} onChange={(v) => setDraft((d) => ({ ...d, city: v, area: undefined }))} options={Object.values(CITIES).map((c) => ({ value: c.id, label: c.name }))} />
+              {pack ? (
+                <Seg label="City" value={city.id} onChange={(v) => setDraft((d) => ({ ...d, destCity: v, area: undefined }))} options={pack.cities.map((c) => ({ value: c.id, label: c.name }))} />
+              ) : (
+                <Seg label="City" value={draft.city} onChange={(v) => setDraft((d) => ({ ...d, city: v, area: undefined }))} options={Object.values(CITIES).map((c) => ({ value: c.id, label: c.name }))} />
+              )}
             </SegRow>
             <SegRow label="Home">
               <Seg label="Home" value={draft.housing} onChange={(v) => set('housing', v)} options={[{ value: 'room', label: 'Room' }, { value: 'studio', label: 'Studio' }, { value: 'onebed', label: '1-bed' }]} />
@@ -151,13 +159,13 @@ export default function Editor() {
                   {partnerOk ? 'They can come with you.' : `Unmarried partners need 2 years together by ${longMonthYear(applyDate)}, when you apply. Otherwise they join later.`}
                 </p>
                 <div className="toggle-row">
-                  <span>They'll work in the UK</span>
+                  <span>They'll work in {pack ? pack.country.name : 'the UK'}</span>
                   <Toggle on={draft.partnerWorks} onChange={(v) => set('partnerWorks', v)} label="Partner will work" />
                 </div>
                 {draft.partnerWorks && (
                   <div className="field" style={{ margin: 0 }}>
                     <label htmlFor="psal">Their expected salary</label>
-                    <MoneyInput id="psal" prefix="£" value={draft.partnerSalary} onChange={(n) => set('partnerSalary', n)} />
+                    <MoneyInput id="psal" prefix={dcur.symbol} value={draft.partnerSalary} onChange={(n) => set('partnerSalary', n)} />
                   </div>
                 )}
               </div>
@@ -165,10 +173,10 @@ export default function Editor() {
             <div className="field" style={{ margin: 0 }}>
               <label htmlFor="area">Neighbourhood</label>
               <select id="area" className="input" value={draft.area ?? ''} onChange={(e) => set('area', e.target.value || undefined)}>
-                <option value="">City average, {gbp(rentFor(draft.city, draft.housing))}</option>
-                {AREAS[draft.city].map((a) => (
+                <option value="">City average, {gbp(rentOf(eff, undefined))}</option>
+                {city.areas.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.name}, {gbp(rentFor(draft.city, draft.housing, a.id))}
+                    {a.name}, {gbp(rentOf(eff, a.id))}
                   </option>
                 ))}
               </select>
@@ -179,20 +187,36 @@ export default function Editor() {
             <Slider id="hunt" label="Time to find work" value={draft.jobHuntMonths} min={0} max={9} step={1} show={(v) => (v === 0 ? 'Job lined up' : `${v} month${v === 1 ? '' : 's'}`)} hint="Living costs for these months are in your runway" onChange={(v) => set('jobHuntMonths', v)} />
             <Slider
               id="salary"
-              label="Your UK salary"
+              label={pack ? `Your salary in ${pack.country.name}` : 'Your UK salary'}
               value={draft.ukSalary || typical}
-              min={18000}
-              max={70000}
-              step={500}
+              min={Math.round((typical * 0.5) / 1000) * 1000}
+              max={Math.round((typical * 2.5) / 1000) * 1000}
+              step={typical >= 20000 ? 500 : Math.max(1, Math.round(typical / 100))}
               show={(v) => (draft.ukSalary ? gbp(v) : `${gbp(v)}, typical`)}
-              hint={`A typical IT support salary in ${CITIES[draft.city].name} is ${gbp(typical)}`}
+              hint={pack ? `A typical salary for your job in ${city.name} is ${gbp(typical)}, from your plan` : `A typical IT support salary in ${city.name} is ${gbp(typical)}`}
               onChange={(v) => set('ukSalary', v === typical ? 0 : v)}
             />
-            <div className="field">
-              <span className="lbl">Rand to the pound</span>
-              <Seg label="Exchange rate" value={draft.rateMode === 'live' ? 'live' : 'fixed'} onChange={(v) => set('rateMode', v)} options={[{ value: 'live', label: liveRate ? `Live, R${liveRate.toFixed(2)}` : 'Live rate' }, { value: 'fixed', label: 'Set my own' }]} />
-            </div>
-            {draft.rateMode !== 'live' && <Slider id="rate" label="Your rate" value={draft.rate} min={15} max={35} step={0.1} show={(v) => `R${v.toFixed(2)}`} onChange={(v) => set('rate', v)} />}
+            {pack ? (
+              <Slider
+                id="rate"
+                label={`Rand to the ${dcur.name}`}
+                value={draft.rate}
+                min={Math.round(pack.currency.zarPerUnit * 50) / 100}
+                max={Math.round(pack.currency.zarPerUnit * 160) / 100}
+                step={pack.currency.zarPerUnit >= 5 ? 0.1 : 0.01}
+                show={(v) => `R${v.toFixed(2)}`}
+                hint={`Your plan used R${pack.currency.zarPerUnit.toFixed(2)}${pack.currency.rateDate ? ` on ${pack.currency.rateDate}` : ''}. Live rates are only followed for the pound.`}
+                onChange={(v) => set('rate', v)}
+              />
+            ) : (
+              <>
+                <div className="field">
+                  <span className="lbl">Rand to the pound</span>
+                  <Seg label="Exchange rate" value={draft.rateMode === 'live' ? 'live' : 'fixed'} onChange={(v) => set('rateMode', v)} options={[{ value: 'live', label: liveRate ? `Live, R${liveRate.toFixed(2)}` : 'Live rate' }, { value: 'fixed', label: 'Set my own' }]} />
+                </div>
+                {draft.rateMode !== 'live' && <Slider id="rate" label="Your rate" value={draft.rate} min={15} max={35} step={0.1} show={(v) => `R${v.toFixed(2)}`} onChange={(v) => set('rate', v)} />}
+              </>
+            )}
             <Slider
               id="weaker"
               label="If the rand weakens"
@@ -204,9 +228,9 @@ export default function Editor() {
               hint={weak ? `You'd need ${zar(weak.targetZar, 1000)}, ${zar(weak.targetZar - p.targetZar, 1000)} more. Only a what-if: not saved.` : 'A what-if: see how a weaker rand changes your number'}
               onChange={setWeaker}
             />
-            <Slider id="certs" label="Wait for SA certificates" value={draft.certLeadMonths} min={2} max={18} step={1} show={(v) => `${v} months`} hint="Home Affairs is often slower than it says" onChange={(v) => set('certLeadMonths', v)} />
+            <Slider id="certs" label={pack ? 'Paperwork before you can apply' : 'Wait for SA certificates'} value={draft.certLeadMonths} min={pack ? 0 : 2} max={18} step={1} show={(v) => `${v} months`} hint={pack ? 'Time to gather the documents on your Paperwork list' : 'Home Affairs is often slower than it says'} onChange={(v) => set('certLeadMonths', v)} />
             <Slider id="nights" label="Monthly let before you find a place" value={draft.tempNights} min={0} max={45} step={1} show={(v) => `${v} nights`} onChange={(v) => set('tempNights', v)} />
-            <Slider id="flight" label="Flight, per person" value={draft.flightGbp} min={250} max={1500} step={10} show={(v) => gbp(v)} onChange={(v) => set('flightGbp', v)} />
+            <Slider id="flight" label="Flight, per person" value={draft.flightGbp} min={pack ? Math.round(pack.move.flightPerPerson * 0.4) : 250} max={pack ? Math.round(pack.move.flightPerPerson * 2.5) : 1500} step={10} show={(v) => gbp(v)} onChange={(v) => set('flightGbp', v)} />
             <Slider id="buffer" label="Extra safety buffer" value={draft.bufferGbp} min={0} max={5000} step={100} show={(v) => (v ? gbp(v) : 'None')} onChange={(v) => set('bufferGbp', v)} />
           </Section>
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { CITIES, photoUrl } from '@shared/cities'
+import { cityPhoto } from '@shared/cities'
+import { cityOf } from '@shared/engine'
 import { useActions, useApp } from '../lib/app'
 import { plural, zar } from '../lib/format'
 import { Sheet, useWide } from '../lib/ui'
@@ -24,7 +25,7 @@ const TITLES: Record<string, string> = {
   '/compare': 'Compare',
   '/progress': 'Progress',
   '/paperwork': 'Paperwork',
-  '/settlement': 'Settling in the UK',
+  '/settlement': 'Settling',
   '/profile': 'Profile',
 }
 
@@ -90,11 +91,11 @@ export default function Shell({ children }: { children: ReactNode }) {
 
 /** Today's rate, or the scenario's fixed one. Opens the scenario, where it's set. */
 function RateChip() {
-  const { input, active, liveRate } = useApp()
+  const { input, active, liveRate, cur } = useApp()
   const live = input.rateMode === 'live' && !!liveRate
   return (
     <Link to={`/scenario/${active._id}`} className="rate-chip" aria-label={`Exchange rate: 1 pound is ${input.rate.toFixed(2)} rand, ${live ? 'live' : 'fixed'}. Change it in the scenario`}>
-      <span>£1 =</span> R{input.rate.toFixed(2)} · {live ? 'live' : 'fixed'}
+      <span>{cur.symbol}1 =</span> R{input.rate.toFixed(2)} · {live ? 'live' : 'fixed'}
     </Link>
   )
 }
@@ -143,7 +144,7 @@ export function LootCard() {
 
 /** The main scenario, with a menu to switch, edit or add one. */
 export function ScenarioSwitcher({ align = 'left' }: { align?: 'left' | 'right' }) {
-  const { scenarios, active, planFor } = useApp()
+  const { scenarios, active, planFor, effective } = useApp()
   const { setActive } = useActions()
   const wide = useWide()
   const navigate = useNavigate()
@@ -180,7 +181,10 @@ export function ScenarioSwitcher({ align = 'left' }: { align?: 'left' | 'right' 
               setOpen(false)
             }}
           >
-            <img src={photoUrl(CITIES[s.city].photo, 120)} alt="" />
+            {(() => {
+              const ph = cityPhoto(cityOf(effective(s)), 120)
+              return ph ? <img src={ph} alt="" /> : <span className="ph-blank" aria-hidden="true" />
+            })()}
             <span>
               <b>
                 {s.name}

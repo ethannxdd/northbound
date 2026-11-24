@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CITIES, photoUrl } from '@shared/cities'
+import { cityPhoto } from '@shared/cities'
 import { dayMonthYear, monthYear, monthsBetween } from '@shared/dates'
-import { progress, runwayMonths } from '@shared/engine'
+import { cityOf, progress, routePlaces, runwayMonths, visaName } from '@shared/engine'
 import type { Line, Task } from '@shared/timeline'
 import { ScenarioSwitcher } from '../components/Shell'
 import { LINE_COLOR, StopSheet, shortTitle, useTimeline } from '../components/TransitMap'
@@ -18,8 +18,9 @@ export default function Trip() {
   const tasks = useTimeline()
   const wide = useWide()
   const [openKey, setOpenKey] = useState<string | null>(null)
-  const city = CITIES[input.city]
-  const prog = progress(savings.savedZar, plan.saveTargetZar)
+  const city = cityOf(input)
+  const photo = cityPhoto(city, wide ? 1800 : 1000)
+  const prog = progress(savings.savedZar, plan.saveTargetZar, routePlaces(input))
   const monthsToGo = Math.max(0, monthsBetween(today, plan.landDate))
   const upcoming = tasks.filter((t) => !done.has(t.key) && !(t.key === 'saving' && savings.monthlyZar > 0)).slice(0, 3)
   const open = tasks.find((t) => t.key === openKey) ?? null
@@ -43,16 +44,18 @@ export default function Trip() {
       <div className="trip-row">
         <section aria-label="Your number" className="hero-card span2">
           <div className="photo-slot">
-            <img src={photoUrl(city.photo, wide ? 1800 : 1000)} alt={`${city.name} from above`} />
+            {photo && <img src={photo} alt={`${city.name} from above`} />}
           </div>
           <div className="chips">
             <span className="glass-chip">
               {input.landMode === 'saved' ? 'Landing around' : 'Landing'} {monthYear(plan.landDate)}
             </span>
-            <span className="glass-chip sub">UK Ancestry visa</span>
-            <span className="glass-chip sub" style={{ marginLeft: 'auto', fontSize: 11 }}>
-              Photo: {city.photoCredit}
-            </span>
+            <span className="glass-chip sub">{visaName(input)}</span>
+            {photo && city.photoCredit && (
+              <span className="glass-chip sub" style={{ marginLeft: 'auto', fontSize: 11 }}>
+                Photo: {city.photoCredit}
+              </span>
+            )}
           </div>
           <div className="hero-panel glass">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

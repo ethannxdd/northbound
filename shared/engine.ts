@@ -1,4 +1,5 @@
-import { CITIES, rentFor, type CityProfile } from './cities'
+import { AREAS, CITIES, rentFor, type Area } from './cities'
+import { packTakeHome, type DestinationPack } from './pack'
 import { addMonths, maxDate, monthsBetween } from './dates'
 import { rule, type RuleKey, type RuleOverrides } from './rules'
 import type { SavingsState, ScenarioInput } from './types'
@@ -38,7 +39,77 @@ export function people(s: ScenarioInput): number {
 }
 
 export function salaryFor(s: ScenarioInput): number {
-  return s.ukSalary > 0 ? s.ukSalary : CITIES[s.city].itSupportSalary
+  return s.ukSalary > 0 ? s.ukSalary : cityOf(s).salary
+}
+
+// ---------- the destination: built-in UK, or an imported plan ----------
+
+/** What the screens need to know about the city you're moving to, wherever it is. */
+export interface CityView {
+  id: string
+  name: string
+  rent: Record<'room' | 'studio' | 'onebed', number>
+  bills: Record<'room' | 'studio' | 'onebed', number>
+  food: number
+  transport: number
+  phone: number
+  other: number
+  salary: number
+  tempNightly: number
+  daylight?: number[]
+  wetDays?: number
+  transportNote?: string
+  coffee?: number
+  photo?: string
+  photoCredit?: string
+  areas: Area[]
+}
+
+export function packCity(pack: DestinationPack, id: string | undefined) {
+  return pack.cities.find((c) => c.id === id) ?? pack.cities[0]
+}
+
+export function cityOf(s: ScenarioInput): CityView {
+  if (s.pack) {
+    const c = packCity(s.pack, s.destCity)
+    return { ...c, salary: c.typicalSalary, areas: c.areas ?? [] }
+  }
+  const c = CITIES[s.city]
+  return { ...c, salary: c.itSupportSalary, areas: AREAS[s.city] }
+}
+
+/** Rent for the scenario's housing, scaled to the neighbourhood if one is picked. */
+export function rentOf(s: ScenarioInput, area: string | undefined = s.area): number {
+  if (!s.pack) return rentFor(s.city, s.housing, area)
+  const c = cityOf(s)
+  const a = c.areas.find((x) => x.id === area)
+  if (!a) return c.rent[s.housing]
+  return Math.round((c.rent[s.housing] * a.room) / c.rent.room / 10) * 10
+}
+
+/** Take-home pay under the destination's tax rules. */
+export function takeHomeFor(s: ScenarioInput, gross: number, onDate: string, ov?: RuleOverrides): TakeHome {
+  return s.pack ? packTakeHome(gross, s.pack.tax) : takeHome(gross, onDate, ov)
+}
+
+/** How long before travel you can apply. */
+export function applyWindow(s: ScenarioInput, onDate: string, ov?: RuleOverrides): number {
+  return s.pack ? s.pack.visa.applyMonthsBefore : rule('applyWindowMonths', onDate, ov)
+}
+
+export function decisionWeeks(s: ScenarioInput, onDate: string, ov?: RuleOverrides): number {
+  return s.pack ? s.pack.visa.decisionWeeks : rule('decisionWeeks', onDate, ov)
+}
+
+/** The destination currency's symbol: £ for the UK route. */
+export function currencyOf(s: ScenarioInput): { code: string; symbol: string; name: string } {
+  if (!s.pack) return { code: 'GBP', symbol: '£', name: 'pound' }
+  const c = s.pack.currency
+  return { code: c.code, symbol: c.symbol, name: c.name ?? c.code }
+}
+
+export function visaName(s: ScenarioInput): string {
+  return s.pack ? s.pack.visa.name : 'UK Ancestry visa'
 }
 
 export interface LineItem {
@@ -125,13 +196,13 @@ export function repayments(b: Borrowing | undefined): Repayments {
  * The runway (what you save before going) never includes repayments.
  */
 export function monthlyBudget(s: ScenarioInput, onDate: string, ov?: RuleOverrides, borrowing?: Borrowing): MonthlyBudget {
-  const c = CITIES[s.city]
+  const c = cityOf(s)
   const p = people(s)
   const items: LineItem[] = [
-    { key: 'rent', label: s.housing === 'room' ? 'Rent, room in a share' : s.housing === 'studio' ? 'Rent, studio' : 'Rent, 1-bed flat', gbp: rentFor(s.city, s.housing, s.area) },
+    { key: 'rent', label: s.housing === 'room' ? 'Rent, room in a share' : s.housing === 'studio' ? 'Rent, studio' : 'Rent, 1-bed flat', gbp: rentOf(s) },
     { key: 'food', label: 'Food', gbp: c.food * p },
-    { key: 'bills', label: 'Bills and council tax', gbp: c.bills[s.housing] },
-    { key: 'transport', label: s.city === 'manchester' ? 'Bus and tram' : 'Tube and bus', gbp: c.transport * p },
+    { key: 'bills', label: s.pack ? 'Bills' : 'Bills and council tax', gbp: c.bills[s.housing] },
+    { key: 'transport', label: s.pack ? 'Getting around' : s.city === 'manchester' ? 'Bus and tram' : 'Tube and bus', gbp: c.transport * p },
     { key: 'phone', label: 'Phone', gbp: c.phone * p },
     { key: 'other', label: 'Everything else', gbp: c.other * p },
   ]
@@ -139,13 +210,13 @@ export function monthlyBudget(s: ScenarioInput, onDate: string, ov?: RuleOverrid
   if (rp.loanZar > 0) items.push({ key: 'loanRepay', label: 'Loan repayment', gbp: rp.loanZar / s.rate, basis: `${borrowing?.loanMonths ?? 60} months at ${borrowing?.loanRatePct ?? 0}%` })
   if (rp.cardZar > 0) items.push({ key: 'cardRepay', label: 'Card repayment', gbp: rp.cardZar / s.rate, basis: `Cleared over ${CARD_PAYOFF_MONTHS} months at ${borrowing?.cardRatePct ?? 0}%` })
   const outgoings = items.reduce((a, i) => a + i.gbp, 0)
-  const mine = takeHome(salaryFor(s), onDate, ov).monthly
-  const partner = s.partner && s.partnerWorks ? takeHome(s.partnerSalary, onDate, ov).monthly : 0
+  const mine = takeHomeFor(s, salaryFor(s), onDate, ov).monthly
+  const partner = s.partner && s.partnerWorks ? takeHomeFor(s, s.partnerSalary, onDate, ov).monthly : 0
   return { takeHome: mine, partnerTakeHome: partner, items, outgoings, left: mine + partner - outgoings }
 }
 
-function deposit(_c: CityProfile, s: ScenarioInput, onDate: string, ov?: RuleOverrides): number {
-  const weekly = (rentFor(s.city, s.housing, s.area) * 12) / 52
+function deposit(s: ScenarioInput, onDate: string, ov?: RuleOverrides): number {
+  const weekly = (rentOf(s) * 12) / 52
   return weekly * rule('depositWeeks', onDate, ov)
 }
 
@@ -156,6 +227,7 @@ export function runwayMonths(s: ScenarioInput): number {
 
 /** Everything you need saved before you go, grouped like the map's three lines. Pounds. This is the baseline: no quotes. */
 export function upfrontCosts(s: ScenarioInput, landDate: string, ov?: RuleOverrides): { groups: CostGroup[]; total: number } {
+  if (s.pack) return packUpfrontCosts(s, s.pack, landDate)
   const c = CITIES[s.city]
   const p = people(s)
   const r = s.rate
@@ -183,12 +255,12 @@ export function upfrontCosts(s: ScenarioInput, landDate: string, ov?: RuleOverri
   ]
 
   const living = monthlyBudget(s, landDate, ov)
-  const rent = rentFor(s.city, s.housing, s.area)
+  const rent = rentOf(s)
   const depositWeeks = rule('depositWeeks', landDate, ov)
   const move: LineItem[] = [
     { key: 'flight', label: `One-way flight${two}`, gbp: s.flightGbp * p, basis: `Cape Town to ${c.name}, ${money(s.flightGbp)}${times}` },
     { key: 'monthlyLet', label: `Monthly let, first ${s.tempNights} nights`, gbp: s.tempNights * c.tempNightly, basis: `${s.tempNights} nights at ${money(c.tempNightly)} while you find a place` },
-    { key: 'deposit', label: `Deposit (${depositWeeks} weeks)`, gbp: deposit(c, s, landDate, ov), basis: `${depositWeeks} weeks of ${money(rent)} a month rent, the legal maximum`, ruleKeys: ['depositWeeks'] },
+    { key: 'deposit', label: `Deposit (${depositWeeks} weeks)`, gbp: deposit(s, landDate, ov), basis: `${depositWeeks} weeks of ${money(rent)} a month rent, the legal maximum`, ruleKeys: ['depositWeeks'] },
     { key: 'firstRent', label: "First month's rent", gbp: rent, basis: 'Paid before you get the keys' },
     { key: 'basics', label: 'Bedding, SIM, basics', gbp: 300 + 100 * (p - 1), basis: p > 1 ? '£300, plus £100 for a second person' : 'A rough allowance of £300' },
   ]
@@ -203,6 +275,54 @@ export function upfrontCosts(s: ScenarioInput, landDate: string, ov?: RuleOverri
       basis: `${money(Math.round(living.outgoings))} a month × ${months - 1}, until your first payday`,
     })
   if (s.bufferGbp > 0) runway.push({ key: 'buffer', label: 'Safety buffer', gbp: s.bufferGbp, basis: 'Your own cushion for surprises' })
+
+  const groups: CostGroup[] = [
+    { id: 'paper', label: 'Paperwork and visa', items: paper, total: sum(paper) },
+    { id: 'move', label: 'Getting there', items: move, total: sum(move) },
+    { id: 'runway', label: `Runway, ${months} month${months === 1 ? '' : 's'}`, items: runway, total: sum(runway) },
+  ]
+  return { groups, total: groups.reduce((a, g) => a + g.total, 0) }
+}
+
+/** The same three groups, from an imported plan. Amounts in the destination currency. */
+function packUpfrontCosts(s: ScenarioInput, pack: DestinationPack, landDate: string): { groups: CostGroup[]; total: number } {
+  const c = cityOf(s)
+  const p = people(s)
+  const r = s.rate
+  const two = p > 1 ? ', 2 people' : ''
+  const times = p > 1 ? ' × 2 people' : ''
+  const sym = pack.currency.symbol
+  const m = (n: number) => sym + n.toLocaleString('en-GB', { maximumFractionDigits: 2 })
+  const local = (amount: number, currency: 'ZAR' | 'local' | undefined) => (currency === 'ZAR' ? amount / r : amount)
+  const v = pack.visa
+  const extra = (g: 'paper' | 'move' | 'runway'): LineItem[] =>
+    (pack.extraCosts ?? [])
+      .filter((x) => x.group === g)
+      .map((x) => ({ key: `x-${x.key}`, label: x.label + (x.perPerson && p > 1 ? ', 2 people' : ''), gbp: local(x.amount, x.currency) * (x.perPerson ? p : 1), basis: x.basis }))
+
+  const paper: LineItem[] = [{ key: 'visaFee', label: `${v.name} fee${two}`, gbp: v.feePerPerson * p, basis: `${m(v.feePerPerson)} a person${times}` }]
+  if (v.healthPerYear)
+    paper.push({ key: 'ihs', label: `Health cover, ${v.years} years${two}`, gbp: v.healthPerYear * v.years * p, basis: `${m(v.healthPerYear)} a year × ${v.years} years${times}` })
+  for (const d of pack.documents)
+    if (d.cost) paper.push({ key: `doc-${d.key}`, label: d.name, gbp: local(d.cost, d.costCurrency), basis: d.costCurrency === 'ZAR' ? `R${d.cost.toLocaleString('en-GB')} from ${d.from}` : `From ${d.from}` })
+  paper.push(...extra('paper'))
+
+  const living = monthlyBudget(s, landDate)
+  const rent = rentOf(s)
+  const move: LineItem[] = [
+    { key: 'flight', label: `One-way flight${two}`, gbp: pack.move.flightPerPerson * p, basis: `Cape Town to ${c.name}, ${m(pack.move.flightPerPerson)}${times}` },
+    { key: 'monthlyLet', label: `Short let, first ${s.tempNights} nights`, gbp: s.tempNights * c.tempNightly, basis: `${s.tempNights} nights at ${m(c.tempNightly)} while you find a place` },
+    { key: 'deposit', label: `Deposit (${pack.move.depositMonths} month${pack.move.depositMonths === 1 ? '' : 's'})`, gbp: rent * pack.move.depositMonths, basis: `${pack.move.depositMonths} × ${m(rent)} a month rent` },
+    { key: 'firstRent', label: "First month's rent", gbp: rent, basis: 'Paid before you get the keys' },
+    { key: 'basics', label: 'Bedding, SIM, basics', gbp: pack.move.basics * (p > 1 ? 1.33 : 1), basis: 'A rough allowance' },
+    ...extra('move'),
+  ]
+
+  const months = runwayMonths(s)
+  const runway: LineItem[] = [{ key: 'runway1', label: 'Month 1 living, rent already paid', gbp: living.outgoings - rent, basis: `${m(Math.round(living.outgoings))} a month, less the rent you paid up front` }]
+  if (months > 1) runway.push({ key: 'runwayRest', label: months === 2 ? 'Month 2 living' : `Months 2 to ${months} living`, gbp: living.outgoings * (months - 1), basis: `${m(Math.round(living.outgoings))} a month × ${months - 1}, until your first payday` })
+  if (s.bufferGbp > 0) runway.push({ key: 'buffer', label: 'Safety buffer', gbp: s.bufferGbp, basis: 'Your own cushion for surprises' })
+  runway.push(...extra('runway'))
 
   const groups: CostGroup[] = [
     { id: 'paper', label: 'Paperwork and visa', items: paper, total: sum(paper) },
@@ -346,7 +466,7 @@ export function runwaySeries(s: ScenarioInput, landDate: string, ov?: RuleOverri
   const costs = upfrontCosts(s, landDate, ov)
   const runway = costs.groups.find((g) => g.id === 'runway')!.total
   const living = monthlyBudget(s, landDate, ov)
-  const rent = rentFor(s.city, s.housing, s.area)
+  const rent = rentOf(s)
   const months = runwayMonths(s)
   const out = [runway]
   let bal = runway
@@ -401,7 +521,7 @@ function readyDateFor(remainingZar: number, monthlyZar: number, today: string): 
 
 export function earliestLanding(s: ScenarioInput, today: string, ov?: RuleOverrides): string {
   // Certificates first, then a month for the TB test and application, then the decision.
-  return addMonths(today, s.certLeadMonths + 1 + Math.ceil(rule('decisionWeeks', today, ov) / 4))
+  return addMonths(today, s.certLeadMonths + 1 + Math.ceil(decisionWeeks(s, today, ov) / 4))
 }
 
 /**
@@ -409,7 +529,7 @@ export function earliestLanding(s: ScenarioInput, today: string, ov?: RuleOverri
  * The number is the plan total: your quotes where you have them, the baseline everywhere else.
  */
 export function plan(s: ScenarioInput, savings: SavingsState, today: string, ov?: RuleOverrides, extras: PlanExtras = {}): Plan {
-  const window = rule('applyWindowMonths', today, ov)
+  const window = applyWindow(s, today, ov)
   const earliestLand = earliestLanding(s, today, ov)
   const target = (land: string) => planTotal(upfrontCosts(s, land, ov), extras.quotes, extras.customs, s.rate).planGbp
 
@@ -444,6 +564,13 @@ export function plan(s: ScenarioInput, savings: SavingsState, today: string, ov?
 
 export function partnerCanCome(s: ScenarioInput, applyDate: string, ov?: RuleOverrides): boolean {
   if (!s.partner) return true
+  if (s.pack) {
+    const years = s.pack.visa.partnerRelationshipYears
+    if (years === null) return false
+    if (s.partnerMarried || !years) return true
+    if (!s.partnerSince) return false
+    return monthsBetween(s.partnerSince, applyDate) >= years * 12
+  }
   if (s.partnerMarried) return true
   if (!s.partnerSince) return false
   return monthsBetween(s.partnerSince, applyDate) >= rule('partnerRelationshipYears', applyDate, ov) * 12
@@ -465,8 +592,19 @@ export const ROUTE_PLACES: { at: number; name: string; over: string }[] = [
   { at: 1, name: 'Manchester', over: 'there' },
 ]
 
-export function progress(savedZar: number, targetZar: number) {
+/** The places along the flight. An imported plan can name its own; otherwise just the two ends. */
+export function routePlaces(s?: ScenarioInput): { at: number; name: string; over: string }[] {
+  if (!s?.pack) return ROUTE_PLACES
+  const city = cityOf(s).name
+  return [
+    ROUTE_PLACES[0],
+    ...(s.pack.route ?? []).filter((r) => r.at > 0 && r.at < 1).map((r) => ({ at: r.at, name: r.name, over: `over ${r.name}` })),
+    { at: 1, name: city, over: 'there' },
+  ]
+}
+
+export function progress(savedZar: number, targetZar: number, places = ROUTE_PLACES) {
   const pct = targetZar > 0 ? Math.min(1, Math.max(0, savedZar / targetZar)) : 0
-  const place = [...ROUTE_PLACES].reverse().find((p) => pct >= p.at) ?? ROUTE_PLACES[0]
+  const place = [...places].reverse().find((p) => pct >= p.at) ?? places[0]
   return { pct, place }
 }

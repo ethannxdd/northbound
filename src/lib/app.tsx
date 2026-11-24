@@ -4,9 +4,11 @@ import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 import { todayIso } from '@shared/dates'
 import { tasksDoneByDocs, type DocStatus } from '@shared/documents'
-import { plan, planTotal, upfrontCosts, type Borrowing, type Plan, type PlanExtras, type PlanTotal } from '@shared/engine'
+import { currencyOf, plan, planTotal, upfrontCosts, type Borrowing, type Plan, type PlanExtras, type PlanTotal } from '@shared/engine'
 import type { RuleOverrides } from '@shared/rules'
 import type { SavingsState, ScenarioInput } from '@shared/types'
+import type { DestinationPack } from '@shared/pack'
+import { cur as fmtCur, setMainCurrency } from './format'
 import { useLootSession } from './auth'
 import { lootPace, syncLootTarget, useLinkedGoal, type LootDeposit, type LootGoal } from './loot'
 
@@ -66,8 +68,15 @@ interface AppData {
   extrasFor: (id?: string) => PlanExtras
   /** Pass the scenario id so its quotes count */
   planFor: (s: ScenarioInput, id?: string) => Plan
-  /** A scenario with the live rate applied when it follows the live rate */
+  /** A scenario ready to run: its imported plan attached, or the live rate applied */
   effective: (s: ScenarioInput) => ScenarioInput
+  /** Imported plans by destination id */
+  packs: Map<string, DestinationPack>
+  destinations: Doc<'destinations'>[]
+  /** The main scenario's destination currency */
+  cur: { code: string; symbol: string; name: string }
+  /** Formats an amount in the main scenario's destination currency (pounds on the UK route) */
+  money: (n: number, roundTo?: number) => string
 }
 
 const Ctx = createContext<AppData | null>(null)
@@ -85,9 +94,28 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
   const today = todayIso()
   const liveRate = me.fx.length ? me.fx[me.fx.length - 1].zarPerGbp : null
 
+  // Imported plans, checked when they were imported.
+  const packs = useMemo(() => {
+    const out = new Map<string, DestinationPack>()
+    for (const d of me.destinations) {
+      try {
+        out.set(d._id, JSON.parse(d.json) as DestinationPack)
+      } catch {
+        // A damaged plan: its scenarios fall back to the built-in route rather than breaking the app.
+      }
+    }
+    return out
+  }, [me.destinations])
+
+  // A scenario ready to run: its imported plan attached, or the live rate applied on the UK route.
   const effective = useMemo(
-    () => (s: ScenarioInput): ScenarioInput => (s.rateMode === 'live' && liveRate ? { ...s, rate: Math.round(liveRate * 100) / 100 } : s),
-    [liveRate],
+    () =>
+      (s: ScenarioInput): ScenarioInput => {
+        const pack = s.destinationId ? packs.get(s.destinationId) : undefined
+        if (pack) return { ...s, pack }
+        return s.rateMode === 'live' && liveRate ? { ...s, rate: Math.round(liveRate * 100) / 100 } : s
+      },
+    [liveRate, packs],
   )
   const input = useMemo(() => effective(toInput(active)), [active, effective])
   const overrides = useMemo<RuleOverrides>(() => Object.fromEntries(me.overrides.map((o) => [o.key, o.value])), [me.overrides])
@@ -133,6 +161,8 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
     return new Set([...ticked, ...fromDocs])
   }, [ticked, me.documents])
 
+  const cur = currencyOf(input)
+  setMainCurrency(cur.symbol)
   const value: AppData = {
     profile,
     scenarios,
@@ -163,6 +193,10 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
     extrasFor,
     planFor,
     effective,
+    packs,
+    destinations: me.destinations,
+    cur,
+    money: (n: number, roundTo = 1) => fmtCur(n, cur.symbol, roundTo),
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
@@ -191,6 +225,8 @@ export function useActions() {
     addQuote: useMutation(api.quotes.add),
     removeQuote: useMutation(api.quotes.remove),
     removeCustom: useMutation(api.quotes.removeCustom),
+    importPlan: useMutation(api.plans.importPlan),
+    removePlan: useMutation(api.plans.removePlan),
   }
 }
 

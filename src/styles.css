@@ -956,3 +956,17 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height:
   .words-card p { font-size: 16px; }
 }
 @media (max-width: 760px) { .fr-body { justify-content: flex-start; } .fr-top { margin-bottom: 8px; } }
+
+/* ---------- plans from Claude ---------- */
+.plan-how { margin: 0 0 14px; padding-left: 20px; display: grid; gap: 6px; color: var(--text-2); font-size: 14.5px; line-height: 1.5; }
+.prompt-peek { margin-top: 12px; }
+.prompt-peek summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--muted); }
+.prompt-peek pre { margin: 10px 0 0; padding: 14px; border-radius: var(--r-ctl); background: var(--raised); border: 1px solid var(--hair); font-size: 12px; line-height: 1.5; white-space: pre-wrap; max-height: 360px; overflow: auto; color: var(--text-2); }
+.drop { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 18px; border-radius: var(--r-tile); border: 1px dashed var(--hair-strong); }
+.input.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+.err-list { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 3px; font-size: 13px; }
+.plan-preview { margin-top: 12px; padding: 18px; border-radius: var(--r-tile); background: var(--fill); border: 1px solid var(--hair-strong); display: flex; flex-direction: column; gap: 10px; }
+.plan-preview .facts3 { margin: 0; }
+.ph-blank { display: block; width: 100%; height: 100%; min-height: 36px; border-radius: inherit; background: linear-gradient(135deg, var(--accent-tint), var(--fill-3)); }
+.cmp-ph { height: 90px; border-radius: 16px; margin-bottom: 10px; }
+.photo-slot { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, var(--raised)), var(--raised)); }

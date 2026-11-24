@@ -6,6 +6,7 @@ import { plan } from '../shared/engine'
 import type { RuleOverrides } from '../shared/rules'
 import { buildTimeline } from '../shared/timeline'
 import { DEFAULT_SCENARIO } from '../shared/types'
+import { packForScenario } from './plans'
 
 declare const process: { env: Record<string, string | undefined> }
 
@@ -60,7 +61,8 @@ export const dueToday = internalQuery({
       void _id
       void _creationTime
       void userId
-      const s = { ...DEFAULT_SCENARIO, ...input }
+      const pack = await packForScenario(ctx, profile.userId, scenario)
+      const s = { ...DEFAULT_SCENARIO, ...input, pack: pack ?? undefined }
       const overrides: RuleOverrides = Object.fromEntries(
         (await ctx.db.query('ruleOverrides').withIndex('by_user', (q) => q.eq('userId', profile.userId)).collect()).map((o) => [o.key, o.value]),
       )

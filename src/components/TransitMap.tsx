@@ -3,7 +3,7 @@ import { gbp } from '../lib/format'
 import { Link } from 'react-router-dom'
 import { monthYear, dayMonthYear } from '@shared/dates'
 import { buildTimeline, type Line, type Task } from '@shared/timeline'
-import { CITIES } from '@shared/cities'
+import { cityOf } from '@shared/engine'
 import { useActions, useApp } from '../lib/app'
 import { Sheet } from '../lib/ui'
 
@@ -71,7 +71,7 @@ export default function TransitMap({ selectedKey, onSelect }: { animate?: boolea
   const { done, today, input } = useApp()
   const tasks = useTimeline()
   const [openKey, setOpenKey] = useState<string | null>(null)
-  const city = CITIES[input.city].name
+  const city = cityOf(input).name
   const select = (k: string) => (onSelect ? onSelect(k) : setOpenKey(k))
   const split = tasks.findIndex((t) => t.key === 'visa-decision')
   const pre = tasks.slice(0, split)

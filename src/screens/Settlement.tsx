@@ -7,9 +7,16 @@ import { expectedEarnings, firstYearCheck, settlementCheck } from '@shared/settl
 import { useActions, useApp } from '../lib/app'
 import { gbp, plural, zar } from '../lib/format'
 import { MoneyInput } from '../lib/ui'
+import PackSettlement from './PackSettlement'
 
 /** Settlement tracker: the 5-year path after you land, and the conditions to meet along the way. */
 export default function Settlement() {
+  const { input } = useApp()
+  if (input.pack) return <PackSettlement pack={input.pack} />
+  return <UkSettlement />
+}
+
+function UkSettlement() {
   const { plan, profile, earnings, overrides, input } = useApp()
   const { updateProfile } = useActions()
   const land = profile.landedOn ?? plan.landDate

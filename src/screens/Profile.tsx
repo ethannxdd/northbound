@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { CITIES } from '@shared/cities'
+import { cityOf } from '@shared/engine'
 import { DOCUMENTS, atLeast, type DocStatus } from '@shared/documents'
 import Icon from '../components/Icon'
 import { LootCard } from '../components/Shell'
@@ -26,9 +26,9 @@ export default function Profile() {
         <h2 className="menu-group-h">Your move</h2>
         <div className="menu-list">
           <Row to="/paperwork" icon="docs" label="Paperwork tracker" sub={`${docsDone} of ${docsTotal} documents in hand`} />
-          <Row to="/life" icon="life" label={`Life in ${CITIES[input.city].name}`} sub="Daylight, prices and neighbourhoods" />
+          <Row to="/life" icon="life" label={`Life in ${cityOf(input).name}`} sub="Daylight, prices and neighbourhoods" />
           <Row to="/compare" icon="compare" label="Compare scenarios" sub="Side by side, with the difference in words" />
-          <Row to="/settlement" icon="flag" label="Settling in the UK" sub="Your 5-year path, earnings and English" />
+          <Row to="/settlement" icon="flag" label="Settling" sub="Your path to settling, and its conditions" />
           <Row to="/settings/scenarios" icon="scenarios" label="Your scenarios" sub="Pick your main one, edit or add" />
         </div>
 

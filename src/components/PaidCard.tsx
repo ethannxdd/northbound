@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { monthlyBudget, salaryFor, takeHome } from '@shared/engine'
+import { monthlyBudget, salaryFor, takeHomeFor } from '@shared/engine'
 import type { ScenarioInput } from '@shared/types'
 import type { RuleOverrides } from '@shared/rules'
 import { useApp } from '../lib/app'
@@ -16,7 +16,7 @@ export function salaryToKeep(s: ScenarioInput, onDate: string, ov: RuleOverrides
   let hi = 200000
   for (let i = 0; i < 40; i++) {
     const mid = (lo + hi) / 2
-    if (takeHome(mid, onDate, ov).monthly < need) lo = mid
+    if (takeHomeFor(s, mid, onDate, ov).monthly < need) lo = mid
     else hi = mid
   }
   return Math.ceil(hi / 500) * 500
@@ -24,10 +24,10 @@ export function salaryToKeep(s: ScenarioInput, onDate: string, ov: RuleOverrides
 
 /** Once you're paid: salary to take-home, each monthly cost with a bar, and what's left. */
 export default function PaidCard() {
-  const { input, plan, overrides, borrowing } = useApp()
+  const { input, plan, overrides, borrowing, cur } = useApp()
   const budget = monthlyBudget(input, plan.landDate, overrides, borrowing)
   const repay = budget.items.filter((i) => i.key === 'loanRepay' || i.key === 'cardRepay').reduce((a, i) => a + i.gbp, 0)
-  const pay = takeHome(salaryFor(input), plan.landDate, overrides)
+  const pay = takeHomeFor(input, salaryFor(input), plan.landDate, overrides)
   const income = budget.takeHome + budget.partnerTakeHome
   const max = Math.max(...budget.items.map((i) => i.gbp), 1)
   const thin = budget.left < KEEP
@@ -40,7 +40,7 @@ export default function PaidCard() {
         <h2 id="paid" className="h2">
           Once you're paid
         </h2>
-        <span className="muted small">Always in pounds</span>
+        <span className="muted small">Always in {cur.name}s</span>
       </div>
       <div className="pay-tiles">
         <div>
@@ -53,7 +53,7 @@ export default function PaidCard() {
           <small>a month</small>
         </div>
         <div>
-          <span>National Insurance</span>
+          <span>{input.pack ? 'Social charges' : 'National Insurance'}</span>
           <b>−{gbp(pay.ni / 12)}</b>
           <small>a month</small>
         </div>

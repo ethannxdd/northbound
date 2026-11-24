@@ -85,6 +85,12 @@ export const CAPE_TOWN = {
 export const HOUSING_LABEL: Record<Housing, string> = { room: 'Room in a share', studio: 'Studio', onebed: '1-bed flat' }
 
 /** Unsplash photo at a given width. */
+/** A city photo at a given width: Unsplash photos are resized, other links used as they are, none gives null. */
+export function cityPhoto(c: { photo?: string }, width: number): string | null {
+  if (!c.photo) return null
+  return /images\.unsplash\.com\/photo-[^?]+$/.test(c.photo) ? photoUrl(c.photo, width) : c.photo
+}
+
 export function photoUrl(base: string, width: number): string {
   return `${base}?auto=format&fit=crop&w=${width}&q=72`
 }

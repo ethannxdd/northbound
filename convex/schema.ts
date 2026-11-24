@@ -24,6 +24,10 @@ export const scenarioFields = {
   rateMode: v.optional(v.union(v.literal('live'), v.literal('fixed'))),
   /** Neighbourhood id within the city; missing means the city average */
   area: v.optional(v.string()),
+  /** An imported plan (destinations id). Missing means the built-in UK Ancestry route. */
+  destinationId: v.optional(v.string()),
+  /** City id within that plan */
+  destCity: v.optional(v.string()),
 }
 
 export const docStatus = v.union(v.literal('todo'), v.literal('ordered'), v.literal('arrived'), v.literal('checked'))
@@ -124,6 +128,18 @@ export default defineSchema({
   })
     .index('by_user_scenario', ['userId', 'scenarioId'])
     .index('by_user_scenario_item', ['userId', 'scenarioId', 'itemKey']),
+
+  // Plans imported from a Northbound plan file: a destination country, checked on import.
+  destinations: defineTable({
+    userId: v.string(),
+    /** The plan's own id; importing the same id again replaces it */
+    slug: v.string(),
+    title: v.string(),
+    country: v.string(),
+    /** The plan file, as checked JSON */
+    json: v.string(),
+    importedAt: v.number(),
+  }).index('by_user_slug', ['userId', 'slug']),
 
   // Your own costs that aren't in the baseline. Valued at their newest quote.
   customCosts: defineTable({

@@ -1,8 +1,7 @@
 import { Fragment, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { CITIES } from '@shared/cities'
 import { dayMonthYear, longMonthYear } from '@shared/dates'
-import { monthlyBudget, plan as planOf, runwayMonths, runwaySeries, type PlanLine } from '@shared/engine'
+import { cityOf, monthlyBudget, plan as planOf, runwayMonths, runwaySeries, type PlanLine } from '@shared/engine'
 import { RULES, rule, ruleText } from '@shared/rules'
 import SavingPlan from '../components/SavingPlan'
 import QuoteSheet from '../components/QuoteSheet'
@@ -16,7 +15,7 @@ const HOUSING: Record<string, string> = { room: 'room in a share', studio: 'stud
 
 /** Money: the baseline, your quotes and the plan total, line by line. */
 export default function Money() {
-  const { input, plan, overrides, savings, today, fx, liveRate, active, totals, goal, profile } = useApp()
+  const { input, plan, overrides, savings, today, fx, liveRate, active, totals, goal, profile, cur } = useApp()
   const { pathname } = useLocation()
   const { itemKey } = useParams<{ itemKey?: string }>()
   const navigate = useNavigate()
@@ -48,12 +47,21 @@ export default function Money() {
       <div className="money-head">
         <div className="stack" style={{ gap: 6 }}>
           <Link to={`/scenario/${active._id}`} className="muted small strong">
-            {CITIES[input.city].name} · {HOUSING[input.housing]} · {input.partner ? 'with a partner' : 'solo'}
+            {cityOf(input).name} · {HOUSING[input.housing]} · {input.partner ? 'with a partner' : 'solo'}
           </Link>
           <h1 className="h1">Save before you go</h1>
           <p className="muted small" style={{ margin: 0 }}>
-            Baseline from the <Link to="/settings/rules">Rules page</Link>
-            {oldestCheck ? `, last checked ${dayMonthYear(oldestCheck)}` : ''} · £1 = R{r.toFixed(2)}
+            {input.pack ? (
+              <>
+                Baseline from your plan "{input.pack.title}"{input.pack.createdOn ? `, made ${dayMonthYear(input.pack.createdOn)}` : ''}
+              </>
+            ) : (
+              <>
+                Baseline from the <Link to="/settings/rules">Rules page</Link>
+                {oldestCheck ? `, last checked ${dayMonthYear(oldestCheck)}` : ''}
+              </>
+            )}{' '}
+            · {cur.symbol}1 = R{r.toFixed(2)}
           </p>
         </div>
         <Link to="/money/quote" className="btn solid lg">
@@ -117,8 +125,8 @@ export default function Money() {
         <div className="seg mini" role="group" aria-label="Currency">
           {(
             [
-              ['both', '£ and R'],
-              ['GBP', '£'],
+              ['both', `${cur.symbol} and R`],
+              ['GBP', cur.symbol],
               ['ZAR', 'R'],
             ] as [Show, string][]
           ).map(([id, label]) => (
@@ -222,7 +230,9 @@ export default function Money() {
       </Link>
 
       <p className="faint small" style={{ margin: 0, maxWidth: 760, lineHeight: 1.6 }}>
-        Every baseline figure comes from the Rules page, with its source and the date it was last checked. Tap any baseline figure to see how it was worked out.
+        {input.pack
+          ? 'Every baseline figure comes from your imported plan. Tap any baseline figure to see how it was worked out and where the plan got it.'
+          : 'Every baseline figure comes from the Rules page, with its source and the date it was last checked. Tap any baseline figure to see how it was worked out.'}
       </p>
 
       <div className="cols-2">
@@ -243,8 +253,29 @@ export default function Money() {
 
 /** How a baseline figure was worked out, with links to its rules. */
 function Why({ line, landDate }: { line: PlanLine; landDate: string }) {
-  const { overrides } = useApp()
+  const { overrides, input } = useApp()
   const rules = RULES.filter((x) => line.ruleKeys?.includes(x.key))
+  if (input.pack) {
+    const pack = input.pack
+    const extra = pack.extraCosts?.find((x) => `x-${x.key}` === line.key)
+    const doc = pack.documents.find((d) => `doc-${d.key}` === line.key)
+    const src = extra?.source ?? doc?.url ?? (line.key === 'visaFee' || line.key === 'ihs' ? pack.visa.sources?.[0]?.url : undefined)
+    return (
+      <div className="why">
+        <p style={{ margin: 0 }}>
+          <b>How it's worked out:</b> {line.basis ?? 'From your plan'}.
+        </p>
+        <p className="muted small" style={{ margin: '6px 0 0' }}>
+          From your imported plan "{pack.title}".{' '}
+          {src && (
+            <a href={src} target="_blank" rel="noreferrer noopener">
+              Source
+            </a>
+          )}
+        </p>
+      </div>
+    )
+  }
   return (
     <div className="why">
       <p style={{ margin: 0 }}>
@@ -286,7 +317,7 @@ function RateCard({
   liveRate,
   activeId,
 }: Pick<ReturnType<typeof useApp>, 'input' | 'plan' | 'savings' | 'today' | 'overrides' | 'fx' | 'liveRate'> & { activeId: string }) {
-  const { extrasFor, active } = useApp()
+  const { extrasFor, active, cur } = useApp()
   const [weaker, setWeaker] = useState(0)
   const whatIf = useMemo(() => {
     if (!weaker) return null
@@ -297,9 +328,14 @@ function RateCard({
     <div style={{ marginTop: 20 }}>
       <div className="divider" />
       <h3 className="h3" style={{ margin: '16px 0 4px' }}>
-        Rand to the pound
+        Rand to the {cur.name}
       </h3>
-      {liveRate ? (
+      {input.pack ? (
+        <p className="small muted" style={{ margin: '4px 0 0' }}>
+          Your plan uses R{input.rate.toFixed(2)} to the {cur.name}
+          {input.pack.currency.rateDate ? `, from ${dayMonthYear(input.pack.currency.rateDate)}` : ''}. Live rates are only followed for the pound. <Link to={`/scenario/${activeId}`}>Change</Link>
+        </p>
+      ) : liveRate ? (
         <>
           <div className="row" style={{ alignItems: 'baseline' }}>
             <span className="num" style={{ fontSize: 30 }}>
@@ -343,7 +379,7 @@ function RunwayCard() {
       </h2>
       <p className="small muted" style={{ margin: '4px 0 0' }}>
         Your savings fall for {plural(months, 'month')} while you find work and wait for your first pay, then grow by {gbp(Math.max(0, budget.left))} a month.{' '}
-        <Link to="/life">See a month in the UK</Link>
+        <Link to="/life">See a month there</Link>
       </p>
       <div className="bars reveal-x" style={{ ['--d' as string]: '250ms' }} role="img" aria-label="Savings by month after landing">
         {series.map((v, i) => (

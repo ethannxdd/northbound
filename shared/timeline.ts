@@ -1,6 +1,7 @@
 import { CITIES } from './cities'
 import { addDays, addMonths } from './dates'
-import { runwayMonths, upfrontCosts } from './engine'
+import { cityOf, runwayMonths, upfrontCosts } from './engine'
+import type { DestinationPack } from './pack'
 import { rule, type RuleOverrides } from './rules'
 import type { ScenarioInput } from './types'
 
@@ -13,6 +14,8 @@ export interface Task {
   due: string
   /** A milestone gets a bigger station on the map */
   milestone?: boolean
+  /** Short name on the map, from an imported plan */
+  short?: string
   cost?: string
   takes?: string
   from?: string
@@ -25,6 +28,7 @@ export interface Task {
  * Paperwork, money and move run as three lines that join at the visa decision.
  */
 export function buildTimeline(s: ScenarioInput, landDate: string, today: string, ov?: RuleOverrides): Task[] {
+  if (s.pack) return packTimeline(s, s.pack, landDate, today)
   const city = CITIES[s.city].name
   const window = rule('applyWindowMonths', landDate, ov)
   const applyDate = addMonths(landDate, -window)
@@ -198,5 +202,74 @@ export function buildTimeline(s: ScenarioInput, landDate: string, today: string,
       ],
     },
   ]
+  return tasks.sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : 0))
+}
+
+/**
+ * An imported plan's steps, dated from the landing date. Northbound adds the steps every move has:
+ * saving, the visa decision, landing, first payday and (if the plan has one) settling.
+ */
+function packTimeline(s: ScenarioInput, pack: DestinationPack, landDate: string, today: string): Task[] {
+  const city = cityOf(s).name
+  const applyDate = addMonths(landDate, -pack.visa.applyMonthsBefore)
+  const decision = addDays(applyDate, pack.visa.decisionWeeks * 7)
+  const notBefore = (d: string) => (d < today ? today : d)
+  const tasks: Task[] = pack.steps.map((st) => ({
+    key: st.key,
+    title: st.title,
+    short: st.short,
+    line: st.line,
+    milestone: st.milestone,
+    due: st.monthsBeforeLanding === 'now' ? today : st.monthsBeforeLanding > 0 ? notBefore(addMonths(landDate, -st.monthsBeforeLanding)) : addMonths(landDate, -st.monthsBeforeLanding),
+    cost: st.cost,
+    takes: st.takes,
+    from: st.from,
+    url: st.url,
+    steps: st.steps,
+  }))
+  tasks.push(
+    {
+      key: 'saving',
+      title: 'Save every month into your move goal',
+      line: 'money',
+      due: today,
+      steps: ['Set up a monthly transfer into your Loot goal on payday.', 'Northbound updates your progress each time money goes in.'],
+    },
+    {
+      key: 'visa-decision',
+      title: `${pack.visa.name} decision`,
+      short: 'Visa decision',
+      line: 'trunk',
+      milestone: true,
+      due: notBefore(decision),
+      steps: [`Decisions usually take about ${pack.visa.decisionWeeks} weeks.`],
+    },
+    {
+      key: 'land',
+      title: `Land in ${city}`,
+      line: 'trunk',
+      milestone: true,
+      due: landDate,
+      steps: ['Carry your passport, your permission and the documents from your paperwork list.'],
+    },
+    {
+      key: 'first-payday',
+      title: 'First payday',
+      line: 'trunk',
+      due: addMonths(landDate, runwayMonths(s)),
+      steps: ['From here your savings start growing again.'],
+    },
+  )
+  if (pack.settlement)
+    tasks.push({
+      key: 'settle',
+      title: pack.settlement.name,
+      short: `Settle in ${pack.country.name}`,
+      line: 'trunk',
+      milestone: true,
+      due: addMonths(landDate, pack.settlement.years * 12),
+      cost: pack.settlement.fee ? `${pack.currency.symbol}${pack.settlement.fee.toLocaleString('en-GB')}` : undefined,
+      steps: pack.settlement.conditions,
+    })
   return tasks.sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : 0))
 }

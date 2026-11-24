@@ -26,7 +26,7 @@ export const me = query({
   handler: async (ctx) => {
     const uid = await userId(ctx)
     if (!uid) return null
-    const [profile, scenarios, done, overrides, documents, earnings, share, fx, quotes, customCosts] = await Promise.all([
+    const [profile, scenarios, done, overrides, documents, earnings, share, fx, quotes, customCosts, destinations] = await Promise.all([
       profileOf(ctx, uid),
       ctx.db.query('scenarios').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
       ctx.db.query('done').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
@@ -37,6 +37,7 @@ export const me = query({
       ctx.db.query('fxRates').withIndex('by_date').order('desc').take(120),
       ctx.db.query('quotes').withIndex('by_user_scenario', (q) => q.eq('userId', uid)).take(2000),
       ctx.db.query('customCosts').withIndex('by_user_scenario', (q) => q.eq('userId', uid)).take(500),
+      ctx.db.query('destinations').withIndex('by_user_slug', (q) => q.eq('userId', uid)).take(50),
     ])
     const authId = await getAuthUserId(ctx)
     const user = authId ? await ctx.db.get(authId) : null
@@ -47,7 +48,7 @@ export const me = query({
       /** Signed in with an old app version that sends Loot's token directly */
       legacyLoot: !authId && !!(await ctx.auth.getUserIdentity()),
     }
-    return { profile, scenarios, done, overrides, documents, earnings, shareToken: share?.token ?? null, fx: fx.reverse(), account, quotes, customCosts }
+    return { profile, scenarios, done, overrides, documents, earnings, shareToken: share?.token ?? null, fx: fx.reverse(), account, quotes, customCosts, destinations }
   },
 })
 
@@ -139,6 +140,11 @@ export const saveScenario = mutation({
   },
   handler: async (ctx, a) => {
     const uid = await requireUser(ctx)
+    if (a.scenario.destinationId) {
+      const did = ctx.db.normalizeId('destinations', a.scenario.destinationId)
+      const d = did ? await ctx.db.get(did) : null
+      if (!d || d.userId !== uid) throw new Error('Plan not found')
+    }
     let id = a.id
     if (id) {
       await ownScenario(ctx, uid, id)
@@ -214,6 +220,7 @@ export const resetAll = mutation({
       const rows = await ctx.db.query(t).withIndex('by_user_scenario', (q) => q.eq('userId', uid)).collect()
       for (const r of rows) await ctx.db.delete(r._id)
     }
+    for (const d of await ctx.db.query('destinations').withIndex('by_user_slug', (q) => q.eq('userId', uid)).collect()) await ctx.db.delete(d._id)
     for (const t of ['scenarios', 'done', 'ruleOverrides', 'profiles', 'documents', 'earnings', 'shares', 'pushSubs'] as const) {
       const rows = await ctx.db.query(t).withIndex('by_user', (q) => q.eq('userId', uid)).collect()
       for (const r of rows) await ctx.db.delete(r._id)

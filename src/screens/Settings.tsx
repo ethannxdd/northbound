@@ -3,12 +3,12 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, NavLink, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../../convex/_generated/api'
 import { RULES, needsRefresh, rule, ruleText, type RuleEntry } from '@shared/rules'
-import { CITIES } from '@shared/cities'
 import { dayMonthYear, longDate, monthYear } from '@shared/dates'
-import { sortQuotes } from '@shared/engine'
+import { cityOf, sortQuotes } from '@shared/engine'
 import { gbp } from '../lib/format'
 import RemindersControls from '../components/Reminders'
 import LoansFields from '../components/LoansFields'
+import PlansSection from '../components/PlansSection'
 import { BackLink } from '../components/Shell'
 import Icon from '../components/Icon'
 import { useActions, useApp, useMe } from '../lib/app'
@@ -20,7 +20,8 @@ import { SavedMoneyField, Seg, Toggle, useSavedFlash, useTheme, useWide, type Th
 
 export const SECTIONS = [
   { id: 'scenarios', label: 'Your scenarios', icon: 'scenarios', blurb: 'Pick your main scenario, edit or add one' },
-  { id: 'settling', label: 'Settling in the UK', icon: 'flag', blurb: 'Your 5-year path, earnings and English' },
+  { id: 'plans', label: 'Plans from Claude', icon: 'docs', blurb: 'Import a plan for another country, made with Claude' },
+  { id: 'settling', label: 'Settling', icon: 'flag', blurb: 'Your path to settling, and its conditions' },
   { id: 'loot', label: 'Loot', icon: 'loot', blurb: 'Link Loot and follow a savings goal' },
   { id: 'savings', label: 'Savings plan', icon: 'savings', blurb: 'What you save each month, and life in Cape Town now' },
   { id: 'loans', label: 'Loans and credit', icon: 'rand', blurb: 'Borrowing towards the move, and what it costs a month' },
@@ -105,6 +106,8 @@ function SectionBody({ id }: { id: SectionId }) {
       return <ScenariosSection />
     case 'quotes':
       return <QuotesSection />
+    case 'plans':
+      return <PlansSection />
     case 'loans':
       return (
         <Block note="Applies to every scenario. Borrowing lowers what you save, not what the move costs.">
@@ -380,7 +383,7 @@ function SavingsSection() {
       <Block title="Each month">
         <SavedMoneyField id="monthly" label="You plan to save" value={profile.monthlyZar} onSave={(n) => updateProfile({ monthlyZar: n })} hint="If your deposits in Loot over the last 3 months were lower, Northbound uses that instead." />
       </Block>
-      <Block title="Life in Cape Town now" note="Optional. Used to compare with life in the UK.">
+      <Block title="Life in Cape Town now" note="Optional. Used to compare with life after the move.">
         <div className="two-col">
           <SavedMoneyField id="rent" label="Rent" value={profile.homeRentZar} onSave={(n) => updateProfile({ homeRentZar: n })} />
           <SavedMoneyField id="income" label="Take-home pay" value={profile.homeIncomeZar} onSave={(n) => updateProfile({ homeIncomeZar: n })} />
@@ -686,7 +689,7 @@ export function ProfileCard() {
       <span style={{ minWidth: 0 }}>
         <b>{name}</b>
         <small>
-          {CITIES[input.city].name} · landing {monthYear(plan.landDate)}
+          {cityOf(input).name} · landing {monthYear(plan.landDate)}
         </small>
       </span>
     </div>
