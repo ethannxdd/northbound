@@ -10,12 +10,14 @@
 
 import type * as account from "../account.js";
 import type * as auth from "../auth.js";
+import type * as authOptions from "../authOptions.js";
 import type * as crons from "../crons.js";
 import type * as data from "../data.js";
 import type * as docs from "../docs.js";
 import type * as fx from "../fx.js";
 import type * as http from "../http.js";
 import type * as lib_loot from "../lib/loot.js";
+import type * as lib_resetEmail from "../lib/resetEmail.js";
 import type * as lib_user from "../lib/user.js";
 import type * as plans from "../plans.js";
 import type * as push from "../push.js";
@@ -33,12 +35,14 @@ import type {
 declare const fullApi: ApiFromModules<{
   account: typeof account;
   auth: typeof auth;
+  authOptions: typeof authOptions;
   crons: typeof crons;
   data: typeof data;
   docs: typeof docs;
   fx: typeof fx;
   http: typeof http;
   "lib/loot": typeof lib_loot;
+  "lib/resetEmail": typeof lib_resetEmail;
   "lib/user": typeof lib_user;
   plans: typeof plans;
   push: typeof push;
