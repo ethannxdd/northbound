@@ -7,6 +7,8 @@ import SavingPlan from '../components/SavingPlan'
 import QuoteSheet from '../components/QuoteSheet'
 import { DiffChip, lineDiff } from '../components/CostBits'
 import { useApp, type FxPoint } from '../lib/app'
+import { detailFor } from '@shared/details'
+import { ItemDetailView, RemoveButton, RemovedList } from '../components/DetailBits'
 import { gbp, plural, zar } from '../lib/format'
 
 type Show = 'both' | 'GBP' | 'ZAR'
@@ -173,6 +175,7 @@ export default function Money() {
                             <span className="ci-name">
                               {l.label}
                               {l.custom && <span className="tag mine">My extra</span>}
+                              {l.fromDetails && <span className="tag">From Claude</span>}
                             </span>
                             <span className="ci-basis">{l.custom ? 'Added by you' : l.basis}</span>
                           </th>
@@ -223,6 +226,7 @@ export default function Money() {
           )
         })}
         {filter !== 'all' && totals.groups.every((g) => !g.lines.some(keep)) && <p className="muted">Nothing here.</p>}
+        <RemovedList kind="cost" />
       </div>
 
       <Link to="/money/quote/new" className="add-own">
@@ -253,7 +257,34 @@ export default function Money() {
 
 /** How a baseline figure was worked out, with links to its rules. */
 function Why({ line, landDate }: { line: PlanLine; landDate: string }) {
+  const { input } = useApp()
+  return (
+    <>
+      <WhyBasis line={line} landDate={landDate} />
+      <ItemDetailView detail={detailFor(input.details, `cost:${line.key}`)} open />
+      {!line.custom && (
+        <div className="why-foot">
+          <span className="faint small">Not needed for this scenario?</span>
+          <RemoveButton refKey={`cost:${line.key}`} label={line.label} />
+        </div>
+      )}
+    </>
+  )
+}
+
+function WhyBasis({ line, landDate }: { line: PlanLine; landDate: string }) {
   const { overrides, input } = useApp()
+  if (line.fromDetails)
+    return (
+      <div className="why">
+        <p style={{ margin: 0 }}>
+          <b>How it's worked out:</b> {line.basis ?? 'From Claude\'s update'}.
+        </p>
+        <p className="muted small" style={{ margin: '6px 0 0' }}>
+          Added or corrected by Claude's update to this scenario. <Link to="/settings/update">Update it again</Link>
+        </p>
+      </div>
+    )
   const rules = RULES.filter((x) => line.ruleKeys?.includes(x.key))
   if (input.pack) {
     const pack = input.pack

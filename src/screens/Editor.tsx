@@ -32,7 +32,7 @@ export default function Editor() {
 
   const quotesFrom = existing?._id ?? active._id
   const p = planFor(draft, quotesFrom)
-  const eff = effective(draft)
+  const eff = effective(draft, quotesFrom)
   const ex = extrasFor(quotesFrom)
   const t = planTotal(upfrontCosts(eff, p.landDate, overrides), ex.quotes, ex.customs, eff.rate)
   const applyDate = addMonths(p.landDate, -3)
@@ -55,7 +55,7 @@ export default function Editor() {
     setBusy(true)
     setError(null)
     try {
-      await saveScenario({ id: existing?._id as Id<'scenarios'> | undefined, scenario: { ...draft, name: draft.name.trim() }, makeActive: makeMain, copyFrom: existing ? undefined : active._id })
+      await saveScenario({ id: existing?._id as Id<'scenarios'> | undefined, scenario: { ...draft, name: draft.name.trim(), hidden: existing ? existing.hidden : draft.hidden }, makeActive: makeMain, copyFrom: existing ? undefined : active._id })
       leave()
     } catch {
       setError("Couldn't save. Try again.")

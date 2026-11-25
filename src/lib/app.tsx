@@ -8,6 +8,7 @@ import { currencyOf, plan, planTotal, upfrontCosts, type Borrowing, type Plan, t
 import type { RuleOverrides } from '@shared/rules'
 import type { SavingsState, ScenarioInput } from '@shared/types'
 import type { DestinationPack } from '@shared/pack'
+import type { ScenarioDetails } from '@shared/details'
 import { cur as fmtCur, setMainCurrency } from './format'
 import { useLootSession } from './auth'
 import { lootPace, syncLootTarget, useLinkedGoal, type LootDeposit, type LootGoal } from './loot'
@@ -68,8 +69,10 @@ interface AppData {
   extrasFor: (id?: string) => PlanExtras
   /** Pass the scenario id so its quotes count */
   planFor: (s: ScenarioInput, id?: string) => Plan
-  /** A scenario ready to run: its imported plan attached, or the live rate applied */
-  effective: (s: ScenarioInput) => ScenarioInput
+  /** A scenario ready to run: its imported plan and Claude's details attached, or the live rate applied. Pass the id for details. */
+  effective: (s: ScenarioInput, id?: string) => ScenarioInput
+  /** Claude's details files by scenario id */
+  detailsBy: Map<string, { details: ScenarioDetails; importedAt: number }>
   /** Imported plans by destination id */
   packs: Map<string, DestinationPack>
   destinations: Doc<'destinations'>[]
@@ -107,17 +110,32 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
     return out
   }, [me.destinations])
 
-  // A scenario ready to run: its imported plan attached, or the live rate applied on the UK route.
+  // Claude's details files, one per scenario.
+  const detailsBy = useMemo(() => {
+    const out = new Map<string, { details: ScenarioDetails; importedAt: number }>()
+    for (const d of me.details) {
+      try {
+        out.set(d.scenarioId, { details: JSON.parse(d.json) as ScenarioDetails, importedAt: d.importedAt })
+      } catch {
+        // A damaged file: the scenario runs without it.
+      }
+    }
+    return out
+  }, [me.details])
+
+  // A scenario ready to run: its imported plan and details attached, or the live rate applied on the UK route.
   const effective = useMemo(
     () =>
-      (s: ScenarioInput): ScenarioInput => {
+      (s: ScenarioInput, id?: string): ScenarioInput => {
+        const sid = id ?? (s as { _id?: string })._id
+        const details = sid ? detailsBy.get(sid)?.details : undefined
         const pack = s.destinationId ? packs.get(s.destinationId) : undefined
-        if (pack) return { ...s, pack }
-        return s.rateMode === 'live' && liveRate ? { ...s, rate: Math.round(liveRate * 100) / 100 } : s
+        if (pack) return { ...s, pack, details }
+        return s.rateMode === 'live' && liveRate ? { ...s, rate: Math.round(liveRate * 100) / 100, details } : { ...s, details }
       },
-    [liveRate, packs],
+    [liveRate, packs, detailsBy],
   )
-  const input = useMemo(() => effective(toInput(active)), [active, effective])
+  const input = useMemo(() => effective(toInput(active), active._id), [active, effective])
   const overrides = useMemo<RuleOverrides>(() => Object.fromEntries(me.overrides.map((o) => [o.key, o.value])), [me.overrides])
 
   const savings = useMemo<SavingsState>(() => {
@@ -140,7 +158,7 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
           : { borrowing },
     [me.quotes, me.customCosts, borrowing],
   )
-  const planFor = useMemo(() => (s: ScenarioInput, id?: string) => plan(effective(s), savings, today, overrides, extrasFor(id)), [effective, savings, today, overrides, extrasFor])
+  const planFor = useMemo(() => (s: ScenarioInput, id?: string) => plan(effective(s, id), savings, today, overrides, extrasFor(id)), [effective, savings, today, overrides, extrasFor])
   const p = useMemo(() => planFor(input, active._id), [planFor, input, active._id])
   const activeExtras = useMemo(() => extrasFor(active._id), [extrasFor, active._id])
   const totals = useMemo(() => planTotal(upfrontCosts(input, p.landDate, overrides), activeExtras.quotes, activeExtras.customs, input.rate), [input, p.landDate, overrides, activeExtras])
@@ -157,9 +175,9 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
   const docs = useMemo(() => Object.fromEntries(me.documents.map((d) => [d.docKey, d])), [me.documents])
   const ticked = useMemo(() => new Set(me.done.map((d) => d.taskKey)), [me.done])
   const done = useMemo(() => {
-    const fromDocs = tasksDoneByDocs(Object.fromEntries(me.documents.map((d) => [d.docKey, d.status as DocStatus])))
+    const fromDocs = tasksDoneByDocs(Object.fromEntries(me.documents.map((d) => [d.docKey, d.status as DocStatus])), active.hidden)
     return new Set([...ticked, ...fromDocs])
-  }, [ticked, me.documents])
+  }, [ticked, me.documents, active.hidden])
 
   const cur = currencyOf(input)
   setMainCurrency(cur.symbol)
@@ -193,6 +211,7 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
     extrasFor,
     planFor,
     effective,
+    detailsBy,
     packs,
     destinations: me.destinations,
     cur,
@@ -227,6 +246,10 @@ export function useActions() {
     removeCustom: useMutation(api.quotes.removeCustom),
     importPlan: useMutation(api.plans.importPlan),
     removePlan: useMutation(api.plans.removePlan),
+    setHidden: useMutation(api.details.setHidden),
+    restoreAll: useMutation(api.details.restoreAll),
+    importDetails: useMutation(api.details.importDetails),
+    removeDetails: useMutation(api.details.removeDetails),
   }
 }
 

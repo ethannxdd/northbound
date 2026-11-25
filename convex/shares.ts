@@ -88,6 +88,8 @@ export const view = query({
       borrowedZar: (profile.loanZar ?? 0) + (profile.cardZar ?? 0),
       // The imported plan a scenario uses, so the share page can run it.
       pack: await packForScenario(ctx, share.userId, scenario),
+      // Claude's details for the scenario, since its added and corrected costs change the number.
+      details: (await ctx.db.query('scenarioDetails').withIndex('by_user_scenario', (q) => q.eq('userId', share.userId).eq('scenarioId', scenario._id)).unique())?.json ?? null,
       liveRate: (await ctx.db.query('fxRates').withIndex('by_date').order('desc').first())?.zarPerGbp ?? null,
     }
   },

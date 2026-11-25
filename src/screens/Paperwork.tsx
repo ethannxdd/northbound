@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { dayMonthYear } from '@shared/dates'
-import { DOCUMENTS, STATUS_LABEL, STATUS_ORDER, atLeast, type DocDef, type DocStatus } from '@shared/documents'
+import { STATUS_LABEL, STATUS_ORDER, atLeast, visibleDocuments, type DocDef, type DocStatus, type ScenarioDoc } from '@shared/documents'
+import { detailFor } from '@shared/details'
+import { ItemDetailView, RemoveButton, RemovedList } from '../components/DetailBits'
 import { rule } from '@shared/rules'
 import type { Task } from '@shared/timeline'
 import { shortTitle, useTimeline } from '../components/TransitMap'
@@ -10,8 +12,7 @@ import { cityOf } from '@shared/engine'
 
 type Filter = 'all' | 'todo' | 'ordered' | 'hand'
 
-/** A document to track: the UK list, or an imported plan's, with its own cost and lead time. */
-type DocItem = DocDef & { cost?: string; takes?: string; url?: string }
+type DocItem = ScenarioDoc
 
 /** Paperwork tracker: every document for the Ancestry visa, from ordering to checked. */
 export default function Paperwork() {
@@ -20,23 +21,12 @@ export default function Paperwork() {
   const [filter, setFilter] = useState<Filter>('all')
   const statusOf = (d: DocDef) => (docs[d.key]?.status ?? 'todo') as DocStatus
   const pack = input.pack
-  const list: DocItem[] = pack
-    ? pack.documents.map((d) => ({
-        key: `${pack.id}:${d.key}`,
-        name: d.name,
-        from: d.from,
-        check: d.check,
-        optional: d.optional,
-        url: d.url,
-        takes: d.takes,
-        cost: d.cost ? (d.costCurrency === 'ZAR' ? zar(d.cost) : gbp(d.cost)) : undefined,
-      }))
-    : DOCUMENTS
+  const list: DocItem[] = visibleDocuments(input, (n, c) => (c === 'ZAR' ? zar(n) : gbp(n)))
   const required = list.filter((d) => !d.optional)
   const inHand = required.filter((d) => atLeast(statusOf(d), 'arrived')).length
   const line = (k: string) => totals.groups.flatMap((g) => g.lines).find((l) => l.key === k)?.planGbp ?? 0
   const totalGbp = pack
-    ? totals.groups[0].lines.filter((l) => l.key.startsWith('doc-')).reduce((a, l) => a + l.planGbp, 0)
+    ? totals.groups[0].lines.filter((l) => l.key.startsWith('doc-') || l.key.startsWith('d-')).reduce((a, l) => a + l.planGbp, 0)
     : line('saCerts') + line('groCert') + line('tbTest') + rule('groCertificate', plan.landDate, overrides)
   const counts = {
     all: list.length,
@@ -92,12 +82,15 @@ export default function Paperwork() {
           <DocCard key={d.key} d={d} task={tasks.find((t) => t.key === d.task?.key)} city={cityOf(input).name} />
         ))}
       </div>
+      {list.length === 0 && <p className="muted">Every document is removed from this scenario.</p>}
+      <RemovedList kind="doc" />
     </div>
   )
 }
 
 function DocCard({ d, task, city }: { d: DocItem; task?: Task; city: string }) {
-  const { docs, today } = useApp()
+  const { docs, today, input } = useApp()
+  const detail = detailFor(input.details, d.ref)
   const { setDoc } = useActions()
   const row = docs[d.key]
   const status = (row?.status ?? 'todo') as DocStatus
@@ -122,6 +115,7 @@ function DocCard({ d, task, city }: { d: DocItem; task?: Task; city: string }) {
           </h2>
           <small className="muted">
             From {d.from} · {d.optional ?? 'Required'}
+            {d.added ? ' · Added by Claude' : ''}
           </small>
         </div>
         <span className={`tag ${badge.c}`}>{badge.t}</span>
@@ -129,11 +123,11 @@ function DocCard({ d, task, city }: { d: DocItem; task?: Task; city: string }) {
       <div className="facts3" style={{ margin: 0 }}>
         <div>
           <small>Cost</small>
-          <b>{d.cost ?? task?.cost ?? 'Free'}</b>
+          <b>{d.cost ?? task?.cost ?? detail?.cost ?? 'Free'}</b>
         </div>
         <div>
           <small>Takes</small>
-          <b>{d.takes ?? task?.takes ?? 'Varies'}</b>
+          <b>{d.takes ?? task?.takes ?? detail?.takes ?? 'Varies'}</b>
         </div>
         <div>
           <small>Map stop</small>
@@ -146,6 +140,7 @@ function DocCard({ d, task, city }: { d: DocItem; task?: Task; city: string }) {
         </svg>
         <span>Check: {d.check}</span>
       </div>
+      <ItemDetailView detail={detail} />
       <div className="seg" role="group" aria-label={`${d.name} status`}>
         {STATUS_ORDER.map((s) => (
           <button key={s} type="button" aria-pressed={status === s} onClick={() => void setStatus(s)}>
@@ -177,6 +172,14 @@ function DocCard({ d, task, city }: { d: DocItem; task?: Task; city: string }) {
         onChange={(e) => setNote(e.target.value)}
         onBlur={() => note !== (row?.note ?? '') && void setDoc({ docKey: d.key, status, note })}
       />
+      <div className="doc-foot">
+        {d.url && (
+          <a href={d.url} target="_blank" rel="noreferrer noopener" className="small strong">
+            Official page
+          </a>
+        )}
+        <RemoveButton refKey={d.ref} label={d.name} />
+      </div>
     </article>
   )
 }

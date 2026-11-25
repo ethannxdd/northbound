@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { cityOf } from '@shared/engine'
-import { DOCUMENTS, atLeast, type DocStatus } from '@shared/documents'
+import { atLeast, visibleDocuments, type DocStatus } from '@shared/documents'
 import Icon from '../components/Icon'
 import { LootCard } from '../components/Shell'
 import { useApp } from '../lib/app'
@@ -9,8 +9,9 @@ import { ProfileCard, SECTIONS } from './Settings'
 /** Profile: your account, your other tools, and settings, grouped so they're easy to scan. */
 export default function Profile() {
   const { input, docs, savingsSource } = useApp()
-  const docsDone = DOCUMENTS.filter((d) => !d.optional && atLeast(docs[d.key]?.status as DocStatus | undefined, 'arrived')).length
-  const docsTotal = DOCUMENTS.filter((d) => !d.optional).length
+  const required = visibleDocuments(input, String).filter((d) => !d.optional)
+  const docsDone = required.filter((d) => atLeast(docs[d.key]?.status as DocStatus | undefined, 'arrived')).length
+  const docsTotal = required.length
 
   return (
     <div className="main" style={{ maxWidth: 760 }}>

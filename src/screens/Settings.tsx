@@ -9,6 +9,7 @@ import { gbp } from '../lib/format'
 import RemindersControls from '../components/Reminders'
 import LoansFields from '../components/LoansFields'
 import PlansSection from '../components/PlansSection'
+import UpdateSection from '../components/UpdateSection'
 import { BackLink } from '../components/Shell'
 import Icon from '../components/Icon'
 import { useActions, useApp, useMe } from '../lib/app'
@@ -20,6 +21,7 @@ import { SavedMoneyField, Seg, Toggle, useSavedFlash, useTheme, useWide, type Th
 
 export const SECTIONS = [
   { id: 'scenarios', label: 'Your scenarios', icon: 'scenarios', blurb: 'Pick your main scenario, edit or add one' },
+  { id: 'update', label: 'Update Plan/Scenario', icon: 'edit', blurb: 'Have Claude research a scenario in depth: every document, step and cost' },
   { id: 'plans', label: 'Plans from Claude', icon: 'docs', blurb: 'Import a plan for another country, made with Claude' },
   { id: 'settling', label: 'Settling', icon: 'flag', blurb: 'Your path to settling, and its conditions' },
   { id: 'loot', label: 'Loot', icon: 'loot', blurb: 'Link Loot and follow a savings goal' },
@@ -108,6 +110,8 @@ function SectionBody({ id }: { id: SectionId }) {
       return <QuotesSection />
     case 'plans':
       return <PlansSection />
+    case 'update':
+      return <UpdateSection />
     case 'loans':
       return (
         <Block note="Applies to every scenario. Borrowing lowers what you save, not what the move costs.">

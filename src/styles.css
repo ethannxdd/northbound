@@ -906,9 +906,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height:
 .cost-scroll { position: relative; }
 @media (max-width: 640px) {
   .topbar-in { row-gap: 10px; }
-  .topbar .pills { order: 3; flex: 1 1 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; border-radius: 999px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 5%, #000 88%, transparent); }
-  .topbar .pills::-webkit-scrollbar { display: none; }
-  .topbar .pills > a { flex: none; padding: 8px 14px; font-size: 14px; }
+  /* Phones: every nav link visible, wrapping onto a second row, no sideways scrolling */
+  .topbar .pills { order: 3; flex: 1 1 100%; flex-wrap: wrap; justify-content: center; gap: 2px; border-radius: 22px; }
+  .topbar .pills > a { flex: 1 1 auto; text-align: center; padding: 8px 10px; font-size: 13.5px; }
   .trip-bar { flex-wrap: wrap; }
 }
 
@@ -924,9 +924,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height:
   .doc-grid .facts3 div { padding: 9px 10px; }
   .doc-grid .facts3 b { font-size: 13px; line-height: 1.3; }
   .doc-grid .doc { padding: 18px; }
-  .filter-pills { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
-  .filter-pills::-webkit-scrollbar { display: none; }
-  .filter-pills button { flex: none; }
+  .filter-pills { flex-wrap: wrap; gap: 6px; }
+  .filter-pills button { flex: 1 1 auto; height: 36px; padding: 0 12px; }
 }
 .legend-sq span { white-space: nowrap; }
 .card-h { flex-wrap: wrap; row-gap: 6px; }
@@ -943,12 +942,18 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height:
   .life-side .num-tile.span2 .card-h { align-items: flex-start; }
 }
 @media (max-width: 640px) {
-  .cmp-table { min-width: 0; width: max-content; }
-  .cmp-table thead td { width: 112px; }
-  .cmp-table thead th { width: 168px; }
-  .cmp-table thead th, .cmp-table thead td, .cmp-table tbody th, .cmp-table tbody td { padding: 12px 12px; }
-  .cmp-table thead td, .cmp-table tbody th { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--hair); }
-  .cmp-table tr.big th { background: var(--surface); }
+  /* Phones: each row's label on its own line, the scenarios side by side under it, all within the screen */
+  .cmp-wrap { overflow: hidden; }
+  .cmp-table, .cmp-table thead, .cmp-table tbody { display: block; min-width: 0; width: 100%; }
+  .cmp-table tr { display: flex; flex-wrap: wrap; }
+  .cmp-table thead td { display: none; }
+  .cmp-table thead th, .cmp-table tbody td { flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
+  .cmp-table thead th:first-of-type, .cmp-table tbody td:first-of-type { border-left: 0; }
+  .cmp-table tbody th { flex: 1 1 100%; border-top: 1px solid var(--hair); padding-bottom: 4px !important; }
+  .cmp-table tbody td { border-top: 0; padding-top: 4px !important; }
+  .cmp-table thead th, .cmp-table tbody th, .cmp-table tbody td { padding: 12px 10px; }
+  .cmp-table .input.sm { font-size: 13px; padding-left: 8px; padding-right: 22px; background-position: calc(100% - 12px) 55%, calc(100% - 7px) 55%; }
+  .cmp-table tr.big th { background: var(--fill); }
   .cmp-table tbody th span { font-size: 13px; }
   .cmp-table tbody th small { font-size: 11px; }
   .cmp-table tr.big td > span { font-size: 18px; }
@@ -972,3 +977,44 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height:
 .photo-slot { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, var(--raised)), var(--raised)); }
 /* Google sign-in mark: Google's own colours, as its brand guidelines require */
 .g-y { fill: #FFC107; } .g-r { fill: #FF3D00; } .g-g { fill: #4CAF50; } .g-b { fill: #1976D2; }
+
+/* Claude's detail on an item, and removing items from a scenario */
+.idetail { border: 1px solid var(--hair); border-radius: var(--r-ctl); background: var(--fill-2); margin-top: 10px; }
+.idetail > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; font-size: 14px; font-weight: 600; color: var(--text); }
+.idetail > summary::-webkit-details-marker { display: none; }
+.idetail > summary::after { content: ''; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); margin-left: auto; flex: none; }
+.idetail[open] > summary::after { transform: rotate(-135deg); }
+.idetail > summary .tag { margin-left: auto; }
+.idetail-body { padding: 0 14px 14px; display: grid; gap: 10px; font-size: 14px; line-height: 1.55; color: var(--text-2); min-width: 0; overflow-wrap: anywhere; }
+.idetail-body p { margin: 0; }
+.idetail-body h4 { margin: 0 0 4px; font-size: 13px; font-weight: 700; color: var(--text); }
+.idetail-body ul, .idetail-body ol { margin: 0; padding-left: 20px; display: grid; gap: 3px; }
+.idetail-warn { padding: 10px 12px; border-radius: 12px; background: var(--warn-tint); color: var(--warn-text); }
+.idetail-warn h4 { color: inherit; }
+.idetail-facts { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.idetail-facts div { background: var(--surface); border: 1px solid var(--hair); border-radius: 12px; padding: 8px 10px; min-width: 0; }
+.idetail-facts dt { font-size: 12px; color: var(--muted); }
+.idetail-facts dd { margin: 2px 0 0; font-weight: 600; color: var(--text); }
+.doc-foot, .why-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.why-foot { margin-top: 10px; }
+.sd-remove { display: flex; justify-content: flex-end; margin-top: 10px; }
+.removed-list { border: 1px dashed var(--hair-strong); border-radius: var(--r-tile); padding: 12px 16px; }
+.removed-list > summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-2); }
+.removed-list .qs-list { margin-top: 10px; }
+
+/* Phones: the cost table stacks, so nothing needs sideways scrolling */
+@media (max-width: 640px) {
+  .cost-table { min-width: 0; }
+  .cost-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .cost-table, .cost-table tbody { display: block; width: 100%; }
+  .cost-table tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: center; column-gap: 10px; padding: 14px 18px; border-top: 1px solid var(--hair); }
+  .cost-table tbody th, .cost-table tbody td { display: block; padding: 0; border: 0; width: auto; min-width: 0; }
+  .cost-table tbody th { grid-column: 1 / -1; margin-bottom: 8px; overflow-wrap: anywhere; }
+  .cost-table tbody tr.why-row { display: block; padding: 0 12px 14px; border-top: 0; }
+  .cost-table tbody tr.why-row td { display: block; }
+  .cost-card-h { padding: 16px 18px; }
+  .money-head > .btn { width: 100%; }
+}
+/* Long words and links never push a card wider than the screen */
+.card, .doc, .why, .note, .sblock, .plan-preview { overflow-wrap: anywhere; }
+.prompt-peek pre { white-space: pre-wrap; overflow-wrap: anywhere; }

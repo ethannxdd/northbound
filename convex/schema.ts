@@ -28,6 +28,8 @@ export const scenarioFields = {
   destinationId: v.optional(v.string()),
   /** City id within that plan */
   destCity: v.optional(v.string()),
+  /** Items removed from this scenario: "cost:<key>", "step:<key>" or "doc:<key>" */
+  hidden: v.optional(v.array(v.string())),
 }
 
 export const docStatus = v.union(v.literal('todo'), v.literal('ordered'), v.literal('arrived'), v.literal('checked'))
@@ -140,6 +142,15 @@ export default defineSchema({
     json: v.string(),
     importedAt: v.number(),
   }).index('by_user_slug', ['userId', 'slug']),
+
+  // Claude's details file for one scenario: deeper detail on each item, plus items Northbound was missing.
+  scenarioDetails: defineTable({
+    userId: v.string(),
+    scenarioId: v.id('scenarios'),
+    /** The details file, as checked JSON */
+    json: v.string(),
+    importedAt: v.number(),
+  }).index('by_user_scenario', ['userId', 'scenarioId']),
 
   // Your own costs that aren't in the baseline. Valued at their newest quote.
   customCosts: defineTable({

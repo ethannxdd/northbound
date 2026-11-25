@@ -1,5 +1,7 @@
 // The paperwork for an Ancestry visa, in the order you'll usually get it.
 
+import type { ScenarioInput } from './types'
+
 export type DocStatus = 'todo' | 'ordered' | 'arrived' | 'checked'
 
 export interface DocDef {
@@ -31,11 +33,61 @@ export function atLeast(s: DocStatus | undefined, min: DocStatus): boolean {
   return STATUS_ORDER.indexOf(s ?? 'todo') >= STATUS_ORDER.indexOf(min)
 }
 
-/** Map steps that the paperwork tracker shows as done. A step needs every document linked to it. */
-export function tasksDoneByDocs(statuses: Record<string, DocStatus>): Set<string> {
+/** Map steps that the paperwork tracker shows as done. A step needs every document linked to it, except removed ones. */
+export function tasksDoneByDocs(statuses: Record<string, DocStatus>, hidden: string[] = []): Set<string> {
   const byTask = new Map<string, DocDef[]>()
-  for (const d of DOCUMENTS) if (d.task) byTask.set(d.task.key, [...(byTask.get(d.task.key) ?? []), d])
+  for (const d of DOCUMENTS) if (d.task && !hidden.includes(`doc:${d.key}`)) byTask.set(d.task.key, [...(byTask.get(d.task.key) ?? []), d])
   const out = new Set<string>()
   for (const [task, docs] of byTask) if (docs.every((d) => atLeast(statuses[d.key], d.task!.when))) out.add(task)
   return out
+}
+
+/** One document to track on a scenario: the UK list, an imported plan's, or one Claude's details file adds. */
+export interface ScenarioDoc extends DocDef {
+  /** How details files and the removed list refer to it: "doc:<key>" */
+  ref: string
+  /** A cost in words, from the plan or the details file */
+  cost?: string
+  takes?: string
+  url?: string
+  /** Added by Claude's details file */
+  added?: boolean
+}
+
+type Money = (n: number, currency: 'ZAR' | 'local' | undefined) => string
+
+/** Every document for the scenario, including removed ones. Filter with `hidden` to get what's on the list. */
+export function scenarioDocuments(s: ScenarioInput, money: Money): ScenarioDoc[] {
+  const pack = s.pack
+  const base: ScenarioDoc[] = pack
+    ? pack.documents.map((d) => ({
+        key: `${pack.id}:${d.key}`,
+        ref: `doc:${d.key}`,
+        name: d.name,
+        from: d.from,
+        check: d.check,
+        optional: d.optional,
+        url: d.url,
+        takes: d.takes,
+        cost: d.cost ? money(d.cost, d.costCurrency) : undefined,
+      }))
+    : DOCUMENTS.map((d) => ({ ...d, ref: `doc:${d.key}` }))
+  const added: ScenarioDoc[] = (s.details?.addDocuments ?? []).map((d) => ({
+    key: `added-${d.key}`,
+    ref: `doc:added-${d.key}`,
+    name: d.name,
+    from: d.from,
+    check: d.check,
+    optional: d.optional,
+    url: d.url,
+    takes: d.takes,
+    cost: d.cost ? money(d.cost, d.costCurrency) : undefined,
+    added: true,
+  }))
+  return [...base, ...added]
+}
+
+export function visibleDocuments(s: ScenarioInput, money: Money): ScenarioDoc[] {
+  const hidden = new Set(s.hidden ?? [])
+  return scenarioDocuments(s, money).filter((d) => !hidden.has(d.ref))
 }

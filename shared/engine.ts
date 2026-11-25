@@ -121,6 +121,8 @@ export interface LineItem {
   basis?: string
   /** The rules this figure uses, so the UI can link to them */
   ruleKeys?: RuleKey[]
+  /** Added or corrected by Claude's details file */
+  fromDetails?: boolean
 }
 
 export type GroupId = 'paper' | 'move' | 'runway'
@@ -225,9 +227,39 @@ export function runwayMonths(s: ScenarioInput): number {
   return s.jobHuntMonths + 1
 }
 
-/** Everything you need saved before you go, grouped like the map's three lines. Pounds. This is the baseline: no quotes. */
+/**
+ * Everything you need saved before you go, grouped like the map's three lines. Pounds. This is the baseline: no quotes.
+ * Claude's details file can correct a figure or add a cost; items you removed from the scenario are left out.
+ */
 export function upfrontCosts(s: ScenarioInput, landDate: string, ov?: RuleOverrides): { groups: CostGroup[]; total: number } {
-  if (s.pack) return packUpfrontCosts(s, s.pack, landDate)
+  const hidden = new Set(s.hidden ?? [])
+  const groups = allUpfrontCosts(s, landDate, ov).groups.map((g) => {
+    const items = g.items.filter((i) => !hidden.has(`cost:${i.key}`))
+    return { ...g, items, total: sum(items) }
+  })
+  return { groups, total: groups.reduce((a, g) => a + g.total, 0) }
+}
+
+/** Every cost line, including the ones removed from the scenario, so they can be listed and restored. */
+export function allUpfrontCosts(s: ScenarioInput, landDate: string, ov?: RuleOverrides): { groups: CostGroup[]; total: number } {
+  const base = s.pack ? packUpfrontCosts(s, s.pack, landDate) : ukUpfrontCosts(s, landDate, ov)
+  const d = s.details
+  if (!d) return base
+  const p = people(s)
+  const toLocal = (amount: number, currency: 'ZAR' | 'local' | undefined) => (currency === 'ZAR' ? amount / s.rate : amount)
+  const groups = base.groups.map((g) => {
+    const items = g.items.map((i) => {
+      const fix = d.items.find((x) => x.ref === `cost:${i.key}` && x.amount !== undefined)
+      return fix ? { ...i, gbp: toLocal(fix.amount!, fix.currency), basis: fix.cost ?? fix.summary ?? 'Figure from Claude\'s update', ruleKeys: undefined, fromDetails: true } : i
+    })
+    for (const x of (d.addCosts ?? []).filter((c) => c.group === g.id))
+      items.push({ key: `d-${x.key}`, label: x.label + (x.perPerson && p > 1 ? ', 2 people' : ''), gbp: toLocal(x.amount, x.currency) * (x.perPerson ? p : 1), basis: x.basis, fromDetails: true })
+    return { ...g, items, total: sum(items) }
+  })
+  return { groups, total: groups.reduce((a, g) => a + g.total, 0) }
+}
+
+function ukUpfrontCosts(s: ScenarioInput, landDate: string, ov?: RuleOverrides): { groups: CostGroup[]; total: number } {
   const c = CITIES[s.city]
   const p = people(s)
   const r = s.rate
@@ -392,6 +424,8 @@ export interface PlanLine {
   planGbp: number
   custom: boolean
   quoteCount: number
+  /** Added or corrected by Claude's details file */
+  fromDetails?: boolean
 }
 
 export interface PlanGroup {
@@ -435,7 +469,7 @@ export function planTotal(costs: { groups: CostGroup[] }, quotes: QuoteLike[] = 
         quotedCount++
         mineGbp += mine
       }
-      return { key: i.key, label: i.label, basis: i.basis, ruleKeys: i.ruleKeys, baselineGbp: i.gbp, mineGbp: mine, planGbp: mine ?? i.gbp, custom: false, quoteCount: counts.get(i.key) ?? 0 }
+      return { key: i.key, label: i.label, basis: i.basis, ruleKeys: i.ruleKeys, baselineGbp: i.gbp, mineGbp: mine, planGbp: mine ?? i.gbp, custom: false, quoteCount: counts.get(i.key) ?? 0, fromDetails: i.fromDetails }
     })
     for (const c of customs.filter((x) => x.group === g.id)) {
       const q = newest.get(c.id)

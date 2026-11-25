@@ -5,6 +5,7 @@ import type { Id } from './_generated/dataModel'
 import { scenarioFields } from './schema'
 import { dataKey, requireKey } from './lib/user'
 import { copyQuotes, deleteQuotes } from './quotes'
+import { copyDetails, deleteDetails } from './details'
 
 declare const process: { env: Record<string, string | undefined> }
 
@@ -26,7 +27,7 @@ export const me = query({
   handler: async (ctx) => {
     const uid = await userId(ctx)
     if (!uid) return null
-    const [profile, scenarios, done, overrides, documents, earnings, share, fx, quotes, customCosts, destinations] = await Promise.all([
+    const [profile, scenarios, done, overrides, documents, earnings, share, fx, quotes, customCosts, destinations, details] = await Promise.all([
       profileOf(ctx, uid),
       ctx.db.query('scenarios').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
       ctx.db.query('done').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
@@ -38,6 +39,7 @@ export const me = query({
       ctx.db.query('quotes').withIndex('by_user_scenario', (q) => q.eq('userId', uid)).take(2000),
       ctx.db.query('customCosts').withIndex('by_user_scenario', (q) => q.eq('userId', uid)).take(500),
       ctx.db.query('destinations').withIndex('by_user_slug', (q) => q.eq('userId', uid)).take(50),
+      ctx.db.query('scenarioDetails').withIndex('by_user_scenario', (q) => q.eq('userId', uid)).take(200),
     ])
     const authId = await getAuthUserId(ctx)
     const user = authId ? await ctx.db.get(authId) : null
@@ -48,7 +50,7 @@ export const me = query({
       /** Signed in with an old app version that sends Loot's token directly */
       legacyLoot: !authId && !!(await ctx.auth.getUserIdentity()),
     }
-    return { profile, scenarios, done, overrides, documents, earnings, shareToken: share?.token ?? null, fx: fx.reverse(), account, quotes, customCosts, destinations }
+    return { profile, scenarios, done, overrides, documents, earnings, shareToken: share?.token ?? null, fx: fx.reverse(), account, quotes, customCosts, destinations, details }
   },
 })
 
@@ -155,6 +157,7 @@ export const saveScenario = mutation({
       if (a.copyFrom) {
         await ownScenario(ctx, uid, a.copyFrom)
         await copyQuotes(ctx, uid, a.copyFrom, id)
+        await copyDetails(ctx, uid, a.copyFrom, id)
       }
     }
     if (a.makeActive) {
@@ -173,6 +176,7 @@ export const deleteScenario = mutation({
     const all = await ctx.db.query('scenarios').withIndex('by_user', (q) => q.eq('userId', uid)).collect()
     if (all.length <= 1) throw new Error('Keep at least one scenario')
     await deleteQuotes(ctx, uid, a.id)
+    await deleteDetails(ctx, uid, a.id)
     await ctx.db.delete(a.id)
     const p = await profileOf(ctx, uid)
     if (p && p.activeScenarioId === a.id) await ctx.db.patch(p._id, { activeScenarioId: all.find((s) => s._id !== a.id)!._id })
@@ -216,7 +220,7 @@ export const resetAll = mutation({
   args: {},
   handler: async (ctx) => {
     const uid = await requireUser(ctx)
-    for (const t of ['quotes', 'customCosts'] as const) {
+    for (const t of ['quotes', 'customCosts', 'scenarioDetails'] as const) {
       const rows = await ctx.db.query(t).withIndex('by_user_scenario', (q) => q.eq('userId', uid)).collect()
       for (const r of rows) await ctx.db.delete(r._id)
     }

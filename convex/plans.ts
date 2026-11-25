@@ -104,7 +104,7 @@ export const removePlan = mutation({
       .withIndex('by_user', (q) => q.eq('userId', uid))
       .unique()
     for (const s of using) {
-      for (const t of ['quotes', 'customCosts'] as const) {
+      for (const t of ['quotes', 'customCosts', 'scenarioDetails'] as const) {
         const rows = await ctx.db
           .query(t)
           .withIndex('by_user_scenario', (q) => q.eq('userId', uid).eq('scenarioId', s._id))

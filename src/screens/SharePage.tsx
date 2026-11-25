@@ -6,6 +6,7 @@ import { monthYear, monthsBetween, todayIso } from '@shared/dates'
 import { cityOf, plan as planOf, progress, routePlaces, visaName } from '@shared/engine'
 import { buildTimeline } from '@shared/timeline'
 import { DEFAULT_SCENARIO } from '@shared/types'
+import type { ScenarioDetails } from '@shared/details'
 import { tasksDoneByDocs, type DocStatus } from '@shared/documents'
 import { zar, pct } from '../lib/format'
 import { Loading } from '../lib/ui'
@@ -31,11 +32,11 @@ export default function SharePage() {
     )
   }
   const today = todayIso()
-  const base = { ...DEFAULT_SCENARIO, ...data.input, pack: data.pack ?? undefined }
+  const base = { ...DEFAULT_SCENARIO, ...data.input, pack: data.pack ?? undefined, details: data.details ? (JSON.parse(data.details) as ScenarioDetails) : undefined }
   const input = !base.pack && base.rateMode === 'live' && data.liveRate ? { ...base, rate: Math.round(data.liveRate * 100) / 100 } : base
   const p = planOf(input, { savedZar: data.savedZar, monthlyZar: data.monthlyZar }, today, undefined, { quotes: data.quotes, customs: data.customs, borrowing: { loanZar: data.borrowedZar } })
   const prog = progress(data.savedZar, p.saveTargetZar, routePlaces(input))
-  const done = new Set([...data.done, ...tasksDoneByDocs(data.docStatuses as Record<string, DocStatus>)])
+  const done = new Set([...data.done, ...tasksDoneByDocs(data.docStatuses as Record<string, DocStatus>, data.input.hidden)])
   const city = cityOf(input)
   const photo = cityPhoto(city, 1600)
   const timeline = buildTimeline(input, p.landDate, today)

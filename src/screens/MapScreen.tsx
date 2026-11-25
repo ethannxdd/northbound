@@ -4,6 +4,7 @@ import RemindersControls from '../components/Reminders'
 import TransitMap, { StopDetail, useTimeline } from '../components/TransitMap'
 import { useApp } from '../lib/app'
 import { useWide } from '../lib/ui'
+import { RemovedList } from '../components/DetailBits'
 
 export default function MapScreen() {
   const { input, done, savings } = useApp()
@@ -34,12 +35,13 @@ export default function MapScreen() {
           </div>
         </div>
         <TransitMap selectedKey={wide ? shown?.key : undefined} onSelect={wide ? setSelected : undefined} />
+        <RemovedList kind="step" />
         <div className="divider" />
         <RemindersControls compact />
       </section>
       {wide && shown && (
         <aside aria-label="Selected stop" className="map-aside glass">
-          <StopDetail task={shown} />
+          <StopDetail task={shown} onRemoved={() => setSelected(null)} />
         </aside>
       )}
     </div>

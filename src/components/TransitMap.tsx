@@ -6,6 +6,8 @@ import { buildTimeline, type Line, type Task } from '@shared/timeline'
 import { cityOf } from '@shared/engine'
 import { useActions, useApp } from '../lib/app'
 import { Sheet } from '../lib/ui'
+import { detailFor } from '@shared/details'
+import { ItemDetailView, RemoveButton } from './DetailBits'
 
 const SHORT: Record<string, string> = {
   'sa-certs': 'Unabridged birth certificates',
@@ -136,8 +138,9 @@ export default function TransitMap({ selectedKey, onSelect }: { animate?: boolea
 }
 
 /** What a stop is, what it costs, and the steps in order. Used in the sheet and the desktop panel. */
-export function StopDetail({ task: t }: { task: Task }) {
-  const { done, ticked, today, totals } = useApp()
+export function StopDetail({ task: t, onRemoved }: { task: Task; onRemoved?: () => void }) {
+  const { done, ticked, today, totals, input } = useApp()
+  const detail = detailFor(input.details, `step:${t.key}`)
   const { toggleDone } = useActions()
   const isDone = done.has(t.key)
   const viaPaperwork = isDone && !ticked.has(t.key)
@@ -171,6 +174,7 @@ export function StopDetail({ task: t }: { task: Task }) {
           <li key={s}>{s}</li>
         ))}
       </ol>
+      <ItemDetailView detail={detail} />
       {lines.length > 0 && (
         <div className="sd-quote">
           <span>
@@ -205,6 +209,9 @@ export function StopDetail({ task: t }: { task: Task }) {
           </button>
         )}
       </div>
+      <div className="sd-remove">
+        <RemoveButton refKey={`step:${t.key}`} label={t.title} onRemoved={onRemoved} />
+      </div>
     </div>
   )
 }
@@ -215,7 +222,7 @@ export function StopSheet({ task, onClose }: { task: Task | null; onClose: () =>
   const t = task ?? last
   return (
     <Sheet open={!!task} onClose={onClose} label={t?.title ?? 'Stop'}>
-      {t && <StopDetail task={t} />}
+      {t && <StopDetail task={t} onRemoved={onClose} />}
     </Sheet>
   )
 }

@@ -1,6 +1,7 @@
 import { CITIES } from './cities'
 import { addDays, addMonths } from './dates'
-import { cityOf, runwayMonths, upfrontCosts } from './engine'
+import { allUpfrontCosts, cityOf, runwayMonths } from './engine'
+import { KEEP_REFS } from './details'
 import type { DestinationPack } from './pack'
 import { rule, type RuleOverrides } from './rules'
 import type { ScenarioInput } from './types'
@@ -28,13 +29,39 @@ export interface Task {
  * Paperwork, money and move run as three lines that join at the visa decision.
  */
 export function buildTimeline(s: ScenarioInput, landDate: string, today: string, ov?: RuleOverrides): Task[] {
-  if (s.pack) return packTimeline(s, s.pack, landDate, today)
+  const hidden = new Set(s.hidden ?? [])
+  return allTimeline(s, landDate, today, ov).filter((t) => KEEP_REFS.has(`step:${t.key}`) || !hidden.has(`step:${t.key}`))
+}
+
+/** Every step, including ones removed from the scenario, plus any steps Claude's details file adds. */
+export function allTimeline(s: ScenarioInput, landDate: string, today: string, ov?: RuleOverrides): Task[] {
+  const base = s.pack ? packTimeline(s, s.pack, landDate, today) : ukTimeline(s, landDate, today, ov)
+  const added = s.details?.addSteps ?? []
+  if (!added.length) return base
+  const notBefore = (d: string) => (d < today ? today : d)
+  const extra: Task[] = added.map((st) => ({
+    key: `added-${st.key}`,
+    title: st.title,
+    short: st.short,
+    line: st.line,
+    milestone: st.milestone,
+    due: st.monthsBeforeLanding === 'now' ? today : st.monthsBeforeLanding > 0 ? notBefore(addMonths(landDate, -st.monthsBeforeLanding)) : addMonths(landDate, -st.monthsBeforeLanding),
+    cost: st.cost,
+    takes: st.takes,
+    from: st.from,
+    url: st.url,
+    steps: st.steps,
+  }))
+  return [...base, ...extra].sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : 0))
+}
+
+function ukTimeline(s: ScenarioInput, landDate: string, today: string, ov?: RuleOverrides): Task[] {
   const city = CITIES[s.city].name
   const window = rule('applyWindowMonths', landDate, ov)
   const applyDate = addMonths(landDate, -window)
   const decision = addDays(applyDate, rule('decisionWeeks', landDate, ov) * 7)
   const notBefore = (d: string) => (d < today ? today : d)
-  const costs = upfrontCosts(s, landDate, ov)
+  const costs = allUpfrontCosts({ ...s, details: undefined }, landDate, ov)
   const ihs = rule('ihsPerYear', landDate, ov) * rule('visaYears', landDate, ov)
 
   const tasks: Task[] = [

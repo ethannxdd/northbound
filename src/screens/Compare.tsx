@@ -45,7 +45,7 @@ export default function Compare() {
 
   const stats = cols.map((o) => {
     const p = planFor(o.input, o.id)
-    const input = effective(o.input)
+    const input = effective(o.input, o.id)
     const ex = extrasFor(o.id)
     const t = planTotal(upfrontCosts(input, p.landDate, overrides), ex.quotes, ex.customs, input.rate)
     const budget = monthlyBudget(input, p.landDate, overrides, ex.borrowing)

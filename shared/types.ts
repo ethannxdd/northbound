@@ -1,5 +1,6 @@
 import type { CityId, Housing } from './cities'
 import type { DestinationPack } from './pack'
+import type { ScenarioDetails } from './details'
 
 export type LandMode = 'date' | 'saved'
 
@@ -38,6 +39,10 @@ export interface ScenarioInput {
   destCity?: string
   /** The plan itself, attached at runtime by the app. Never saved on the scenario. */
   pack?: DestinationPack
+  /** Items removed from this scenario: "cost:<key>", "step:<key>" or "doc:<key>" */
+  hidden?: string[]
+  /** Claude's details file for this scenario, attached at runtime. Never saved on the scenario. */
+  details?: ScenarioDetails
 }
 
 /** Where your savings are now and how fast they grow, in rand. */
