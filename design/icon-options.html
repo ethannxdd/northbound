@@ -1,0 +1,390 @@
+<title>Northbound Icon Options</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one column of option cards, each showing the icon where it will really live (home screen, round mask, browser tab), then a side-by-side strip at favicon size. */
+:root {
+  --bg: #05070B; --surface: #0E131A; --raised: #131A23; --hair: rgba(255,255,255,0.08);
+  --text: #F5F5F7; --text-2: #CAD3DE; --muted: #98A4B3; --accent: #4AA8FF;
+  --tab-dark: #1B2129; --tab-dark-bar: #0F1318; --tab-light: #FFFFFF; --tab-light-bar: #DEE3EA;
+  --tab-dark-text: #E7EBF0; --tab-light-text: #1F2733;
+  --wall-a: #1E3A5F; --wall-b: #0A1320; --wall-c: #2B1F45;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
+  --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, system-ui, sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  --bg: #F4F7FA; --surface: #FFFFFF; --raised: #EEF2F6; --hair: rgba(11,18,32,0.1);
+  --text: #0B1220; --text-2: #2E3A4B; --muted: #4F5B6C; --accent: #0066CC; color-scheme: light;
+} }
+:root[data-theme="light"] {
+  --bg: #F4F7FA; --surface: #FFFFFF; --raised: #EEF2F6; --hair: rgba(11,18,32,0.1);
+  --text: #0B1220; --text-2: #2E3A4B; --muted: #4F5B6C; --accent: #0066CC; color-scheme: light;
+}
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+h1 { font-family: var(--display); font-size: clamp(30px, 5vw, 44px); letter-spacing: -0.03em; line-height: 1.05; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-size: 22px; letter-spacing: -0.02em; margin: 0; }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 62ch; }
+.lbl { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+.opt { background: var(--surface); border: 1px solid var(--hair); border-radius: 30px; padding: 24px; display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 28px; align-items: start; }
+.opt.pick { outline: 2px solid var(--accent); outline-offset: 3px; }
+.hero { display: grid; gap: 14px; justify-items: center; }
+.ic { display: block; border-radius: 22.5%; overflow: hidden; flex: none; }
+.ic.round { border-radius: 50%; }
+.ic.big { width: 168px; height: 168px; box-shadow: 0 24px 48px -20px rgba(0,0,0,0.6); }
+.tag { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--raised); color: var(--text-2); }
+.tag.rec { background: var(--accent); color: var(--bg); }
+.body { display: grid; gap: 18px; min-width: 0; }
+.head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.why { color: var(--text-2); max-width: 60ch; }
+.uses { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.use { background: var(--raised); border-radius: 18px; padding: 14px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+
+.home { height: 112px; border-radius: 14px; background: radial-gradient(120% 90% at 20% 0%, var(--wall-a), transparent 60%), radial-gradient(90% 80% at 100% 100%, var(--wall-c), transparent 60%), var(--wall-b); display: grid; place-items: center; }
+.app { display: grid; justify-items: center; gap: 5px; }
+.app .ic { width: 58px; height: 58px; }
+.app span { font-size: 11px; color: #FFFFFF; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+.mask { height: 112px; border-radius: 14px; background: #ECEFF3; display: grid; place-items: center; }
+.mask .ic { width: 64px; height: 64px; }
+.sizes { display: flex; align-items: end; gap: 14px; height: 112px; justify-content: center; }
+.sizes figure { margin: 0; display: grid; justify-items: center; gap: 6px; }
+.sizes figcaption { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tabs { display: grid; gap: 8px; }
+.tab { display: flex; align-items: center; gap: 8px; padding: 0 10px; height: 34px; border-radius: 10px 10px 0 0; font-size: 12.5px; }
+.tabbar { padding: 6px 8px 0; border-radius: 10px; }
+.tabbar.dark { background: var(--tab-dark-bar); }
+.tabbar.dark .tab { background: var(--tab-dark); color: var(--tab-dark-text); }
+.tabbar.light { background: var(--tab-light-bar); }
+.tabbar.light .tab { background: var(--tab-light); color: var(--tab-light-text); }
+.tab .ic { border-radius: 3.5px; }
+
+.strip { background: var(--surface); border: 1px solid var(--hair); border-radius: 30px; padding: 24px; display: grid; gap: 16px; }
+.cmp { overflow-x: auto; }
+.cmp table { border-collapse: collapse; width: 100%; min-width: 520px; }
+.cmp th, .cmp td { padding: 10px 8px; text-align: center; font-size: 13px; }
+.cmp th { color: var(--muted); font-weight: 600; }
+.cmp td.k { text-align: left; color: var(--muted); white-space: nowrap; }
+.cell { display: inline-grid; place-items: center; width: 44px; height: 32px; border-radius: 8px; }
+.cell.d { background: var(--tab-dark); }
+.cell.l { background: var(--tab-light); border: 1px solid #DEE3EA; }
+.note { color: var(--muted); font-size: 13.5px; max-width: 70ch; }
+
+@media (max-width: 720px) {
+  .opt { grid-template-columns: minmax(0, 1fr); padding: 18px; gap: 18px; }
+  .ic.big { width: 132px; height: 132px; }
+}
+</style>
+
+<!-- Every icon is a background plus a mark, drawn once on a 120 grid and reused at every size. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="g-navy" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14253F"/><stop offset="1" stop-color="#05070B"/></linearGradient>
+    <linearGradient id="g-ink" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0E1520"/><stop offset="1" stop-color="#05070B"/></linearGradient>
+    <radialGradient id="g-glow" cx="0.5" cy="0" r="0.75"><stop offset="0" stop-color="#4AA8FF" stop-opacity="0.5"/><stop offset="1" stop-color="#4AA8FF" stop-opacity="0"/></radialGradient>
+    <radialGradient id="g-glow-tr" cx="0.78" cy="0.2" r="0.6"><stop offset="0" stop-color="#4AA8FF" stop-opacity="0.32"/><stop offset="1" stop-color="#4AA8FF" stop-opacity="0"/></radialGradient>
+    <linearGradient id="g-sheen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.1"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+    <linearGradient id="g-accent" gradientUnits="userSpaceOnUse" x1="0" y1="22" x2="0" y2="98"><stop offset="0" stop-color="#9AD4FF"/><stop offset="1" stop-color="#2F8BFF"/></linearGradient>
+    <linearGradient id="g-tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6CC0FF"/><stop offset="1" stop-color="#2A7FF0"/></linearGradient>
+
+    <!-- A: Glass arrow -->
+    <symbol id="bg-a" viewBox="0 0 120 120"><rect width="120" height="120" fill="url(#g-navy)"/><rect width="120" height="120" fill="url(#g-glow)"/><rect width="120" height="56" fill="url(#g-sheen)"/></symbol>
+    <symbol id="art-a" viewBox="0 0 120 120"><path d="M60 94V27M36 51l24-24 24 24" fill="none" stroke="url(#g-accent)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+
+    <!-- B: Junction -->
+    <symbol id="bg-b" viewBox="0 0 120 120"><rect width="120" height="120" fill="url(#g-ink)"/><rect width="120" height="56" fill="url(#g-sheen)"/></symbol>
+    <symbol id="art-b" viewBox="0 0 120 120">
+      <g fill="none" stroke-width="9" stroke-linecap="round">
+        <path d="M33 102V80C33 66 60 68 60 52" stroke="#C08BFF"/>
+        <path d="M87 102V80C87 66 60 68 60 52" stroke="#64D2FF"/>
+        <path d="M60 102V52" stroke="#5FE3B0"/>
+        <path d="M60 52V34" stroke="#F5F5F7"/>
+      </g>
+      <circle cx="60" cy="25" r="10" fill="#05070B" stroke="#F5F5F7" stroke-width="7"/>
+    </symbol>
+
+    <!-- C: Compass -->
+    <symbol id="bg-c" viewBox="0 0 120 120"><rect width="120" height="120" fill="url(#g-navy)"/><rect width="120" height="56" fill="url(#g-sheen)"/><circle cx="60" cy="60" r="42" fill="none" stroke="#FFFFFF" stroke-opacity="0.14" stroke-width="3"/></symbol>
+    <symbol id="art-c" viewBox="0 0 120 120">
+      <path d="M60 16L75 60H45Z" fill="url(#g-accent)"/>
+      <path d="M45 60H75L60 104Z" fill="#2A3646"/>
+      <circle cx="60" cy="60" r="6" fill="#F5F5F7"/>
+    </symbol>
+
+    <!-- D: Flight path -->
+    <symbol id="bg-d" viewBox="0 0 120 120"><rect width="120" height="120" fill="url(#g-ink)"/><rect width="120" height="120" fill="url(#g-glow-tr)"/><rect width="120" height="56" fill="url(#g-sheen)"/></symbol>
+    <symbol id="art-d" viewBox="0 0 120 120">
+      <path d="M31 92C31 58 54 36 86 33" fill="none" stroke="#4AA8FF" stroke-width="7" stroke-linecap="round" stroke-dasharray="0.1 12"/>
+      <circle cx="31" cy="93" r="9" fill="#5FE3B0"/>
+      <circle cx="88" cy="32" r="11" fill="#05070B" stroke="#F5F5F7" stroke-width="7"/>
+    </symbol>
+
+    <!-- E: North N -->
+    <symbol id="bg-e" viewBox="0 0 120 120"><rect width="120" height="120" fill="url(#g-tile)"/><rect width="120" height="56" fill="url(#g-sheen)"/></symbol>
+    <symbol id="art-e" viewBox="0 0 120 120"><path d="M35 92V30L85 90V28M71 42l14-14 14 14" fill="none" stroke="#05070B" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+
+    <!-- Round 2 -->
+    <linearGradient id="g-route" gradientUnits="userSpaceOnUse" x1="31" y1="92" x2="88" y2="32"><stop offset="0" stop-color="#5FE3B0"/><stop offset="1" stop-color="#4AA8FF"/></linearGradient>
+    <radialGradient id="g-halo" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#4AA8FF" stop-opacity="0.45"/><stop offset="1" stop-color="#4AA8FF" stop-opacity="0"/></radialGradient>
+    <linearGradient id="g-paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E6ECF3"/></linearGradient>
+
+    <!-- B2: Junction, glass. Navy glass, a glow behind the station, a blue light in the station. -->
+    <symbol id="bg-b2" viewBox="0 0 120 120"><rect width="120" height="120" fill="url(#g-navy)"/><rect width="120" height="120" fill="url(#g-glow)"/><circle cx="60" cy="26" r="30" fill="url(#g-halo)"/><rect width="120" height="56" fill="url(#g-sheen)"/></symbol>
+    <symbol id="art-b2" viewBox="0 0 120 120">
+      <g fill="none" stroke-width="10" stroke-linecap="round">
+        <path d="M32 104V82C32 66 60 70 60 52" stroke="#C08BFF"/>
+        <path d="M88 104V82C88 66 60 70 60 52" stroke="#64D2FF"/>
+        <path d="M60 104V52" stroke="#5FE3B0"/>
+        <path d="M60 52V37" stroke="#F5F5F7"/>
+      </g>
+      <circle cx="60" cy="26" r="11" fill="#0B1220" stroke="#F5F5F7" stroke-width="7"/>
+      <circle cx="60" cy="26" r="3.5" fill="#4AA8FF"/>
+    </symbol>
+
+    <!-- B3: Junction, light. The light-mode line colours, bold, on a pale tile. -->
+    <symbol id="bg-b3" viewBox="0 0 120 120"><rect width="120" height="120" fill="url(#g-paper)"/></symbol>
+    <symbol id="art-b3" viewBox="0 0 120 120">
+      <g fill="none" stroke-width="12" stroke-linecap="round">
+        <path d="M31 105V84C31 66 60 72 60 54" stroke="#8A4FD6"/>
+        <path d="M89 105V84C89 66 60 72 60 54" stroke="#0A84C4"/>
+        <path d="M60 105V54" stroke="#12936A"/>
+        <path d="M60 54V40" stroke="#0B1220"/>
+      </g>
+      <circle cx="60" cy="27" r="12" fill="#FFFFFF" stroke="#0B1220" stroke-width="8"/>
+    </symbol>
+
+    <!-- D2: Flight path, globe. Faint lines of latitude, bigger dots, a lit station. -->
+    <symbol id="bg-d2" viewBox="0 0 120 120"><rect width="120" height="120" fill="url(#g-ink)"/><rect width="120" height="120" fill="url(#g-glow-tr)"/>
+      <g fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="2"><path d="M-10 104Q60 76 130 104"/><path d="M-10 74Q60 46 130 74"/><path d="M-10 44Q60 16 130 44"/></g>
+      <rect width="120" height="56" fill="url(#g-sheen)"/></symbol>
+    <symbol id="art-d2" viewBox="0 0 120 120">
+      <path d="M31 90C31 58 54 37 84 34" fill="none" stroke="#4AA8FF" stroke-width="8" stroke-linecap="round" stroke-dasharray="0.1 14"/>
+      <circle cx="31" cy="92" r="16" fill="#5FE3B0" fill-opacity="0.18"/>
+      <circle cx="31" cy="92" r="9.5" fill="#5FE3B0"/>
+      <circle cx="88" cy="32" r="12" fill="#05070B" stroke="#F5F5F7" stroke-width="7"/>
+      <circle cx="88" cy="32" r="4" fill="#4AA8FF"/>
+    </symbol>
+
+    <!-- D3: Flight path, solid. One unbroken arc, mint to blue, so it holds at 16px. -->
+    <symbol id="bg-d3" viewBox="0 0 120 120"><rect width="120" height="120" fill="url(#g-navy)"/><rect width="120" height="120" fill="url(#g-glow-tr)"/><rect width="120" height="56" fill="url(#g-sheen)"/></symbol>
+    <symbol id="art-d3" viewBox="0 0 120 120">
+      <path d="M31 92C31 58 54 36 86 33" fill="none" stroke="url(#g-route)" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="31" cy="93" r="10" fill="#5FE3B0"/>
+      <circle cx="88" cy="32" r="12" fill="#05070B" stroke="#F5F5F7" stroke-width="7"/>
+    </symbol>
+
+    <!-- Round 3: B3, D3 and E3, each as a polished light and dark pair -->
+    <linearGradient id="g-route-l" gradientUnits="userSpaceOnUse" x1="31" y1="92" x2="88" y2="32"><stop offset="0" stop-color="#12936A"/><stop offset="1" stop-color="#0066CC"/></linearGradient>
+    <radialGradient id="g-halo-tr" cx="0.733" cy="0.267" r="0.3"><stop offset="0" stop-color="#4AA8FF" stop-opacity="0.45"/><stop offset="1" stop-color="#4AA8FF" stop-opacity="0"/></radialGradient>
+    <linearGradient id="g-paper-edge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="1" stop-color="#C9D3DF" stop-opacity="0.45"/></linearGradient>
+    <symbol id="bg-light" viewBox="0 0 120 120"><rect width="120" height="120" fill="url(#g-paper)"/><rect y="70" width="120" height="50" fill="url(#g-paper-edge)"/></symbol>
+
+    <!-- B4: Junction, light. The lines run in from off the tile, and the station is the accent blue. -->
+    <symbol id="art-b4" viewBox="0 0 120 120">
+      <g fill="none" stroke-width="12" stroke-linecap="round">
+        <path d="M31 130V86C31 68 60 74 60 56" stroke="#8A4FD6"/>
+        <path d="M89 130V86C89 68 60 74 60 56" stroke="#0A84C4"/>
+        <path d="M60 130V56" stroke="#12936A"/>
+        <path d="M60 56V42" stroke="#0B1220"/>
+      </g>
+      <circle cx="60" cy="29" r="12" fill="#FFFFFF" stroke="#0066CC" stroke-width="8"/>
+    </symbol>
+    <!-- B5: the same shape, dark -->
+    <symbol id="bg-b5" viewBox="0 0 120 120"><rect width="120" height="120" fill="url(#g-navy)"/><rect width="120" height="120" fill="url(#g-glow)"/><circle cx="60" cy="29" r="30" fill="url(#g-halo)"/><rect width="120" height="56" fill="url(#g-sheen)"/></symbol>
+    <symbol id="art-b5" viewBox="0 0 120 120">
+      <g fill="none" stroke-width="12" stroke-linecap="round">
+        <path d="M31 130V86C31 68 60 74 60 56" stroke="#C08BFF"/>
+        <path d="M89 130V86C89 68 60 74 60 56" stroke="#64D2FF"/>
+        <path d="M60 130V56" stroke="#5FE3B0"/>
+        <path d="M60 56V42" stroke="#F5F5F7"/>
+      </g>
+      <circle cx="60" cy="29" r="12" fill="#0B1220" stroke="#F5F5F7" stroke-width="8"/>
+      <circle cx="60" cy="29" r="4" fill="#4AA8FF"/>
+    </symbol>
+
+    <!-- D4: Flight path, light -->
+    <symbol id="art-d4" viewBox="0 0 120 120">
+      <path d="M31 92C31 58 54 36 86 33" fill="none" stroke="url(#g-route-l)" stroke-width="11" stroke-linecap="round"/>
+      <circle cx="31" cy="93" r="11" fill="#12936A" stroke="#FFFFFF" stroke-width="4"/>
+      <circle cx="88" cy="32" r="12" fill="#FFFFFF" stroke="#0B1220" stroke-width="8"/>
+    </symbol>
+    <!-- D5: Flight path, dark, polished: thicker arc, Cape Town set off with a dark ring, a lit station -->
+    <symbol id="bg-d5" viewBox="0 0 120 120"><rect width="120" height="120" fill="url(#g-navy)"/><rect width="120" height="120" fill="url(#g-glow-tr)"/><rect width="120" height="120" fill="url(#g-halo-tr)"/><rect width="120" height="56" fill="url(#g-sheen)"/></symbol>
+    <symbol id="art-d5" viewBox="0 0 120 120">
+      <path d="M31 92C31 58 54 36 86 33" fill="none" stroke="url(#g-route)" stroke-width="11" stroke-linecap="round"/>
+      <circle cx="31" cy="93" r="11" fill="#5FE3B0" stroke="#05070B" stroke-width="4"/>
+      <circle cx="88" cy="32" r="12" fill="#0B1220" stroke="#F5F5F7" stroke-width="8"/>
+      <circle cx="88" cy="32" r="4" fill="#4AA8FF"/>
+    </symbol>
+
+    <!-- E4: North N, light -->
+    <symbol id="art-e4" viewBox="0 0 120 120">
+      <g fill="none" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M35 92V30" stroke="#8A4FD6"/>
+        <path d="M85 90V28M71 42l14-14 14 14" stroke="#0A84C4"/>
+        <path d="M35 30L85 90" stroke="#12936A"/>
+      </g>
+    </symbol>
+    <!-- E5: North N, dark, with the arrow as the white main line, like the Junction trunk -->
+    <symbol id="art-e5" viewBox="0 0 120 120">
+      <g fill="none" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M35 92V30" stroke="#C08BFF"/>
+        <path d="M85 90V54" stroke="#64D2FF"/>
+        <path d="M85 54V28M71 42l14-14 14 14" stroke="#F5F5F7"/>
+        <path d="M35 30L85 90" stroke="#5FE3B0"/>
+      </g>
+    </symbol>
+
+    <!-- E2: North N, glass. The N in the accent gradient on navy glass. -->
+    <symbol id="bg-e2" viewBox="0 0 120 120"><rect width="120" height="120" fill="url(#g-navy)"/><rect width="120" height="120" fill="url(#g-glow)"/><rect width="120" height="56" fill="url(#g-sheen)"/></symbol>
+    <symbol id="art-e2" viewBox="0 0 120 120"><path d="M35 92V30L85 90V28M71 42l14-14 14 14" fill="none" stroke="url(#g-accent)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+
+    <!-- E3: North N, lines. Each stroke of the N is one of the map's lines. -->
+    <symbol id="bg-e3" viewBox="0 0 120 120"><rect width="120" height="120" fill="url(#g-ink)"/><rect width="120" height="56" fill="url(#g-sheen)"/></symbol>
+    <symbol id="art-e3" viewBox="0 0 120 120">
+      <g fill="none" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M35 92V30" stroke="#C08BFF"/>
+        <path d="M85 90V28M71 42l14-14 14 14" stroke="#64D2FF"/>
+        <path d="M35 30L85 90" stroke="#5FE3B0"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<main class="wrap">
+  <header style="display:grid; gap:12px">
+    <span class="lbl">Northbound · app icon</span>
+    <h1>Directions for the icon</h1>
+    <p class="lede">Each one is drawn in the glass look: the near-black navy, the accent blue and the map's line colours. You'll see it on a home screen, inside Android's round mask, and in a browser tab at real favicon size. The one you pick becomes the favicon, the home-screen icon on iPhone and Android, and the installed app icon.</p>
+  </header>
+
+  <section aria-labelledby="r3-h" style="display:grid; gap:20px">
+    <div style="display:grid; gap:8px">
+      <span class="lbl">Round 3 · B3, D3 and E3, polished</span>
+      <h2 id="r3-h" style="font-size:28px">Each favourite as a light and a dark icon</h2>
+      <p class="lede">You liked one light icon (B3) and two dark ones (D3, E3), so each now comes as a matched pair. Pick a shape and a look, or just a letter.</p>
+    </div>
+    <div id="opts3" style="display:grid; gap:20px"></div>
+  </section>
+
+  <section class="strip" aria-labelledby="cmp-h">
+    <h2 id="cmp-h">Your favourites at favicon size</h2>
+    <p class="note">This is the hardest test: a 16px icon in a browser tab. B3, D3 and E3 beside their round 3 versions, at true size in a dark and a light tab.</p>
+    <div class="cmp"><table id="cmp"></table></div>
+  </section>
+
+  <section aria-labelledby="r2-h" style="display:grid; gap:20px; margin-top:12px">
+    <div style="display:grid; gap:8px">
+      <span class="lbl">Round 2 · your three favourites, refined</span>
+      <h2 id="r2-h" style="font-size:28px">B, D and E, two ways each</h2>
+      <p class="lede">Each pair pushes the idea in a different direction. Round 1 is unchanged below, so you can compare.</p>
+    </div>
+    <div id="opts2" style="display:grid; gap:20px"></div>
+  </section>
+
+  <div style="display:grid; gap:8px; margin-top:12px">
+    <span class="lbl">Round 1 · the first five, unchanged</span>
+  </div>
+  <section id="opts" style="display:grid; gap:20px"></section>
+
+  <p class="note">Tell me the one you like (B4, D5, E5 and so on, or any from earlier rounds), or mix them (say, "E5 on B4's light tile"). Once you pick, I'll make the SVG favicon, the PNGs for iPhone and Android (including the round-mask version with a safe margin), and the installed-app icons, then check each one in the browser.</p>
+</main>
+
+<script>
+const OPTS = [
+  { id: 'a', name: 'Glass arrow', tags: [], why: "Today's up-arrow, set in the glass look: a deep navy tile, a soft blue glow from the top, and the arrow in the accent gradient. The safest change: people who know the app still recognise it." },
+  { id: 'b', name: 'Junction', tags: ['Recommended'], why: "The transit map in one mark. Paperwork (purple), money (mint) and move (cyan) run up, meet at the visa decision and carry on north as one line to your station. Only Northbound could have this icon, and the colours still read at 16px." },
+  { id: 'c', name: 'Compass', tags: [], why: 'A north needle, accent blue on top and dark below, inside a faint ring. The quickest to read at any size, but compasses are common in travel apps.' },
+  { id: 'd', name: 'Flight path', tags: [], why: 'The Progress route: a mint dot for Cape Town, a dotted arc north, and a station ring for your city. The most story, though the dots soften at 16px.' },
+  { id: 'e', name: 'North N', tags: [], why: 'An N whose last stroke turns into the up-arrow, in ink on the bright accent tile. A wordmark-style icon that stands out in a row of dark app icons.' },
+];
+
+const ROUND2 = [
+  { id: 'b2', name: 'Junction, glass', from: 'B', why: 'B in the full glass look: the navy tile and blue glow from the app, slightly thicker lines, a soft glow behind the station and a blue light in it, like the "you are here" stop on the map.' },
+  { id: 'b3', name: 'Junction, light', from: 'B', why: "B flipped to the app's light mode: bold lines in the light-mode colours on a pale tile. It stands out among dark icons and is the clearest of all at 16px in a light browser tab." },
+  { id: 'd2', name: 'Flight path, globe', from: 'D', why: "D with faint lines of latitude behind it, so it reads as a route across the globe. The dots are bigger and further apart, Cape Town has a soft halo, and your city's station is lit blue." },
+  { id: 'd3', name: 'Flight path, solid', from: 'D', why: "D with one unbroken arc fading from Cape Town's mint into the accent blue. It loses the dotted 'flight' feel but holds its shape at favicon size." },
+  { id: 'e2', name: 'North N, glass', from: 'E', why: "E on the app's navy glass, with the N in the accent gradient. It sits with the rest of the app instead of standing out from it." },
+  { id: 'e3', name: 'North N, lines', from: 'E', why: 'E built from the map: purple, mint and cyan, one line per stroke, with the last stroke heading north. It joins the N idea and the Junction idea in one mark.' },
+];
+const ROUND3 = [
+  { id: 'b4', name: 'Junction, light', from: 'B3', why: "B3 polished: the three lines now run in from off the bottom of the tile, as if the map carries on below, and the station at the top is the app's accent blue. A faint shade at the bottom of the pale tile gives it depth next to flat white icons." },
+  { id: 'b5', name: 'Junction, dark', from: 'B3', why: "The same shape in the dark glass look: the app's dark-mode line colours on navy, with the station lit blue and glowing. The dark twin of B4." },
+  { id: 'd4', name: 'Flight path, light', from: 'D3', why: "D3 on the pale tile: a thicker arc fading from Cape Town's green into the accent blue, with a white ring around Cape Town so it stays separate from the arc." },
+  { id: 'd5', name: 'Flight path, dark', from: 'D3', why: 'D3 polished: a thicker arc, Cape Town set off by a thin dark ring, and your city\'s station lit blue with a soft glow behind it.' },
+  { id: 'e4', name: 'North N, light', from: 'E3', why: "E3 on the pale tile in the app's light-mode line colours, slightly bolder so it holds at small sizes." },
+  { id: 'e5', name: 'North N, dark', from: 'E3', why: "E3 polished: the arrow at the end of the N is now the white main line, like the trunk in the Junction icon, so the N reads as three lines joining and heading north." },
+];
+// Icons that share a background.
+const BG = { b4: 'light', d4: 'light', e4: 'light', e5: 'e3' };
+const bgOf = (id) => BG[id] ?? id;
+const icon = (id, size, cls = '') => `<svg class="ic ${cls}" width="${size}" height="${size}" viewBox="0 0 120 120" role="img" aria-label="Option ${id.toUpperCase()}"><use href="#bg-${bgOf(id)}"/><use href="#art-${id}"/></svg>`;
+const masked = (id, size) => `<svg class="ic round" width="${size}" height="${size}" viewBox="0 0 120 120" role="img" aria-label="Option ${id.toUpperCase()} in a round mask"><use href="#bg-${bgOf(id)}"/><g transform="translate(60 60) scale(.8) translate(-60 -60)"><use href="#art-${id}"/></g></svg>`;
+
+const card = (o) => `
+  <article class="opt" id="opt-${o.id}" aria-labelledby="h-${o.id}">
+    <div class="hero">${icon(o.id, 168, 'big')}</div>
+    <div class="body">
+      <div class="head">
+        <span class="lbl">${o.id.toUpperCase()}</span>
+        <h2 id="h-${o.id}">${o.name}</h2>
+        ${o.from ? `<span class="tag">From ${o.from}</span>` : ''}
+      </div>
+      <p class="why">${o.why}</p>
+      <div class="uses">
+        <div class="use"><span class="lbl">Home screen</span><div class="home"><div class="app">${icon(o.id, 58)}<span>Northbound</span></div></div></div>
+        <div class="use"><span class="lbl">Android round mask</span><div class="mask">${masked(o.id, 64)}</div></div>
+        <div class="use"><span class="lbl">Sizes</span><div class="sizes">
+          <figure>${icon(o.id, 48)}<figcaption>48</figcaption></figure>
+          <figure>${icon(o.id, 32)}<figcaption>32</figcaption></figure>
+          <figure>${icon(o.id, 16)}<figcaption>16</figcaption></figure>
+        </div></div>
+        <div class="use"><span class="lbl">Browser tab</span><div class="tabs">
+          <div class="tabbar dark"><div class="tab">${icon(o.id, 16)}Northbound</div></div>
+          <div class="tabbar light"><div class="tab">${icon(o.id, 16)}Northbound</div></div>
+        </div></div>
+      </div>
+    </div>
+  </article>`;
+document.getElementById('opts2').innerHTML = ROUND2.map(card).join('');
+document.getElementById('opts3').innerHTML = ROUND3.map(card).join('');
+
+document.getElementById('opts').innerHTML = OPTS.map((o) => `
+  <article class="opt" id="opt-${o.id}" aria-labelledby="h-${o.id}">
+    <div class="hero">
+      ${icon(o.id, 168, 'big')}
+    </div>
+    <div class="body">
+      <div class="head">
+        <span class="lbl">Option ${o.id.toUpperCase()}</span>
+        <h2 id="h-${o.id}">${o.name}</h2>
+        ${o.tags.map((t) => `<span class="tag rec">${t}</span>`).join('')}
+      </div>
+      <p class="why">${o.why}</p>
+      <div class="uses">
+        <div class="use"><span class="lbl">Home screen</span><div class="home"><div class="app">${icon(o.id, 58)}<span>Northbound</span></div></div></div>
+        <div class="use"><span class="lbl">Android round mask</span><div class="mask">${masked(o.id, 64)}</div></div>
+        <div class="use"><span class="lbl">Sizes</span><div class="sizes">
+          <figure>${icon(o.id, 48)}<figcaption>48</figcaption></figure>
+          <figure>${icon(o.id, 32)}<figcaption>32</figcaption></figure>
+          <figure>${icon(o.id, 16)}<figcaption>16</figcaption></figure>
+        </div></div>
+        <div class="use"><span class="lbl">Browser tab</span><div class="tabs">
+          <div class="tabbar dark"><div class="tab">${icon(o.id, 16)}Northbound</div></div>
+          <div class="tabbar light"><div class="tab">${icon(o.id, 16)}Northbound</div></div>
+        </div></div>
+      </div>
+    </div>
+  </article>`).join('');
+
+// Your three favourites from round 2, each followed by its round 3 light and dark versions.
+const CMP = ['b3', 'b4', 'b5', 'd3', 'd4', 'd5', 'e3', 'e4', 'e5'];
+document.getElementById('cmp').innerHTML = `
+  <thead><tr><th></th>${CMP.map((id) => `<th>${id.toUpperCase()}</th>`).join('')}</tr></thead>
+  <tbody>
+    <tr><td class="k">Dark tab</td>${CMP.map((id) => `<td><span class="cell d">${icon(id, 16)}</span></td>`).join('')}</tr>
+    <tr><td class="k">Light tab</td>${CMP.map((id) => `<td><span class="cell l">${icon(id, 16)}</span></td>`).join('')}</tr>
+    <tr><td class="k">32px</td>${CMP.map((id) => `<td>${icon(id, 32)}</td>`).join('')}</tr>
+  </tbody>`;
+</script>

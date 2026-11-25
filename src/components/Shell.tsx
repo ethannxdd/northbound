@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { cityPhoto } from '@shared/cities'
 import { cityOf } from '@shared/engine'
@@ -29,14 +29,30 @@ const TITLES: Record<string, string> = {
   '/profile': 'Profile',
 }
 
-/** The up-arrow mark on its accent tile. */
+/** The app icon, drawn inline so it's sharp at any size. Keep in step with public/icon.svg. */
 export function BrandMark({ size = 34 }: { size?: number }) {
+  const id = useId().replace(/:/g, '')
   return (
-    <span className="brand-tile" style={{ width: size, height: size }} aria-hidden="true">
-      <svg width={size * 0.53} height={size * 0.53} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 20V4M6 10l6-6 6 6" />
-      </svg>
-    </span>
+    <svg className="brand-tile" width={size} height={size} style={{ width: size, height: size }} viewBox="0 0 120 120" aria-hidden="true">
+      <defs>
+        <linearGradient id={`${id}bg`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#0E1520" />
+          <stop offset="1" stopColor="#05070B" />
+        </linearGradient>
+        <linearGradient id={`${id}sh`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.1" />
+          <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <rect width="120" height="120" fill={`url(#${id}bg)`} />
+      <rect width="120" height="56" fill={`url(#${id}sh)`} />
+      <g fill="none" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M35 92V30" stroke="#C08BFF" />
+        <path d="M85 90V54" stroke="#64D2FF" />
+        <path d="M85 54V28M71 42l14-14 14 14" stroke="#F5F5F7" />
+        <path d="M35 30L85 90" stroke="#5FE3B0" />
+      </g>
+    </svg>
   )
 }
 

@@ -95,7 +95,7 @@ a:active, button:active { transform: scale(.97); transition-duration: 90ms; }
 .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .brand { font-weight: 800; letter-spacing: -0.03em; }
 .brand-mark { display: inline-flex; align-items: center; gap: 10px; color: var(--text); font-size: 20px; }
-.brand-tile { width: 34px; height: 34px; border-radius: 11px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex: none; }
+.brand-tile { width: 34px; height: 34px; border-radius: 22.5%; display: block; overflow: hidden; flex: none; box-shadow: 0 0 0 1px var(--hair); }
 
 /* ---------- controls ---------- */
 .btn { border: 1px solid transparent; border-radius: 999px; height: 44px; padding: 0 18px; font-weight: 600; font-size: 14px; cursor: pointer; display: inline-flex; justify-content: center; align-items: center; gap: 8px; white-space: nowrap; background: var(--fill-2); color: var(--text); }
@@ -480,7 +480,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height:
   .topbar-in nav { order: 3; width: 100%; justify-content: center; }
   .pills > a { padding: 7px 11px; font-size: 13.5px; }
   .brand-mark { font-size: 18px; }
-  .brand-tile { width: 30px; height: 30px; border-radius: 10px; }
+  .brand-tile { width: 30px; height: 30px; }
   .rate-chip { height: 36px; padding: 0 12px; font-size: 12.5px; }
   .avatar { width: 36px; height: 36px; }
   .main { padding: 20px 16px 64px; gap: 18px; }
