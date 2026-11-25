@@ -12,7 +12,7 @@ import PlansSection from '../components/PlansSection'
 import UpdateSection from '../components/UpdateSection'
 import { BackLink } from '../components/Shell'
 import Icon from '../components/Icon'
-import { useActions, useApp, useMe } from '../lib/app'
+import { toInput, useActions, useApp, useMe } from '../lib/app'
 import { devNoAuth, lootPasswordSignIn, useLootSession, useSignOut } from '../lib/auth'
 import { zar } from '../lib/format'
 import { createLootGoal, useLootGoals } from '../lib/loot'
@@ -146,6 +146,7 @@ function Block({ title, children, note }: { title?: string; children: ReactNode;
 // ---------- Loot ----------
 
 const NEW = '__new__'
+const DEFAULT = '__default__'
 
 /** Signs in to Loot on this device and links it to this Northbound account. */
 function LootSignInForm({ cta, onDone }: { cta: string; onDone: () => void }) {
@@ -209,26 +210,50 @@ function LootSignInForm({ cta, onDone }: { cta: string; onDone: () => void }) {
 
 function LootSection() {
   const { session } = useLootSession()
-  const { profile, plan, goal, savings, goalUpdatedAt, active, account } = useApp()
-  const { updateProfile, unlinkLoot } = useActions()
+  const { profile, scenarios, active, account, planFor, goal: mainGoal, savings, goalUpdatedAt } = useApp()
+  const { updateProfile, setScenarioGoal, clearScenarioGoals, unlinkLoot } = useActions()
   const navigate = useNavigate()
-  const linkedGoal = !!profile.lootGoalId && !!goal
+  const [pickId, setPickId] = useState<string>(active._id)
+  const scenario = scenarios.find((s) => s._id === pickId) ?? active
+  const own = scenario.lootGoalId
+  const followed = own ?? profile.lootGoalId
   const [changing, setChanging] = useState(!profile.lootGoalId)
-  const { goals, error: loadError } = useLootGoals(!!session && changing)
-  const [picked, setPicked] = useState<string>(profile.lootGoalId ?? NEW)
+  const { goals, error: loadError, reload } = useLootGoals(!!session)
+  const [picked, setPicked] = useState<string>(followed ?? NEW)
+  const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, flash] = useSavedFlash()
+  const scenarioPlan = planFor(toInput(scenario), scenario._id)
+  const goalOf = (id: string | undefined) => (id ? goals?.find((g) => g.id === id) ?? (id === mainGoal?.id ? mainGoal : undefined) : undefined)
+  const followedGoal = goalOf(followed)
+  const isMain = scenario._id === active._id
+  const defaultName = `${scenario.name} move`.slice(0, 60)
+
+  function startChange(id: string) {
+    const s = scenarios.find((x) => x._id === id) ?? active
+    setPickId(id)
+    setPicked(s.lootGoalId ?? profile.lootGoalId ?? NEW)
+    setName('')
+    setError(null)
+  }
 
   async function link() {
     if (!session) return
     setBusy(true)
     setError(null)
     try {
-      const gid = picked === NEW ? (await createLootGoal(session.user.id, plan.saveTargetZar, plan.landDate)).id : picked
-      await updateProfile({ lootGoalId: gid })
+      if (picked === DEFAULT) {
+        await setScenarioGoal({ id: scenario._id, lootGoalId: null })
+      } else {
+        const gid = picked === NEW ? (await createLootGoal(session.user.id, name || defaultName, scenarioPlan.saveTargetZar, scenarioPlan.landDate)).id : picked
+        // The first goal you link becomes the default; after that each scenario gets its own.
+        if (!profile.lootGoalId) await updateProfile({ lootGoalId: gid })
+        else await setScenarioGoal({ id: scenario._id, lootGoalId: gid })
+        if (picked === NEW) void reload()
+      }
       setChanging(false)
-      navigate('/progress')
+      if (isMain && !profile.lootGoalId) navigate('/progress')
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't link the goal. Try again.")
     }
@@ -256,17 +281,58 @@ function LootSection() {
 
   return (
     <>
-      {linkedGoal && !changing && (
+      {scenarios.length > 1 && (
+        <Block title="Goals for each scenario" note="Each scenario can follow its own Loot goal, or share your default goal.">
+          <ul className="qs-list">
+            {scenarios.map((s) => {
+              const g = goalOf(s.lootGoalId ?? profile.lootGoalId)
+              return (
+                <li key={s._id}>
+                  <span className="qh-main">
+                    <b>
+                      {s.name}
+                      {s._id === active._id ? ' (main)' : ''}
+                    </b>
+                    <small>{s.lootGoalId ? `Own goal: ${g?.name ?? 'not found in Loot'}` : profile.lootGoalId ? `Default goal: ${g?.name ?? '…'}` : 'No goal yet'}</small>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn quiet sm"
+                    aria-pressed={changing && pickId === s._id}
+                    onClick={() => {
+                      startChange(s._id)
+                      setChanging(true)
+                    }}
+                  >
+                    Change
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </Block>
+      )}
+
+      {followed && !changing && scenarios.length === 1 && (
         <Block title="Linked goal">
           <div className="row" style={{ justifyContent: 'flex-start' }}>
             <span className="dot-ok" aria-hidden="true" />
-            <div style={{ flex: 1 }}>
-              <b>{goal.name}</b>
-              <div className="small muted">
-                {zar(savings.savedZar, 100)} saved of {zar(goal.target_amount)}. Updated {goalUpdatedAt ? new Date(goalUpdatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'just now'}.
-              </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <b>{followedGoal?.name ?? 'Your goal'}</b>
+              {isMain && mainGoal && (
+                <div className="small muted">
+                  {zar(savings.savedZar, 100)} saved of {zar(mainGoal.target_amount)}. Updated {goalUpdatedAt ? new Date(goalUpdatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'just now'}.
+                </div>
+              )}
             </div>
-            <button type="button" className="btn quiet sm" onClick={() => setChanging(true)}>
+            <button
+              type="button"
+              className="btn quiet sm"
+              onClick={() => {
+                startChange(scenario._id)
+                setChanging(true)
+              }}
+            >
               Change
             </button>
           </div>
@@ -274,16 +340,24 @@ function LootSection() {
       )}
 
       {changing && (
-        <Block title={linkedGoal ? 'Pick a different goal' : 'Pick your move goal'}>
+        <Block title={`Goal for "${scenario.name}"`}>
           {loadError && <p className="error">{loadError}</p>}
           {!goals && !loadError && <p className="muted small">Loading your goals…</p>}
           <div role="radiogroup" aria-label="Loot goals">
+            {profile.lootGoalId && (
+              <button type="button" role="radio" aria-checked={picked === DEFAULT} aria-pressed={picked === DEFAULT} className="goal" onClick={() => setPicked(DEFAULT)}>
+                <span className="radio" />
+                <b>Use the default goal</b>
+                <small>{goalOf(profile.lootGoalId)?.name ?? 'Your first linked goal'}, shared with other scenarios</small>
+              </button>
+            )}
             {goals?.map((g) => (
               <button key={g.id} type="button" role="radio" aria-checked={picked === g.id} aria-pressed={picked === g.id} className="goal" onClick={() => setPicked(g.id)}>
                 <span className="radio" />
                 <b>{g.name}</b>
                 <small>
                   {zar(Number(g.current_amount))} of {zar(Number(g.target_amount))}
+                  {scenarios.filter((s) => (s.lootGoalId ?? profile.lootGoalId) === g.id).length ? ` · used by ${scenarios.filter((s) => (s.lootGoalId ?? profile.lootGoalId) === g.id).map((s) => s.name).join(', ')}` : ''}
                 </small>
                 <span className="gbar">
                   <i style={{ width: `${Math.min(100, (Number(g.current_amount) / Math.max(1, Number(g.target_amount))) * 100)}%` }} />
@@ -293,19 +367,26 @@ function LootSection() {
             <button type="button" role="radio" aria-checked={picked === NEW} aria-pressed={picked === NEW} className="goal" onClick={() => setPicked(NEW)}>
               <span className="radio" />
               <b>Create a new goal in Loot</b>
-              <small>Named "UK move", target {zar(plan.saveTargetZar, 1000)}</small>
+              <small>Target {zar(scenarioPlan.saveTargetZar, 1000)}, this scenario's number</small>
             </button>
           </div>
+          {picked === NEW && (
+            <div className="field" style={{ marginTop: 10 }}>
+              <label htmlFor="goal-name">Name of the new goal</label>
+              <input id="goal-name" className="input" maxLength={60} value={name} placeholder={defaultName} onChange={(e) => setName(e.target.value)} />
+              <p className="hint">Any name you like. It's how the goal shows in Loot.</p>
+            </div>
+          )}
           {error && (
             <p className="error" role="alert">
               {error}
             </p>
           )}
-          <div className="row" style={{ justifyContent: 'flex-start', gap: 8, marginTop: 6 }}>
-            <button type="button" className="btn grad" onClick={() => void link()} disabled={busy || !goals}>
-              {busy ? 'Linking…' : 'Link this goal'}
+          <div className="row" style={{ justifyContent: 'flex-start', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+            <button type="button" className="btn grad" onClick={() => void link()} disabled={busy || !goals || (picked === followed && picked !== NEW && !(picked === DEFAULT && own))}>
+              {busy ? 'Saving…' : picked === NEW ? 'Create and link' : 'Link this goal'}
             </button>
-            {linkedGoal && (
+            {followed && (
               <button type="button" className="btn quiet" onClick={() => setChanging(false)}>
                 Cancel
               </button>
@@ -315,10 +396,10 @@ function LootSection() {
       )}
 
       {profile.lootGoalId && (
-        <Block title="Keep Loot in step" note={`The target follows your main scenario, now "${active.name}". Only the target and date change: the money you've saved and Loot's auto-saving stay exactly as they are.`}>
+        <Block title="Keep Loot in step" note={`Each goal's target follows its scenario's number, and updates while that scenario is your main one (now "${active.name}"). Only the target and date change: the money you've saved and Loot's auto-saving stay exactly as they are.`}>
           <div className="toggle-row">
             <span>
-              Set the goal's target in Loot to your number
+              Set each goal's target in Loot to its scenario's number
               <span className={`saved-flash${saved ? ' on' : ''}`}>{saved ? 'Saved' : ''}</span>
             </span>
             <Toggle
@@ -337,8 +418,8 @@ function LootSection() {
         <p style={{ margin: '0 0 12px' }}>{session.user.email}</p>
         <div className="row" style={{ justifyContent: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
           {profile.lootGoalId && (
-            <button type="button" className="btn quiet sm" onClick={() => void updateProfile({ lootGoalId: null })}>
-              Stop following the goal
+            <button type="button" className="btn quiet sm" onClick={async () => { await updateProfile({ lootGoalId: null }); await clearScenarioGoals({}) }}>
+              Stop following goals
             </button>
           )}
           <button type="button" className="btn quiet sm" onClick={() => void supabase.auth.signOut()}>
@@ -352,6 +433,7 @@ function LootSection() {
                 if (!window.confirm('Unlink Loot from your Northbound account? Your plan stays. You can link again any time.')) return
                 try {
                   await updateProfile({ lootGoalId: null })
+                  await clearScenarioGoals({})
                   await unlinkLoot({})
                   await supabase.auth.signOut()
                 } catch (e) {

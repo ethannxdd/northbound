@@ -8,6 +8,7 @@ import { useActions, useApp } from '../lib/app'
 import { gbp, plural, zar } from '../lib/format'
 import { MoneyInput } from '../lib/ui'
 import PackSettlement from './PackSettlement'
+import { DetailToggle } from '../components/DetailBits'
 
 /** Settlement tracker: the 5-year path after you land, and the conditions to meet along the way. */
 export default function Settlement() {
@@ -18,6 +19,7 @@ export default function Settlement() {
 
 function UkSettlement() {
   const { plan, profile, earnings, overrides, input } = useApp()
+  const noCitizenship = (input.hidden ?? []).includes('settle:citizenship')
   const { updateProfile } = useActions()
   const land = profile.landedOn ?? plan.landDate
   const check = settlementCheck(land, earnings, overrides)
@@ -28,20 +30,21 @@ function UkSettlement() {
   const ilr = rule('ilrFee', check.settleDate, overrides)
   const citizenFee = rule('citizenshipFee', addMonths(check.settleDate, 12), overrides)
   const englishOk = english === 'B2' || english === 'exempt' || (english === 'B1' && check.english === 'B1')
+  const pathTotal = ilr + (noCitizenship ? 0 : citizenFee)
   const maxGross = Math.max(salary, ...Object.values(earnings), check.minEarnings, 1)
 
   const path = [
-    { date: monthYear(land), name: profile.landedOn ? 'Landed on the Ancestry visa' : 'Land on the Ancestry visa', sub: `${plural(check.years, 'year')} of permission. Visa and health surcharge are already in your number.`, cost: 'Paid before you go', on: true },
-    { date: `${land.slice(0, 4)} – ${check.settleDate.slice(0, 4)}`, name: 'Live and work', sub: `Earn ${gbp(check.minEarnings)}+ each year, pass ${check.english} English, stay debt-free.`, cost: '£0' },
-    { date: monthYear(check.settleDate), name: 'Apply to settle', sub: 'Indefinite leave to remain, if the conditions are met.', cost: gbp(ilr) },
-    { date: monthYear(addMonths(check.settleDate, 12)), name: 'British citizenship', sub: 'A year after settling, with the ceremony.', cost: gbp(citizenFee) },
+    { date: monthYear(land), name: profile.landedOn ? 'Landed on the Ancestry visa' : 'Land on the Ancestry visa', sub: `${plural(check.years, 'year')} of permission. Visa and health surcharge are already in your number.`, cost: 'Paid before you go', on: true, ref: '' },
+    { date: `${land.slice(0, 4)} – ${check.settleDate.slice(0, 4)}`, name: 'Live and work', sub: `Earn ${gbp(check.minEarnings)}+ each year, pass ${check.english} English, stay debt-free.`, cost: '£0', ref: '' },
+    { date: monthYear(check.settleDate), name: 'Apply to settle', sub: 'Indefinite leave to remain, if the conditions are met.', cost: gbp(ilr), ref: 'settle:ilr' },
+    ...(noCitizenship ? [] : [{ date: monthYear(addMonths(check.settleDate, 12)), name: 'British citizenship', sub: 'A year after settling, with the ceremony.', cost: gbp(citizenFee), ref: 'settle:citizenship' }]),
   ]
 
   const conds = [
-    { mark: englishOk ? '✓' : '!', name: `${check.english} English`, sub: check.english === 'B2' ? 'Required from 26 Mar 2027. Check whether your schooling counts or a test is needed.' : 'Check whether your schooling counts or a test is needed.', status: englishOk ? 'Done' : 'Not yet', tone: englishOk ? 'ok' : 'warn' },
-    { mark: '£', name: `Earnings of ${gbp(check.minEarnings)} a year`, sub: 'For each year counted towards settling. Start date not confirmed yet.', status: `${check.yearsMet} of ${check.yearsNeeded} years`, tone: check.yearsMet >= check.yearsNeeded ? 'ok' : 'base' },
-    { mark: '✓', name: 'No UK criminal record', sub: 'Keep it that way.', status: 'On track', tone: 'ok' },
-    { mark: '✓', name: 'No unpaid NHS, tax or NI debt', sub: 'Pay on time. Includes council tax arrears.', status: 'On track', tone: 'ok' },
+    { mark: englishOk ? '✓' : '!', name: `${check.english} English`, sub: check.english === 'B2' ? 'Required from 26 Mar 2027. Check whether your schooling counts or a test is needed.' : 'Check whether your schooling counts or a test is needed.', status: englishOk ? 'Done' : 'Not yet', tone: englishOk ? 'ok' : 'warn', ref: 'settle:english' },
+    { mark: '£', name: `Earnings of ${gbp(check.minEarnings)} a year`, sub: 'For each year counted towards settling. Start date not confirmed yet.', status: `${check.yearsMet} of ${check.yearsNeeded} years`, tone: check.yearsMet >= check.yearsNeeded ? 'ok' : 'base', ref: 'settle:earnings' },
+    { mark: '✓', name: 'No UK criminal record', sub: 'Keep it that way.', status: 'On track', tone: 'ok', ref: 'settle:record' },
+    { mark: '✓', name: 'No unpaid NHS, tax or NI debt', sub: 'Pay on time. Includes council tax arrears.', status: 'On track', tone: 'ok', ref: 'settle:debt' },
   ]
 
   return (
@@ -57,6 +60,7 @@ function UkSettlement() {
       </div>
 
       <section aria-label="Your path" className="card settle-path">
+        {noCitizenship && <RestoreCitizenship />}
         <ol>
           {path.map((p) => (
             <li key={p.name} className={p.on ? 'on' : ''}>
@@ -64,6 +68,7 @@ function UkSettlement() {
               <span className="sp-date">{p.date}</span>
               <b>{p.name}</b>
               <small>{p.sub}</small>
+              {p.ref && <DetailToggle refKey={p.ref} label={p.name} removable={p.ref === 'settle:citizenship'} removeNote="You need this step to settle, so it can't be removed." />}
               <span className="sp-cost">{p.cost}</span>
             </li>
           ))}
@@ -71,7 +76,7 @@ function UkSettlement() {
         <div className="sp-total">
           <span>Cost of the whole path after landing</span>
           <b>
-            {gbp(ilr + citizenFee)} · {zar((ilr + citizenFee) * input.rate, 10)} at today's rate
+            {gbp(pathTotal)} · {zar(pathTotal * input.rate, 10)} at today's rate
           </b>
         </div>
       </section>
@@ -90,6 +95,7 @@ function UkSettlement() {
                 <span className="ctxt">
                   <b>{c.name}</b>
                   <small>{c.sub}</small>
+                  <DetailToggle refKey={c.ref} label={c.name} removable={false} removeNote="This is a condition of the visa, so it can't be removed." />
                 </span>
                 <span className={`tag ${c.tone}`}>{c.status}</span>
               </li>
@@ -177,5 +183,19 @@ function EarningsRow({ year, planned, actual, min, max, first }: { year: string;
         </button>
       )}
     </li>
+  )
+}
+
+/** Citizenship is the one settling step you can take off, if you only want to settle. */
+export function RestoreCitizenship() {
+  const { active } = useApp()
+  const { setHidden } = useActions()
+  return (
+    <p className="faint small" style={{ margin: '0 0 12px' }}>
+      Citizenship is removed from this scenario.{' '}
+      <button type="button" className="btn link sm" onClick={() => void setHidden({ scenarioId: active._id, ref: 'settle:citizenship', hidden: false })}>
+        Put it back
+      </button>
+    </p>
   )
 }

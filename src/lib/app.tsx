@@ -93,7 +93,9 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
   const scenarios = me.scenarios
   const active = scenarios.find((s) => s._id === profile.activeScenarioId) ?? scenarios[0]
   const { session: lootSession } = useLootSession()
-  const linked = useLinkedGoal(profile.lootGoalId)
+  // The main scenario's own Loot goal, or the default goal on the profile.
+  const goalId = active.lootGoalId ?? profile.lootGoalId
+  const linked = useLinkedGoal(goalId)
   const today = todayIso()
   const liveRate = me.fx.length ? me.fx[me.fx.length - 1].zarPerGbp : null
 
@@ -193,7 +195,7 @@ export function AppDataProvider({ me, children }: { me: Me; children: ReactNode 
     goalMissing: linked.missing,
     deposits: linked.deposits,
     goalUpdatedAt: linked.updatedAt,
-    lootNeedsSignIn: !!profile.lootGoalId && !lootSession,
+    lootNeedsSignIn: !!goalId && !lootSession,
     overrides,
     done,
     ticked,
@@ -250,6 +252,8 @@ export function useActions() {
     restoreAll: useMutation(api.details.restoreAll),
     importDetails: useMutation(api.details.importDetails),
     removeDetails: useMutation(api.details.removeDetails),
+    setScenarioGoal: useMutation(api.data.setScenarioGoal),
+    clearScenarioGoals: useMutation(api.data.clearScenarioGoals),
   }
 }
 

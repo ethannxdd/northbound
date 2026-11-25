@@ -76,3 +76,29 @@ describe('removing items from a scenario', () => {
     expect(tasksDoneByDocs({ 'my-birth': 'ordered' }, s.hidden).has('sa-certs')).toBe(true)
   })
 })
+
+describe('monthly costs across the scenario', () => {
+  it('removes and adds monthly costs, and the runway follows', async () => {
+    const { monthlyBudget } = await import('./engine')
+    const base = monthlyBudget(DEFAULT_SCENARIO, LAND)
+    const food = base.items.find((i) => i.key === 'food')!.gbp
+    const noFood = monthlyBudget({ ...DEFAULT_SCENARIO, hidden: ['month:food'] }, LAND)
+    expect(noFood.outgoings).toBeCloseTo(base.outgoings - food)
+    const r = parseDetails({ format: 'northbound-details', version: 1, scenarioId: 'x', items: [{ ref: 'month:phone', amount: 20, currency: 'local' }], addMonthly: [{ key: 'tv-licence', label: 'TV licence', amount: 15, currency: 'local' }] })
+    if (!r.ok) throw new Error(r.errors.join())
+    const withD = monthlyBudget({ ...DEFAULT_SCENARIO, details: r.details }, LAND)
+    expect(withD.items.find((i) => i.key === 'phone')?.gbp).toBe(20)
+    expect(withD.items.find((i) => i.key === 'd-tv-licence')?.gbp).toBe(15)
+  })
+
+  it('without rent, month 1 of the runway is the full month', () => {
+    const s = { ...DEFAULT_SCENARIO, hidden: ['month:rent'] }
+    const runway1 = upfrontCosts(s, LAND).groups[2].items.find((i) => i.key === 'runway1')!.gbp
+    const rest = upfrontCosts(s, LAND).groups[2].items.find((i) => i.key === 'runwayRest')!.gbp
+    expect(runway1 * (DEFAULT_SCENARIO.jobHuntMonths)).toBeCloseTo(rest)
+  })
+
+  it('accepts area and settle refs', () => {
+    expect(parseDetails({ format: 'northbound-details', version: 1, scenarioId: 'x', items: [{ ref: 'area:ancoats', why: 'Close to town' }, { ref: 'settle:english', how: ['Take an IELTS test'] }] }).ok).toBe(true)
+  })
+})

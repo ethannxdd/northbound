@@ -10,7 +10,7 @@ async function ownScenario(ctx: MutationCtx, uid: string, id: Id<'scenarios'>) {
   return s
 }
 
-const REF = /^(cost|step|doc):[A-Za-z0-9:_-]{1,120}$/
+const REF = /^(cost|step|doc|month|area|settle):[A-Za-z0-9:_-]{1,120}$/
 
 /** Removes an item (a cost line, a map step or a document) from one scenario, or puts it back. */
 export const setHidden = mutation({

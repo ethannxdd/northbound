@@ -1,9 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { dayMonthYear } from '@shared/dates'
-import { parseDetails, type ScenarioDetails } from '@shared/details'
+import { parseDetails, settleItems, type ScenarioDetails } from '@shared/details'
 import { scenarioDocuments } from '@shared/documents'
-import { allUpfrontCosts, plan as planOf } from '@shared/engine'
+import { allMonthlyItems, allUpfrontCosts, cityOf, plan as planOf } from '@shared/engine'
 import { allTimeline } from '@shared/timeline'
 import { toInput, useActions, useApp, useMe, type Id } from '../lib/app'
 import { plural, zar } from '../lib/format'
@@ -34,6 +34,9 @@ export default function UpdateSection() {
     for (const d of scenarioDocuments(base, String)) out.add(d.ref)
     for (const t of allTimeline(base, basePlan.landDate, today, overrides)) out.add(`step:${t.key}`)
     for (const g of allUpfrontCosts(base, basePlan.landDate, overrides).groups) for (const i of g.items) out.add(`cost:${i.key}`)
+    for (const i of allMonthlyItems(base)) out.add(`month:${i.key}`)
+    for (const a of cityOf(base).areas) out.add(`area:${a.id}`)
+    for (const x of settleItems(base)) out.add(x.ref)
     return out
   }, [base, basePlan.landDate, today, overrides])
   const previousRow = me?.details.find((d) => d.scenarioId === picked._id)
@@ -76,7 +79,7 @@ export default function UpdateSection() {
     setError(null)
     try {
       const r = await importDetails({ scenarioId: target._id as Id<'scenarios'>, json: JSON.stringify(details) })
-      setDone(`${r.replaced ? 'Updated' : 'Added'} Claude's details on "${target.name}". Open Paperwork, the map or Money to see them.`)
+      setDone(`${r.replaced ? 'Updated' : 'Added'} Claude's details on "${target.name}". Open any screen to see it next to each item.`)
       setText('')
       setFileName(null)
     } catch (e) {
@@ -104,9 +107,9 @@ export default function UpdateSection() {
           </div>
         )}
         <ol className="plan-how">
-          <li>Press the button. It copies a prompt with everything in "{picked.name}": your settings, every document, step and cost, and what you've removed.</li>
+          <li>Press the button. It copies a prompt with everything in "{picked.name}": your settings, every document, map step, cost before you go, monthly cost, neighbourhood and settling condition, and what you've removed.</li>
           <li>Paste it into a chat with Claude. Claude researches each item and answers with a JSON code block (and a .json file if it can).</li>
-          <li>Bring the file or code block back here and import it. The detail shows on Paperwork, the map and Money.</li>
+          <li>Bring the file or code block back here and import it. The detail shows next to each item on Home, the map, Money, Paperwork, Life and Settling.</li>
         </ol>
         <div className="btns" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <button type="button" className="btn primary lg" onClick={() => void copy()}>
@@ -189,6 +192,7 @@ export default function UpdateSection() {
                   {current.details.addDocuments?.length ? `, ${plural(current.details.addDocuments.length, 'document')} added` : ''}
                   {current.details.addSteps?.length ? `, ${plural(current.details.addSteps.length, 'step')} added` : ''}
                   {current.details.addCosts?.length ? `, ${plural(current.details.addCosts.length, 'cost')} added` : ''}
+                  {current.details.addMonthly?.length ? `, ${plural(current.details.addMonthly.length, 'monthly cost')} added` : ''}
                 </small>
               </span>
               <Link to="/paperwork" className="btn quiet sm">
@@ -228,7 +232,7 @@ export default function UpdateSection() {
           </ul>
         ) : null}
         <p className="faint small" style={{ margin: '10px 0 0' }}>
-          To take something off a scenario, use Remove from scenario on its card in Paperwork, on the map, or under a cost's figure in Money. Removed items are listed at the bottom of each, with Put back.
+          To take something off a scenario, open its Details on any screen and press Remove from scenario. Removed items are listed at the bottom of each screen, with Put back.
         </p>
       </div>
     </>
@@ -255,6 +259,7 @@ function Preview({ details, targetId, targetName, refsCount, replacing, otherTha
         {details.addDocuments?.length ? `, ${plural(details.addDocuments.length, 'new document')}` : ''}
         {details.addSteps?.length ? `, ${plural(details.addSteps.length, 'new step')}` : ''}
         {details.addCosts?.length ? `, ${plural(details.addCosts.length, 'new cost')}` : ''}
+        {details.addMonthly?.length ? `, ${plural(details.addMonthly.length, 'new monthly cost')}` : ''}
         {fixes ? `, ${plural(fixes, 'corrected figure')}` : ''}. The move needs {zar(now.targetZar, 1000)} now{Math.abs(change) >= 50 ? `, ${zar(after.targetZar, 1000)} with these details (${change > 0 ? '+' : '−'}${zar(Math.abs(change), 100)})` : ', and these details don\'t change it'}.
       </p>
     </div>

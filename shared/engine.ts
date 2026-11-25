@@ -198,16 +198,8 @@ export function repayments(b: Borrowing | undefined): Repayments {
  * The runway (what you save before going) never includes repayments.
  */
 export function monthlyBudget(s: ScenarioInput, onDate: string, ov?: RuleOverrides, borrowing?: Borrowing): MonthlyBudget {
-  const c = cityOf(s)
-  const p = people(s)
-  const items: LineItem[] = [
-    { key: 'rent', label: s.housing === 'room' ? 'Rent, room in a share' : s.housing === 'studio' ? 'Rent, studio' : 'Rent, 1-bed flat', gbp: rentOf(s) },
-    { key: 'food', label: 'Food', gbp: c.food * p },
-    { key: 'bills', label: s.pack ? 'Bills' : 'Bills and council tax', gbp: c.bills[s.housing] },
-    { key: 'transport', label: s.pack ? 'Getting around' : s.city === 'manchester' ? 'Bus and tram' : 'Tube and bus', gbp: c.transport * p },
-    { key: 'phone', label: 'Phone', gbp: c.phone * p },
-    { key: 'other', label: 'Everything else', gbp: c.other * p },
-  ]
+  const hidden = new Set(s.hidden ?? [])
+  const items: LineItem[] = allMonthlyItems(s).filter((i) => !hidden.has(`month:${i.key}`))
   const rp = repayments(borrowing)
   if (rp.loanZar > 0) items.push({ key: 'loanRepay', label: 'Loan repayment', gbp: rp.loanZar / s.rate, basis: `${borrowing?.loanMonths ?? 60} months at ${borrowing?.loanRatePct ?? 0}%` })
   if (rp.cardZar > 0) items.push({ key: 'cardRepay', label: 'Card repayment', gbp: rp.cardZar / s.rate, basis: `Cleared over ${CARD_PAYOFF_MONTHS} months at ${borrowing?.cardRatePct ?? 0}%` })
@@ -215,6 +207,38 @@ export function monthlyBudget(s: ScenarioInput, onDate: string, ov?: RuleOverrid
   const mine = takeHomeFor(s, salaryFor(s), onDate, ov).monthly
   const partner = s.partner && s.partnerWorks ? takeHomeFor(s, s.partnerSalary, onDate, ov).monthly : 0
   return { takeHome: mine, partnerTakeHome: partner, items, outgoings, left: mine + partner - outgoings }
+}
+
+/**
+ * Every living cost in a month there, before loan repayments, including ones removed from the scenario.
+ * Claude's details file can correct a figure or add a monthly cost.
+ */
+export function allMonthlyItems(s: ScenarioInput): LineItem[] {
+  const c = cityOf(s)
+  const p = people(s)
+  const each = p > 1 ? ' for 2 people' : ''
+  const items: LineItem[] = [
+    { key: 'rent', label: s.housing === 'room' ? 'Rent, room in a share' : s.housing === 'studio' ? 'Rent, studio' : 'Rent, 1-bed flat', gbp: rentOf(s), basis: s.area ? 'Your chosen neighbourhood' : `The ${c.name} average` },
+    { key: 'food', label: 'Food', gbp: c.food * p, basis: `Groceries and some eating out${each}` },
+    { key: 'bills', label: s.pack ? 'Bills' : 'Bills and council tax', gbp: c.bills[s.housing], basis: s.pack ? 'Energy, water, internet and local tax' : 'Energy, water, internet and council tax' },
+    { key: 'transport', label: s.pack ? 'Getting around' : s.city === 'manchester' ? 'Bus and tram' : 'Tube and bus', gbp: c.transport * p, basis: `A monthly pass${each}` },
+    { key: 'phone', label: 'Phone', gbp: c.phone * p, basis: `A SIM-only contract${each}` },
+    { key: 'other', label: 'Everything else', gbp: c.other * p, basis: `Clothes, going out, toiletries, subscriptions${each}` },
+  ]
+  const d = s.details
+  if (!d) return items
+  const toLocal = (amount: number, currency: 'ZAR' | 'local' | undefined) => (currency === 'ZAR' ? amount / s.rate : amount)
+  const fixed = items.map((i) => {
+    const fix = d.items.find((x) => x.ref === `month:${i.key}` && x.amount !== undefined)
+    return fix ? { ...i, gbp: toLocal(fix.amount!, fix.currency), basis: fix.cost ?? fix.summary ?? 'Figure from Claude\'s update', fromDetails: true } : i
+  })
+  for (const x of d.addMonthly ?? []) fixed.push({ key: `d-${x.key}`, label: x.label + (x.perPerson && p > 1 ? ', 2 people' : ''), gbp: toLocal(x.amount, x.currency) * (x.perPerson ? p : 1), basis: x.basis, fromDetails: true })
+  return fixed
+}
+
+/** Rent in the monthly budget: 0 if you removed it (say, staying with family). */
+function rentInBudget(living: MonthlyBudget): number {
+  return living.items.find((i) => i.key === 'rent')?.gbp ?? 0
 }
 
 function deposit(s: ScenarioInput, onDate: string, ov?: RuleOverrides): number {
@@ -298,7 +322,7 @@ function ukUpfrontCosts(s: ScenarioInput, landDate: string, ov?: RuleOverrides):
   ]
 
   const months = runwayMonths(s)
-  const runway: LineItem[] = [{ key: 'runway1', label: 'Month 1 living, rent already paid', gbp: living.outgoings - rent, basis: `${money(Math.round(living.outgoings))} a month, less the rent you paid up front` }]
+  const runway: LineItem[] = [rentInBudget(living) > 0 ? { key: 'runway1', label: 'Month 1 living, rent already paid', gbp: living.outgoings - rentInBudget(living), basis: `${money(Math.round(living.outgoings))} a month, less the rent you paid up front` } : { key: 'runway1', label: 'Month 1 living', gbp: living.outgoings, basis: `${money(Math.round(living.outgoings))} a month, with no rent` }]
   if (months > 1)
     runway.push({
       key: 'runwayRest',
@@ -351,7 +375,7 @@ function packUpfrontCosts(s: ScenarioInput, pack: DestinationPack, landDate: str
   ]
 
   const months = runwayMonths(s)
-  const runway: LineItem[] = [{ key: 'runway1', label: 'Month 1 living, rent already paid', gbp: living.outgoings - rent, basis: `${m(Math.round(living.outgoings))} a month, less the rent you paid up front` }]
+  const runway: LineItem[] = [rentInBudget(living) > 0 ? { key: 'runway1', label: 'Month 1 living, rent already paid', gbp: living.outgoings - rentInBudget(living), basis: `${m(Math.round(living.outgoings))} a month, less the rent you paid up front` } : { key: 'runway1', label: 'Month 1 living', gbp: living.outgoings, basis: `${m(Math.round(living.outgoings))} a month, with no rent` }]
   if (months > 1) runway.push({ key: 'runwayRest', label: months === 2 ? 'Month 2 living' : `Months 2 to ${months} living`, gbp: living.outgoings * (months - 1), basis: `${m(Math.round(living.outgoings))} a month × ${months - 1}, until your first payday` })
   if (s.bufferGbp > 0) runway.push({ key: 'buffer', label: 'Safety buffer', gbp: s.bufferGbp, basis: 'Your own cushion for surprises' })
   runway.push(...extra('runway'))
@@ -500,12 +524,11 @@ export function runwaySeries(s: ScenarioInput, landDate: string, ov?: RuleOverri
   const costs = upfrontCosts(s, landDate, ov)
   const runway = costs.groups.find((g) => g.id === 'runway')!.total
   const living = monthlyBudget(s, landDate, ov)
-  const rent = rentOf(s)
   const months = runwayMonths(s)
   const out = [runway]
   let bal = runway
   for (let m = 1; m <= months + extraMonths; m++) {
-    if (m === 1) bal -= living.outgoings - rent
+    if (m === 1) bal -= living.outgoings - rentInBudget(living)
     else if (m <= months) bal -= living.outgoings
     else bal += living.left
     out.push(bal)

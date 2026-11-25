@@ -7,7 +7,7 @@ import SavingPlan from '../components/SavingPlan'
 import QuoteSheet from '../components/QuoteSheet'
 import { DiffChip, lineDiff } from '../components/CostBits'
 import { useApp, type FxPoint } from '../lib/app'
-import { detailFor } from '@shared/details'
+import { detailFor, hasDetail } from '@shared/details'
 import { ItemDetailView, RemoveButton, RemovedList } from '../components/DetailBits'
 import { gbp, plural, zar } from '../lib/format'
 
@@ -178,6 +178,11 @@ export default function Money() {
                               {l.fromDetails && <span className="tag">From Claude</span>}
                             </span>
                             <span className="ci-basis">{l.custom ? 'Added by you' : l.basis}</span>
+                            {!l.custom && (
+                              <button type="button" className="dt-btn ci-more" aria-expanded={openWhy === l.key} aria-controls={`why-${l.key}`} onClick={() => setOpenWhy(openWhy === l.key ? null : l.key)}>
+                                Details{hasDetail(detailFor(input.details, `cost:${l.key}`)) ? <span className="dt-dot" aria-label=", from Claude" /> : null}
+                              </button>
+                            )}
                           </th>
                           <td>
                             {l.baselineGbp !== null ? (

@@ -5,6 +5,7 @@ import { cityOf, rentOf } from '@shared/engine'
 import PaidCard from '../components/PaidCard'
 import { toInput, useActions, useApp } from '../lib/app'
 import { gbp, zar } from '../lib/format'
+import { DetailToggle, RemovedList } from '../components/DetailBits'
 
 const LETTERS = 'JFMAMJJASOND'.split('')
 const HOUSING_SHORT: Record<string, string> = { room: 'Room', studio: 'Studio', onebed: '1-bed' }
@@ -21,6 +22,8 @@ export default function Life() {
   const coffeeZar = city.coffee ? city.coffee * input.rate : null
   const top = daylight ? Math.max(...daylight, ...CAPE_TOWN.daylight) : 1
   const ukCity = pack ? null : CITIES[input.city]
+  const hiddenAreas = new Set(active.hidden ?? [])
+  const areas = city.areas.filter((a) => input.area === a.id || !hiddenAreas.has(`area:${a.id}`))
 
   async function pickArea(id: string | undefined) {
     setBusy(id ?? 'none')
@@ -113,7 +116,7 @@ export default function Life() {
         </div>
       </div>
 
-      {city.areas.length > 0 && (
+      {areas.length > 0 && (
         <section className="card" aria-labelledby="areas">
           <div className="card-h">
             <h2 id="areas" className="h2">
@@ -141,11 +144,14 @@ export default function Life() {
                 </tr>
               </thead>
               <tbody>
-                {city.areas.map((a) => {
+                {areas.map((a) => {
                   const on = input.area === a.id
                   return (
                     <tr key={a.id} className={on ? 'on' : ''}>
-                      <th scope="row">{a.name}</th>
+                      <th scope="row">
+                        {a.name}
+                        <DetailToggle refKey={`area:${a.id}`} label={a.name} removable={!on} removeNote="You're using this area. Pick another, or the city average, to remove it." />
+                      </th>
                       <td>{gbp(rentOf(input, a.id))}</td>
                       <td className="text-2">{a.commute}</td>
                       <td className="muted">{a.vibe}</td>
@@ -160,6 +166,7 @@ export default function Life() {
               </tbody>
             </table>
           </div>
+          <RemovedList kind="area" />
         </section>
       )}
       <p className="tiny faint" style={{ margin: 0 }}>

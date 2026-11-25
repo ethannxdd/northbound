@@ -55,7 +55,7 @@ export default function Editor() {
     setBusy(true)
     setError(null)
     try {
-      await saveScenario({ id: existing?._id as Id<'scenarios'> | undefined, scenario: { ...draft, name: draft.name.trim(), hidden: existing ? existing.hidden : draft.hidden }, makeActive: makeMain, copyFrom: existing ? undefined : active._id })
+      await saveScenario({ id: existing?._id as Id<'scenarios'> | undefined, scenario: { ...draft, name: draft.name.trim(), hidden: existing ? existing.hidden : draft.hidden, lootGoalId: existing ? existing.lootGoalId : undefined }, makeActive: makeMain, copyFrom: existing ? undefined : active._id })
       leave()
     } catch {
       setError("Couldn't save. Try again.")

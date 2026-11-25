@@ -4,6 +4,7 @@ import type { ScenarioInput } from '@shared/types'
 import type { RuleOverrides } from '@shared/rules'
 import { useApp } from '../lib/app'
 import { gbp } from '../lib/format'
+import { DetailToggle, RemovedList } from './DetailBits'
 
 const HOUSING: Record<string, string> = { room: 'a room in a share', studio: 'a studio', onebed: 'a 1-bed flat' }
 const KEEP = 300
@@ -65,15 +66,20 @@ export default function PaidCard() {
       </div>
       <ul className="budget">
         {budget.items.map((i) => (
-          <li key={i.key} className={i.key.endsWith('Repay') ? 'repay' : ''}>
-            <span>{i.label}</span>
+          <li key={i.key} className={i.key.endsWith('Repay') ? 'repay' : 'has-dt'}>
+            <span className="b-name">
+              {i.label}
+              {i.fromDetails && <small className="muted">From Claude</small>}
+            </span>
             <span className="bbar" aria-hidden="true">
               <i style={{ width: `${(i.gbp / max) * 100}%` }} />
             </span>
             <b>{gbp(i.gbp)}</b>
+            {!i.key.endsWith('Repay') && <DetailToggle refKey={`month:${i.key}`} label={i.label} basis={i.basis} />}
           </li>
         ))}
       </ul>
+      <RemovedList kind="month" />
       <div className="left-row">
         <span>{budget.left < 0 ? 'Short each month' : 'Left each month'}</span>
         <b className={`${tone}-text`}>{gbp(Math.abs(budget.left))}</b>

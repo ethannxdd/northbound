@@ -30,6 +30,8 @@ export const scenarioFields = {
   destCity: v.optional(v.string()),
   /** Items removed from this scenario: "cost:<key>", "step:<key>" or "doc:<key>" */
   hidden: v.optional(v.array(v.string())),
+  /** This scenario's own Loot goal. Missing means it follows the profile's default goal. */
+  lootGoalId: v.optional(v.string()),
 }
 
 export const docStatus = v.union(v.literal('todo'), v.literal('ordered'), v.literal('arrived'), v.literal('checked'))

@@ -113,7 +113,7 @@ export default function Compare() {
                   type="button"
                   className="btn quiet sm"
                   onClick={async () => {
-                    const id = await saveScenario({ scenario: other.input, copyFrom: active._id })
+                    const id = await saveScenario({ scenario: { ...other.input, lootGoalId: undefined }, copyFrom: active._id })
                     setSavedNote(`Saved as "${other.input.name}". It's in your scenarios now.`)
                     setIds((xs) => xs.map((x) => (x === 'other-city' ? id : x)))
                   }}

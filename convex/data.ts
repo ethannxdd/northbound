@@ -183,6 +183,26 @@ export const deleteScenario = mutation({
   },
 })
 
+/** Gives one scenario its own Loot goal, or (null) sets it back to the default goal. */
+export const setScenarioGoal = mutation({
+  args: { id: v.id('scenarios'), lootGoalId: v.union(v.string(), v.null()) },
+  handler: async (ctx, a) => {
+    const uid = await requireUser(ctx)
+    await ownScenario(ctx, uid, a.id)
+    if (a.lootGoalId !== null && (a.lootGoalId.length < 8 || a.lootGoalId.length > 64)) throw new Error('Unknown goal')
+    await ctx.db.patch(a.id, { lootGoalId: a.lootGoalId ?? undefined })
+  },
+})
+
+/** Stops every scenario following its own goal, when Loot is unlinked. */
+export const clearScenarioGoals = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const uid = await requireUser(ctx)
+    for (const s of await ctx.db.query('scenarios').withIndex('by_user', (q) => q.eq('userId', uid)).take(200)) if (s.lootGoalId) await ctx.db.patch(s._id, { lootGoalId: undefined })
+  },
+})
+
 export const setActive = mutation({
   args: { id: v.id('scenarios') },
   handler: async (ctx, a) => {

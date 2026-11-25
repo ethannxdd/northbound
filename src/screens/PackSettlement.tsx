@@ -3,6 +3,8 @@ import { addMonths, dayMonthYear, monthYear } from '@shared/dates'
 import type { DestinationPack } from '@shared/pack'
 import { useActions, useApp } from '../lib/app'
 import { gbp, plural, zar } from '../lib/format'
+import { DetailToggle } from '../components/DetailBits'
+import { RestoreCitizenship } from './Settlement'
 
 /** Settling for an imported plan: the path, its fees and conditions, as the plan describes them. */
 export default function PackSettlement({ pack }: { pack: DestinationPack }) {
@@ -12,18 +14,19 @@ export default function PackSettlement({ pack }: { pack: DestinationPack }) {
   const st = pack.settlement
   const settleDate = st ? addMonths(land, st.years * 12) : null
   const citizenDate = st?.citizenshipYears ? addMonths(land, st.citizenshipYears * 12) : null
-  const total = (st?.fee ?? 0) + (st?.citizenshipFee ?? 0)
+  const noCitizenship = (input.hidden ?? []).includes('settle:citizenship')
+  const total = (st?.fee ?? 0) + (noCitizenship ? 0 : st?.citizenshipFee ?? 0)
 
   const path = [
-    { date: monthYear(land), name: `Land on the ${pack.visa.name}`, sub: `${plural(pack.visa.years, 'year')} of permission at first. The visa fee is already in your number.`, cost: 'Paid before you go', on: true },
+    { date: monthYear(land), name: `Land on the ${pack.visa.name}`, sub: `${plural(pack.visa.years, 'year')} of permission at first. The visa fee is already in your number.`, cost: 'Paid before you go', on: true, ref: '' },
     ...(st && settleDate
       ? [
-          { date: `${land.slice(0, 4)} – ${settleDate.slice(0, 4)}`, name: 'Live and work', sub: st.conditions[0] ?? 'Keep to the conditions below.', cost: gbp(0) },
-          { date: monthYear(settleDate), name: `Apply for ${st.name}`, sub: `After ${plural(st.years, 'year')}, if the conditions are met.`, cost: st.fee ? gbp(st.fee) : 'See the plan' },
+          { date: `${land.slice(0, 4)} – ${settleDate.slice(0, 4)}`, name: 'Live and work', sub: st.conditions[0] ?? 'Keep to the conditions below.', cost: gbp(0), ref: '' },
+          { date: monthYear(settleDate), name: `Apply for ${st.name}`, sub: `After ${plural(st.years, 'year')}, if the conditions are met.`, cost: st.fee ? gbp(st.fee) : 'See the plan', ref: 'settle:apply' },
         ]
       : []),
-    ...(st?.citizenshipName && citizenDate
-      ? [{ date: monthYear(citizenDate), name: st.citizenshipName, sub: `About ${plural(st.citizenshipYears!, 'year')} after landing.`, cost: st.citizenshipFee ? gbp(st.citizenshipFee) : 'See the plan' }]
+    ...(st?.citizenshipName && citizenDate && !noCitizenship
+      ? [{ date: monthYear(citizenDate), name: st.citizenshipName, sub: `About ${plural(st.citizenshipYears!, 'year')} after landing.`, cost: st.citizenshipFee ? gbp(st.citizenshipFee) : 'See the plan', ref: 'settle:citizenship' }]
       : []),
   ]
   const sources = [...(st?.sources ?? []), ...(pack.visa.sources ?? [])]
@@ -41,6 +44,7 @@ export default function PackSettlement({ pack }: { pack: DestinationPack }) {
       </div>
 
       <section aria-label="Your path" className="card settle-path">
+        {noCitizenship && <RestoreCitizenship />}
         <ol>
           {path.map((p) => (
             <li key={p.name} className={p.on ? 'on' : ''}>
@@ -48,6 +52,7 @@ export default function PackSettlement({ pack }: { pack: DestinationPack }) {
               <span className="sp-date">{p.date}</span>
               <b>{p.name}</b>
               <small>{p.sub}</small>
+              {p.ref && <DetailToggle refKey={p.ref} label={p.name} removable={p.ref === 'settle:citizenship'} removeNote="You need this step to settle, so it can't be removed." />}
               <span className="sp-cost">{p.cost}</span>
             </li>
           ))}
@@ -69,13 +74,14 @@ export default function PackSettlement({ pack }: { pack: DestinationPack }) {
           </h2>
           {st && st.conditions.length > 0 ? (
             <ul className="conds">
-              {st.conditions.map((c) => (
+              {st.conditions.map((c, i) => (
                 <li key={c}>
                   <span className="cmark" aria-hidden="true">
                     ·
                   </span>
                   <span className="ctxt">
                     <b>{c}</b>
+                    <DetailToggle refKey={`settle:condition-${i + 1}`} label={c} removable={false} removeNote="This is a condition of the visa, so it can't be removed." />
                   </span>
                 </li>
               ))}

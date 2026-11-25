@@ -1,6 +1,6 @@
-// A Northbound details file: Claude's deeper research on one scenario. It adds detail to the items
-// the scenario already has (documents, map steps, costs), can add items Northbound is missing, and can
-// correct a baseline figure. It works on the built-in UK route and on imported plans alike.
+// A Northbound details file: Claude's deeper research on one scenario. It adds detail to every item
+// the scenario has (documents, map steps, upfront costs, monthly costs, neighbourhoods, settling), can add
+// items Northbound is missing, and can correct a figure. It works on the built-in UK route and on imported plans alike.
 // Made from the prompt in src/lib/updatePrompt.ts; checked by parseDetails below.
 
 import type { PackCost, PackDocument, PackStep, Source } from './pack'
@@ -31,10 +31,13 @@ export interface ItemDetail {
   sources?: Source[]
 }
 
-/** Detail for an existing item. ref is "doc:<key>", "step:<key>" or "cost:<key>". */
+/**
+ * Detail for an existing item. ref is "doc:<key>", "step:<key>", "cost:<key>" (before you go),
+ * "month:<key>" (a month there), "area:<id>" (a neighbourhood) or "settle:<key>" (settling).
+ */
 export interface DetailItem extends ItemDetail {
   ref: string
-  /** Only for cost refs: a better baseline figure, replacing Northbound's */
+  /** Only for cost and month refs: a better figure, replacing Northbound's */
   amount?: number
   currency?: 'ZAR' | 'local'
 }
@@ -51,7 +54,9 @@ export interface ScenarioDetails {
   items: DetailItem[]
   addDocuments?: (PackDocument & { detail?: ItemDetail })[]
   addSteps?: (PackStep & { detail?: ItemDetail })[]
-  addCosts?: PackCost[]
+  addCosts?: (PackCost & { detail?: ItemDetail })[]
+  /** Monthly living costs Northbound is missing, such as a TV licence or gym */
+  addMonthly?: { key: string; label: string; amount: number; currency: 'ZAR' | 'local'; perPerson?: boolean; basis?: string; detail?: ItemDetail }[]
   /** Anything else worth knowing */
   notes?: string[]
   sources?: Source[]
@@ -129,13 +134,13 @@ export function parseDetails(input: unknown, refs?: Set<string>): { ok: true; de
       const w = `items[${i}]`
       if (!isObj(it)) return e.push(`${w} should be an object`)
       const ref = it.ref
-      if (typeof ref !== 'string' || !/^(doc|step|cost):[A-Za-z0-9:_-]+$/.test(ref)) return e.push(`${w}.ref should look like "doc:passport", "step:tb-test" or "cost:visaFee"`)
+      if (typeof ref !== 'string' || !/^(doc|step|cost|month|area|settle):[A-Za-z0-9:_-]+$/.test(ref)) return e.push(`${w}.ref should look like "doc:passport", "step:tb-test", "cost:visaFee", "month:food", "area:ancoats" or "settle:english"`)
       if (seen.has(ref)) e.push(`${w}.ref "${ref}" is used twice`)
       seen.add(ref)
       if (refs && !refs.has(ref)) e.push(`${w}.ref "${ref}" isn't an item in this scenario. Use a ref from the list in the prompt, or put new items in addDocuments, addSteps or addCosts.`)
       detail(e, it, w)
       if (it.amount !== undefined) {
-        if (!ref.startsWith('cost:')) e.push(`${w}.amount only works on cost refs`)
+        if (!ref.startsWith('cost:') && !ref.startsWith('month:')) e.push(`${w}.amount only works on cost and month refs`)
         amount(e, it, 'amount', w, true)
         if (it.currency !== 'ZAR' && it.currency !== 'local') e.push(`${w}.currency should be "ZAR" or "local" when amount is given`)
       }
@@ -181,6 +186,20 @@ export function parseDetails(input: unknown, refs?: Set<string>): { ok: true; de
     text(e, c, 'label', w, false)
     amount(e, c, 'amount', w, false)
     if (c.currency !== 'ZAR' && c.currency !== 'local') e.push(`${w}.currency should be "ZAR" or "local"`)
+    if (c.detail !== undefined) isObj(c.detail) ? detail(e, c.detail, `${w}.detail`) : e.push(`${w}.detail should be an object`)
+  })
+
+  const monthKeys = new Set<string>()
+  arr(e, p, 'addMonthly').forEach((c, i) => {
+    const w = `addMonthly[${i}]`
+    if (!isObj(c)) return e.push(`${w} should be an object`)
+    if (!keyOk(c.key)) e.push(`${w}.key should be short lowercase words joined by hyphens`)
+    else if (monthKeys.has(c.key as string)) e.push(`${w}.key "${c.key}" is used twice`)
+    else monthKeys.add(c.key as string)
+    text(e, c, 'label', w, false)
+    amount(e, c, 'amount', w, false)
+    if (c.currency !== 'ZAR' && c.currency !== 'local') e.push(`${w}.currency should be "ZAR" or "local"`)
+    if (c.detail !== undefined) isObj(c.detail) ? detail(e, c.detail, `${w}.detail`) : e.push(`${w}.detail should be an object`)
   })
   list(e, p, 'notes', 'details')
   sources(e, p, 'details')
@@ -209,6 +228,8 @@ export function detailFor(d: ScenarioDetails | undefined, ref: string): ItemDeta
   const [kind, key] = [ref.slice(0, ref.indexOf(':')), ref.slice(ref.indexOf(':') + 1)]
   if (kind === 'doc') return d.addDocuments?.find((x) => `added-${x.key}` === key)?.detail
   if (kind === 'step') return d.addSteps?.find((x) => `added-${x.key}` === key)?.detail
+  if (kind === 'cost') return d.addCosts?.find((x) => `d-${x.key}` === key)?.detail
+  if (kind === 'month') return d.addMonthly?.find((x) => `d-${x.key}` === key)?.detail
   return undefined
 }
 
@@ -219,3 +240,23 @@ export function hasDetail(x: ItemDetail | undefined): boolean {
 
 /** Refs that can't be removed: the map is built around them. */
 export const KEEP_REFS = new Set(['step:visa-decision', 'step:land'])
+
+/** The settling path and its conditions as items, so Claude can explain each one. */
+export function settleItems(s: { pack?: { settlement?: { name: string; conditions: string[]; citizenshipName?: string } } }): { ref: string; label: string }[] {
+  if (!s.pack)
+    return [
+      { ref: 'settle:english', label: 'English at the required level (B2 from 2027)' },
+      { ref: 'settle:earnings', label: 'Minimum yearly earnings for each year counted' },
+      { ref: 'settle:record', label: 'No UK criminal record' },
+      { ref: 'settle:debt', label: 'No unpaid NHS, tax or NI debt' },
+      { ref: 'settle:ilr', label: 'Apply for indefinite leave to remain' },
+      { ref: 'settle:citizenship', label: 'British citizenship' },
+    ]
+  const st = s.pack.settlement
+  if (!st) return []
+  return [
+    ...st.conditions.map((c, i) => ({ ref: `settle:condition-${i + 1}`, label: c })),
+    { ref: 'settle:apply', label: `Apply for ${st.name}` },
+    ...(st.citizenshipName ? [{ ref: 'settle:citizenship', label: st.citizenshipName }] : []),
+  ]
+}

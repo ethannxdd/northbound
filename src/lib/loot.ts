@@ -105,10 +105,10 @@ function missingManagedBy(error: { message?: string; code?: string } | null): bo
   return !!error && (error.code === 'PGRST204' || /managed_by/i.test(error.message ?? ''))
 }
 
-export async function createLootGoal(userId: string, targetZar: number, targetDate: string): Promise<LootGoal> {
+export async function createLootGoal(userId: string, name: string, targetZar: number, targetDate: string): Promise<LootGoal> {
   const row = {
     user_id: userId,
-    name: 'UK move',
+    name: name.trim().slice(0, 60) || 'My move',
     category: 'travel',
     target_amount: Math.round(targetZar / 1000) * 1000,
     current_amount: 0,

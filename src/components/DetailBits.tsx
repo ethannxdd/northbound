@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { KEEP_REFS, hasDetail, type ItemDetail } from '@shared/details'
+import { KEEP_REFS, detailFor, hasDetail, type ItemDetail } from '@shared/details'
 import { scenarioDocuments } from '@shared/documents'
-import { allUpfrontCosts } from '@shared/engine'
+import { allMonthlyItems, allUpfrontCosts, cityOf, rentOf } from '@shared/engine'
 import { allTimeline } from '@shared/timeline'
 import { useActions, useApp, type Id } from '../lib/app'
 import { gbp, zar } from '../lib/format'
@@ -104,8 +104,8 @@ export function RemoveButton({ refKey, label, onRemoved }: { refKey: string; lab
   )
 }
 
-type Kind = 'cost' | 'step' | 'doc'
-const KIND_NAME: Record<Kind, [string, string]> = { cost: ['cost', 'costs'], step: ['step', 'steps'], doc: ['document', 'documents'] }
+type Kind = 'cost' | 'step' | 'doc' | 'month' | 'area'
+const KIND_NAME: Record<Kind, [string, string]> = { cost: ['cost', 'costs'], step: ['step', 'steps'], doc: ['document', 'documents'], month: ['monthly cost', 'monthly costs'], area: ['neighbourhood', 'neighbourhoods'] }
 
 /** The items of one kind you removed from the main scenario, each with Put back. Shows nothing when there are none. */
 export function RemovedList({ kind }: { kind: Kind }) {
@@ -119,7 +119,11 @@ export function RemovedList({ kind }: { kind: Kind }) {
         ? allUpfrontCosts(input, plan.landDate, overrides).groups.flatMap((g) => g.items.map((i) => ({ ref: `cost:${i.key}`, label: i.label, sub: `${gbp(i.gbp)} · ${zar(i.gbp * input.rate, 10)}` })))
         : kind === 'step'
           ? allTimeline(input, plan.landDate, today, overrides).map((t) => ({ ref: `step:${t.key}`, label: t.title }))
-          : scenarioDocuments(input, (n) => String(n)).map((d) => ({ ref: d.ref, label: d.name, sub: `From ${d.from}` }))
+          : kind === 'month'
+            ? allMonthlyItems(input).map((i) => ({ ref: `month:${i.key}`, label: i.label, sub: `${gbp(i.gbp)} a month · ${zar(i.gbp * input.rate, 10)}` }))
+            : kind === 'area'
+              ? cityOf(input).areas.map((a) => ({ ref: `area:${a.id}`, label: a.name, sub: `${gbp(rentOf(input, a.id))} a month` }))
+              : scenarioDocuments(input, (n) => String(n)).map((d) => ({ ref: d.ref, label: d.name, sub: `From ${d.from}` }))
     return hidden.map((r) => all.find((x) => x.ref === r) ?? { ref: r, label: r.slice(r.indexOf(':') + 1), sub: 'No longer in this plan' })
   }, [hidden, kind, input, plan.landDate, today, overrides])
   if (!items.length) return null
@@ -142,11 +146,55 @@ export function RemovedList({ kind }: { kind: Kind }) {
           </li>
         ))}
       </ul>
-      {kind === 'cost' && (
+      {(kind === 'cost' || kind === 'month') && (
+
         <p className="faint small" style={{ margin: '8px 0 0' }}>
-          Removed costs don't count towards your number. <Link to="/settings/update">Ask Claude to update this scenario</Link> to check what you really need.
+          {kind === 'cost' ? "Removed costs don't count towards your number." : "Removed monthly costs don't count in a month there, or in your runway."} <Link to="/settings/update">Ask Claude to update this scenario</Link> to check what you really need.
         </p>
       )}
     </details>
+  )
+}
+
+/**
+ * A Details button for any item in a scenario. Open, it shows how the figure is worked out, Claude's
+ * detail if there is any, and Remove from scenario (when the item can be removed).
+ */
+export function DetailToggle({ refKey, label, basis, removable = true, removeNote, children }: { refKey: string; label: string; basis?: string; removable?: boolean; removeNote?: string; children?: React.ReactNode }) {
+  const { input } = useApp()
+  const [open, setOpen] = useState(false)
+  const detail = detailFor(input.details, refKey)
+  const id = `dt-${refKey.replace(/[^a-z0-9]/gi, '-')}`
+  return (
+    <div className="dtoggle">
+      <button type="button" className="dt-btn" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
+        Details{hasDetail(detail) ? <span className="dt-dot" aria-label=", from Claude" /> : null}
+      </button>
+      {open && (
+        <div id={id} className="dt-panel">
+          {basis && (
+            <p className="small" style={{ margin: 0 }}>
+              <b>How it's worked out:</b> {basis}.
+            </p>
+          )}
+          {children}
+          {hasDetail(detail) ? (
+            <ItemDetailView detail={detail} open />
+          ) : (
+            <p className="faint small" style={{ margin: 0 }}>
+              No detail from Claude yet. <Link to="/settings/update">Update Plan/Scenario</Link> to get it.
+            </p>
+          )}
+          {removable ? (
+            <div className="why-foot">
+              <span className="faint small">Not needed for this scenario?</span>
+              <RemoveButton refKey={refKey} label={label} onRemoved={() => setOpen(false)} />
+            </div>
+          ) : removeNote ? (
+            <p className="faint small" style={{ margin: 0 }}>{removeNote}</p>
+          ) : null}
+        </div>
+      )}
+    </div>
   )
 }

@@ -41,6 +41,8 @@ export interface ScenarioInput {
   pack?: DestinationPack
   /** Items removed from this scenario: "cost:<key>", "step:<key>" or "doc:<key>" */
   hidden?: string[]
+  /** This scenario's own Loot goal. Missing means it follows the default goal on your profile. */
+  lootGoalId?: string
   /** Claude's details file for this scenario, attached at runtime. Never saved on the scenario. */
   details?: ScenarioDetails
 }
