@@ -8,7 +8,7 @@ import QuoteSheet from '../components/QuoteSheet'
 import { DiffChip, lineDiff } from '../components/CostBits'
 import { useApp, type FxPoint } from '../lib/app'
 import { detailFor, hasDetail } from '@shared/details'
-import { ItemDetailView, RemoveButton, RemovedList } from '../components/DetailBits'
+import { RemovedList } from '../components/DetailBits'
 import { gbp, plural, zar } from '../lib/format'
 
 type Show = 'both' | 'GBP' | 'ZAR'
@@ -23,7 +23,6 @@ export default function Money() {
   const navigate = useNavigate()
   const [show, setShow] = useState<Show>('both')
   const [filter, setFilter] = useState<Filter>('all')
-  const [openWhy, setOpenWhy] = useState<string | null>(null)
   const sheetOpen = pathname.startsWith('/money/quote')
   const r = input.rate
 
@@ -172,24 +171,22 @@ export default function Money() {
                       <Fragment key={l.key}>
                         <tr>
                           <th scope="row">
-                            <span className="ci-name">
+                            <Link to={`/money/item/${l.key}`} className="ci-name">
                               {l.label}
                               {l.custom && <span className="tag mine">My extra</span>}
                               {l.fromDetails && <span className="tag">From Claude</span>}
-                            </span>
+                            </Link>
                             <span className="ci-basis">{l.custom ? 'Added by you' : l.basis}</span>
-                            {!l.custom && (
-                              <button type="button" className="dt-btn ci-more" aria-expanded={openWhy === l.key} aria-controls={`why-${l.key}`} onClick={() => setOpenWhy(openWhy === l.key ? null : l.key)}>
-                                Details{hasDetail(detailFor(input.details, `cost:${l.key}`)) ? <span className="dt-dot" aria-label=", from Claude" /> : null}
-                              </button>
-                            )}
+                            <Link to={`/money/item/${l.key}`} className="dt-btn ci-more" aria-label={`Everything about ${l.label}`}>
+                              Everything about it{hasDetail(detailFor(input.details, `cost:${l.key}`)) ? <span className="dt-dot" aria-label=", from Claude" /> : null}
+                            </Link>
                           </th>
                           <td>
                             {l.baselineGbp !== null ? (
-                              <button type="button" className="fig base" aria-expanded={openWhy === l.key} aria-controls={`why-${l.key}`} aria-label={`Baseline ${gbp(l.baselineGbp)} for ${l.label}. How it is worked out`} onClick={() => setOpenWhy(openWhy === l.key ? null : l.key)}>
+                              <Link to={`/money/item/${l.key}`} className="fig base" aria-label={`Baseline ${gbp(l.baselineGbp)} for ${l.label}. How it is worked out`}>
                                 <b>{money(l.baselineGbp)}</b>
                                 {second(l.baselineGbp) && <small>{second(l.baselineGbp)}</small>}
-                              </button>
+                              </Link>
                             ) : (
                               <span className="faint small">No baseline</span>
                             )}
@@ -215,13 +212,6 @@ export default function Money() {
                             )}
                           </td>
                         </tr>
-                        {openWhy === l.key && (
-                          <tr className="why-row">
-                            <td colSpan={4} id={`why-${l.key}`}>
-                              <Why line={l} landDate={plan.landDate} />
-                            </td>
-                          </tr>
-                        )}
                       </Fragment>
                     ))}
                   </tbody>
@@ -240,8 +230,8 @@ export default function Money() {
 
       <p className="faint small" style={{ margin: 0, maxWidth: 760, lineHeight: 1.6 }}>
         {input.pack
-          ? 'Every baseline figure comes from your imported plan. Tap any baseline figure to see how it was worked out and where the plan got it.'
-          : 'Every baseline figure comes from the Rules page, with its source and the date it was last checked. Tap any baseline figure to see how it was worked out.'}
+          ? 'Every baseline figure comes from your imported plan. Tap any line to see everything about it: how it was worked out, where the plan got it, and Claude\'s research.'
+          : 'Every baseline figure comes from the Rules page, with its source and the date it was last checked. Tap any line to see everything about it.'}
       </p>
 
       <div className="cols-2">
@@ -260,24 +250,7 @@ export default function Money() {
   )
 }
 
-/** How a baseline figure was worked out, with links to its rules. */
-function Why({ line, landDate }: { line: PlanLine; landDate: string }) {
-  const { input } = useApp()
-  return (
-    <>
-      <WhyBasis line={line} landDate={landDate} />
-      <ItemDetailView detail={detailFor(input.details, `cost:${line.key}`)} open />
-      {!line.custom && (
-        <div className="why-foot">
-          <span className="faint small">Not needed for this scenario?</span>
-          <RemoveButton refKey={`cost:${line.key}`} label={line.label} />
-        </div>
-      )}
-    </>
-  )
-}
-
-function WhyBasis({ line, landDate }: { line: PlanLine; landDate: string }) {
+export function WhyBasis({ line, landDate }: { line: PlanLine; landDate: string }) {
   const { overrides, input } = useApp()
   if (line.fromDetails)
     return (
@@ -286,7 +259,7 @@ function WhyBasis({ line, landDate }: { line: PlanLine; landDate: string }) {
           <b>How it's worked out:</b> {line.basis ?? 'From Claude\'s update'}.
         </p>
         <p className="muted small" style={{ margin: '6px 0 0' }}>
-          Added or corrected by Claude's update to this scenario. <Link to="/settings/update">Update it again</Link>
+          Added or corrected by Claude's update to this scenario. <Link to="/scenarios/update">Update it again</Link>
         </p>
       </div>
     )

@@ -3,7 +3,7 @@
 
 import { dayMonthYear } from '@shared/dates'
 import { scenarioDocuments } from '@shared/documents'
-import { allMonthlyItems, allUpfrontCosts, cityOf, currencyOf, rentOf, visaName, type Plan } from '@shared/engine'
+import { allMonthlyItems, allUpfrontCosts, cityOf, currencyOf, rentOf, targetJob, visaName, type Plan } from '@shared/engine'
 import { settleItems } from '@shared/details'
 import type { RuleOverrides } from '@shared/rules'
 import { allTimeline } from '@shared/timeline'
@@ -30,6 +30,7 @@ export function buildUpdatePrompt({ id, s, plan, savings, today, overrides, prev
   const r = (n: number) => `R${Math.round(n).toLocaleString('en-ZA')}`
   const hidden = new Set(s.hidden ?? [])
   const area = s.area ? city.areas.find((a) => a.id === s.area)?.name : undefined
+  const job = targetJob(s)
 
   const route = s.pack
     ? `${s.pack.visa.name} to ${s.pack.country.name}, from my imported plan "${s.pack.title}" (plan id ${s.pack.id})${s.pack.summary ? `. ${s.pack.summary}` : ''}`
@@ -63,7 +64,8 @@ THE SCENARIO
 - Route: ${route}
 - City: ${city.name}${area ? `, ${area}` : ''}, living in ${HOUSING[s.housing]}
 - Partner coming: ${partner}
-- Job hunt after landing: ${s.jobHuntMonths} months; my salary there: ${s.ukSalary > 0 ? m(s.ukSalary) : `typical, about ${m(city.salary)}`} a year
+- Job I'm targeting: ${job.title}
+- Job hunt after landing: ${s.jobHuntMonths} months; my salary there: ${s.ukSalary > 0 ? `${m(s.ukSalary)}, which I set myself` : `typical for the job, about ${m(city.salary)}`} a year
 - Landing: ${s.landMode === 'date' ? `fixed date, ${dayMonthYear(plan.landDate)}` : `when I've saved enough, currently around ${dayMonthYear(plan.landDate)}`}; ${s.tempNights} nights of temporary stay first
 - Paperwork lead time I've allowed: ${s.certLeadMonths} months
 - Rate: R${s.rate.toFixed(2)} to the ${cur.name}
@@ -84,10 +86,21 @@ Living costs in a normal month there (in ${cur.code}):
 ${monthLines.join('\n')}
 ${areaLines.length ? `\nNeighbourhoods:\n${areaLines.join('\n')}\n` : ''}${settleLines.length ? `\nSettling for good:\n${settleLines.join('\n')}\n` : ''}${removed.length ? `\nI removed these from the scenario: ${removed.join(', ')}. Don't add them back. If one is truly required for this scenario, say so in "notes" and explain why.\n` : ''}${previous ? `\nI imported a details file on ${new Date(previous.importedAt).toISOString().slice(0, 10)}. Write a complete new one: it replaces the old file, so keep anything from the old one that's still right.\n` : ''}
 WHAT I WANT
-1. For EVERY item above that isn't marked [REMOVED BY ME] (documents, steps, costs before I go, monthly living costs, neighbourhoods and settling), research and write its detail for THIS scenario (my city, whether my partner comes, my dates): what it is, why it's needed, exactly how to get or do it step by step, what to have ready, cost in rand or ${cur.code} with fees and courier costs, how long it takes, how long it stays valid, who it applies to, the mistakes that get applications refused or delayed, and practical tips. Be specific: name offices, websites, forms and fees.
+1. For EVERY item above that isn't marked [REMOVED BY ME] (documents, steps, costs before I go, monthly living costs, neighbourhoods and settling), research and write its detail for THIS scenario (my city, whether my partner comes, my dates). I want to open any line and know everything about it without looking anything up, so fill in every field that applies:
+   - what it is (summary) and why this scenario needs it (why)
+   - exactly how to get or do it, step by step (how), and what to have ready (bring)
+   - what it must be done after (dependsOn)
+   - the cost in words (cost), and for every cost line a breakdown of what makes up the figure: each fee, surcharge, courier, bank or card charge, translation, travel to an office (breakdown)
+   - the cheapest and dearest you'd realistically pay (range), and how sure the figure is: "official" (a published fee), "quoted" (a real price you found) or "estimate" (confidence)
+   - when to pay or book it relative to landing (whenToPay), who you pay and how (payTo), and whether any of it comes back (refundable)
+   - how long it takes (takes), how long it stays valid (validFor) and who it applies to (forWho)
+   - ways to pay less (saveMoney) and other ways to cover the same need (alternatives)
+   - what happens if I skip it or get it wrong (ifSkipped), the mistakes that get applications refused or delayed (watchOut), and practical tips (tips)
+   Be specific: name offices, websites, forms, fees and real providers.
 2. Add anything this scenario needs that's missing: documents (for example apostilles, certified copies, translations, police clearance, anything my partner needs), steps (with when they're due), costs before I go, and monthly costs (for example a TV licence, contents insurance, a gym). Put them in addDocuments, addSteps, addCosts and addMonthly, each with full detail. For neighbourhoods, cover safety, transport, what it's like to live there and who it suits. For settling, cover exactly what to prove and how.
 3. Only correct a figure (a cost before I go, or a monthly cost) if a reliable source shows it's different: give "amount" and "currency" on that item, and say where the figure is from in "cost".
-4. Use official sources (government and immigration sites) for rules and fees. Put links in "sources" with today's date in "checked". If you're unsure, give your best estimate and say so.
+4. Research the job I'm targeting, "${job.title}", in ${city.name}: the typical yearly salary for someone with my background (IT technical support in South Africa, moving without local experience), the usual range, other titles the same job is advertised under, how easy it is to get hired and what employers look for, and where to look (job sites, agencies, big employers). Put it in "job". Its "salary" replaces Northbound's typical figure for this scenario, so make it realistic, not optimistic.
+5. Use official sources (government and immigration sites) for rules and fees. Put links in "sources" with today's date in "checked". If you're unsure, give your best estimate and say so.
 
 HOW TO DELIVER IT
 - One JSON code block (\`\`\`json), nothing else in the block, following the format below exactly. Also offer it as a downloadable .json file if you can.
@@ -102,6 +115,11 @@ Format (version 1). Fields marked ? are optional:
   "scenarioName": ${JSON.stringify(s.name)},
   "createdOn": "${today}",
   "summary?": "A short overview of this move: the order to do things in, and the biggest risks.",
+  "job": { "title": ${JSON.stringify(job.title)}, "salary": 30000,          // yearly gross in ${cur.code}
+           "range?": { "low": 26000, "high": 34000 }, "basis?": "where the figure comes from",
+           "demand?": "how easy it is to get hired, and what employers want",
+           "otherTitles?": ["Service desk analyst"], "whereToLook?": ["Indeed", "Reed"],
+           "sources?": [ ...as below ] },
   "items": [{
     "ref": "doc:passport",                       // a ref from the lists above
     "summary?": "What it is, in a sentence or two.",
@@ -114,6 +132,16 @@ Format (version 1). Fields marked ? are optional:
     "forWho?": "You and your partner",
     "watchOut?": ["Things that get applications refused or delayed."],
     "tips?": ["Practical tips."],
+    "dependsOn?": ["What has to be done first."],
+    "breakdown?": [{ "label": "Visa fee", "amount": 637, "currency": "local" | "ZAR", "note?": "text" }],   // what the figure is made of
+    "range?": { "low": 600, "high": 700, "currency": "local" | "ZAR" },
+    "confidence?": "official" | "quoted" | "estimate",
+    "whenToPay?": "When you apply, about 3 months before landing",
+    "payTo?": "UK Visas and Immigration, by card online",
+    "refundable?": "Not refundable if refused",
+    "saveMoney?": ["Ways to pay less."],
+    "alternatives?": ["Other ways to cover the same need."],
+    "ifSkipped?": "What happens if you skip it or get it wrong.",
     "sources?": [{ "label": "text", "url": "https://...", "checked?": "${today}" }],
     "amount?": 637, "currency?": "local" | "ZAR"  // cost: and month: refs only, to correct the figure (month: is per month)
   }],

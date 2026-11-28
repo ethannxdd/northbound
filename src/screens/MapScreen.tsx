@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { cityOf } from '@shared/engine'
 import RemindersControls from '../components/Reminders'
-import TransitMap, { StopDetail, useTimeline } from '../components/TransitMap'
+import TransitMap, { StopDetail, StopSheet, useTimeline } from '../components/TransitMap'
 import { useApp } from '../lib/app'
 import { useWide } from '../lib/ui'
 import { RemovedList } from '../components/DetailBits'
@@ -10,7 +11,9 @@ export default function MapScreen() {
   const { input, done, savings } = useApp()
   const tasks = useTimeline()
   const wide = useWide()
-  const [selected, setSelected] = useState<string | null>(null)
+  const [params, setParams] = useSearchParams()
+  const linked = params.get('stop')
+  const [selected, setSelected] = useState<string | null>(linked)
   const finished = tasks.filter((t) => done.has(t.key)).length
   const next = tasks.find((t) => !done.has(t.key) && !(t.key === 'saving' && savings.monthlyZar > 0))
   const shown = tasks.find((t) => t.key === (selected ?? next?.key)) ?? tasks[0]
@@ -39,6 +42,7 @@ export default function MapScreen() {
         <div className="divider" />
         <RemindersControls compact />
       </section>
+      {!wide && <StopSheet task={linked ? (tasks.find((t) => t.key === linked) ?? null) : null} onClose={() => setParams({}, { replace: true })} />}
       {wide && shown && (
         <aside aria-label="Selected stop" className="map-aside glass">
           <StopDetail task={shown} onRemoved={() => setSelected(null)} />

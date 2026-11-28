@@ -10,7 +10,6 @@ import Trip from './screens/Trip'
 import MapScreen from './screens/MapScreen'
 import Money from './screens/Money'
 import Life from './screens/Life'
-import Compare from './screens/Compare'
 import Editor from './screens/Editor'
 import Progress from './screens/Progress'
 import Settings from './screens/Settings'
@@ -18,6 +17,8 @@ import Profile from './screens/Profile'
 import Paperwork from './screens/Paperwork'
 import Settlement from './screens/Settlement'
 import SharePage from './screens/SharePage'
+import ItemPage from './screens/ItemPage'
+import Scenarios, { QuotesPage } from './screens/Scenarios'
 
 export default function App() {
   const { pathname } = useLocation()
@@ -44,8 +45,14 @@ function Signed() {
           <Route path="/money" element={<Money />} />
           <Route path="/money/quote" element={<Money />} />
           <Route path="/money/quote/:itemKey" element={<Money />} />
+          <Route path="/money/quotes" element={<QuotesPage />} />
+          <Route path="/money/item/:key" element={<ItemPage kind="cost" />} />
+          <Route path="/money/item/:key/quote" element={<ItemPage kind="cost" />} />
+          <Route path="/life/item/:key" element={<ItemPage kind="month" />} />
           <Route path="/life" element={<Life />} />
-          <Route path="/compare" element={<Compare />} />
+          <Route path="/compare" element={<Navigate to="/scenarios" replace />} />
+          <Route path="/scenarios" element={<Scenarios />} />
+          <Route path="/scenarios/:tab" element={<Scenarios />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/paperwork" element={<Paperwork />} />
           <Route path="/settlement" element={<Settlement />} />

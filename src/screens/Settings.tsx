@@ -4,7 +4,7 @@ import { Link, Navigate, NavLink, useLocation, useNavigate, useParams } from 're
 import { api } from '../../convex/_generated/api'
 import { RULES, needsRefresh, rule, ruleText, type RuleEntry } from '@shared/rules'
 import { dayMonthYear, longDate, monthYear } from '@shared/dates'
-import { cityOf, sortQuotes } from '@shared/engine'
+import { cityOf, sortQuotes, targetJob } from '@shared/engine'
 import { gbp } from '../lib/format'
 import RemindersControls from '../components/Reminders'
 import LoansFields from '../components/LoansFields'
@@ -37,6 +37,11 @@ export const SECTIONS = [
 
 type SectionId = (typeof SECTIONS)[number]['id']
 
+/** Sections that now live in their own tab. Old links still land in the right place. */
+const MOVED: Record<string, string> = { settling: '/settlement', scenarios: '/scenarios/list', update: '/scenarios/update', plans: '/scenarios/plans', quotes: '/money/quotes' }
+/** The sections Settings itself shows */
+export const SHOWN = SECTIONS.filter((s) => !(s.id in MOVED))
+
 export default function Settings() {
   const { section } = useParams()
   const wide = useWide()
@@ -54,8 +59,8 @@ export default function Settings() {
     }, 60)
     return () => window.clearTimeout(t)
   }, [hash, section])
-  if (section === 'settling') return <Navigate to="/settlement" replace />
-  if (!current) return <Navigate to={wide ? '/settings/scenarios' : '/profile'} replace />
+  if (section && MOVED[section]) return <Navigate to={MOVED[section] + hash} replace />
+  if (!current || !SHOWN.includes(current)) return <Navigate to={wide ? '/settings/loot' : '/profile'} replace />
 
   const body = <SectionBody id={current.id} />
   if (!wide) {
@@ -77,8 +82,8 @@ export default function Settings() {
       <div className="settings-left">
         <ProfileCard />
         <nav className="settings-nav card" aria-label="Settings">
-          {SECTIONS.map((s) => (
-            <NavLink key={s.id} to={s.id === 'settling' ? '/settlement' : `/settings/${s.id}`} className={({ isActive }) => (isActive ? 'active' : '')}>
+          {SHOWN.map((s) => (
+            <NavLink key={s.id} to={`/settings/${s.id}`} className={({ isActive }) => (isActive ? 'active' : '')}>
               <Icon name={s.icon} size={19} />
               {s.label}
             </NavLink>
@@ -482,7 +487,7 @@ function SavingsSection() {
 // ---------- scenarios ----------
 
 export function ScenariosSection() {
-  const { scenarios, active, planFor } = useApp()
+  const { scenarios, active, planFor, effective } = useApp()
   const { setActive } = useActions()
   return (
     <Block>
@@ -497,7 +502,7 @@ export function ScenariosSection() {
                   {s._id === active._id && <span className="main-badge">Main</span>}
                 </b>
                 <small>
-                  {zar(planFor(s, s._id).targetZar, 1000)}
+                  {zar(planFor(s, s._id).targetZar, 1000)} · {targetJob(effective(s, s._id)).title}
                   {s._id !== active._id ? '. Tap to make it your main scenario' : '. Drives your trip, map and Loot goal'}
                 </small>
               </span>
@@ -784,7 +789,7 @@ export function ProfileCard() {
 
 // ---------- my quotes ----------
 
-function QuotesSection() {
+export function QuotesSection() {
   const { totals, quotes, input, active } = useApp()
   const { removeQuote } = useActions()
   const lines = totals.groups.flatMap((g) => g.lines).filter((l) => l.quoteCount > 0)

@@ -147,13 +147,14 @@ export const saveScenario = mutation({
       const d = did ? await ctx.db.get(did) : null
       if (!d || d.userId !== uid) throw new Error('Plan not found')
     }
+    const scenario = { ...a.scenario, jobTitle: a.scenario.jobTitle?.trim().slice(0, 80) || undefined }
     let id = a.id
     if (id) {
       await ownScenario(ctx, uid, id)
       // Replace, so optional fields left out (like a cleared neighbourhood) are removed.
-      await ctx.db.replace(id, { userId: uid, ...a.scenario })
+      await ctx.db.replace(id, { userId: uid, ...scenario })
     } else {
-      id = await ctx.db.insert('scenarios', { userId: uid, ...a.scenario })
+      id = await ctx.db.insert('scenarios', { userId: uid, ...scenario })
       if (a.copyFrom) {
         await ownScenario(ctx, uid, a.copyFrom)
         await copyQuotes(ctx, uid, a.copyFrom, id)

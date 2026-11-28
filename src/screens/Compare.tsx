@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { CITIES, HOUSING_LABEL, cityPhoto } from '@shared/cities'
 import { monthYear } from '@shared/dates'
-import { cityOf, currencyOf, monthlyBudget, planTotal, upfrontCosts } from '@shared/engine'
+import { cityOf, currencyOf, monthlyBudget, planTotal, upfrontCosts, targetJob } from '@shared/engine'
 import type { ScenarioInput } from '@shared/types'
 import { toInput, useActions, useApp } from '../lib/app'
 import { cur, zar } from '../lib/format'
@@ -51,7 +51,7 @@ export default function Compare() {
     const budget = monthlyBudget(input, p.landDate, overrides, ex.borrowing)
     const c = currencyOf(input)
     const fmt = (n: number, roundTo = 1) => cur(n, c.symbol, roundTo)
-    return { o, p, t, budget, fmt, code: c.code, rate: input.rate, city: cityOf(input), flag: flagFor(budget.left * input.rate), main: o.id === active._id }
+    return { o, p, t, budget, fmt, code: c.code, rate: input.rate, city: cityOf(input), flag: flagFor(budget.left * input.rate), main: o.id === active._id, job: targetJob(input) }
   })
 
   const first = stats[0]
@@ -169,6 +169,7 @@ export default function Compare() {
             {row('Paperwork and visa', 'Fees, surcharge, certificates', (s) => <Val main={s.fmt(s.t.groups[0].planGbp)} />)}
             {row('Getting there', 'Flight, let, deposit, basics', (s) => <Val main={s.fmt(s.t.groups[1].planGbp)} />)}
             {row('Runway', 'Living costs while job hunting', (s) => <Val main={s.fmt(s.t.groups[2].planGbp)} sub={s.t.groups[2].label.replace('Runway, ', '')} />)}
+            {row('Job targeted', 'And the salary the plan uses', (s) => <Val main={s.job.title} sub={`${s.fmt(s.job.salary, 500)} a year${s.job.yours ? ', yours' : s.job.source === 'claude' ? ', from Claude' : ', typical'}`} />)}
             {row('Take-home a month', 'After tax and social charges', (s) => <Val main={s.fmt(s.budget.takeHome + s.budget.partnerTakeHome)} />)}
             {row('Outgoings a month', 'Rent, bills, food, transport', (s) => <Val main={s.fmt(s.budget.outgoings)} />)}
             {row('Left each month', "Once you're paid", (s) => <Val main={s.fmt(s.budget.left)} sub={s.code !== 'ZAR' ? zar(s.budget.left * s.rate, 10) : undefined} tone={s.flag.tone} />, true)}

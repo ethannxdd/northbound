@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { cityPhoto } from '@shared/cities'
 import { dayMonthYear, monthYear, monthsBetween } from '@shared/dates'
-import { cityOf, progress, routePlaces, runwayMonths, visaName } from '@shared/engine'
+import { cityOf, progress, routePlaces, runwayMonths, targetJob, visaName } from '@shared/engine'
+import JobCard from '../components/JobCard'
+import Icon from '../components/Icon'
+import { GROUPS } from '../components/Nav'
 import type { Line, Task } from '@shared/timeline'
 import { ScenarioSwitcher } from '../components/Shell'
 import { LINE_COLOR, StopSheet, shortTitle, useTimeline } from '../components/TransitMap'
@@ -31,6 +34,7 @@ export default function Trip() {
   const runway = runwayMonths(input)
   const lastDeposit = deposits[0]
   const pace = paceNote(plan, input.landMode, savings.monthlyZar, needed, today)
+  const job = targetJob(input)
 
   return (
     <div className="main">
@@ -51,6 +55,9 @@ export default function Trip() {
               {input.landMode === 'saved' ? 'Landing around' : 'Landing'} {monthYear(plan.landDate)}
             </span>
             <span className="glass-chip sub">{visaName(input)}</span>
+            <Link to="/#job" className="glass-chip sub">
+              {job.title} · {gbp(job.salary, 500)} a year
+            </Link>
             {photo && city.photoCredit && (
               <span className="glass-chip sub" style={{ marginLeft: 'auto', fontSize: 11 }}>
                 Photo: {city.photoCredit}
@@ -181,6 +188,36 @@ export default function Trip() {
           </div>
           <span className="go">Review costs</span>
         </Link>
+      </div>
+
+      <div className="trip-row">
+        <JobCard />
+        <section className="card span2" aria-labelledby="where-h" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="card-h">
+            <h2 id="where-h" className="h2">
+              Where everything is
+            </h2>
+            <span className="muted small">Or press Ctrl K to search</span>
+          </div>
+          <div className="where-grid">
+            {GROUPS.filter((g) => g.id !== 'home').map((g) => (
+              <div key={g.id} className="where-tile">
+                <Link to={g.to} className="where-h">
+                  <Icon name={g.icon} size={20} />
+                  <b>{g.label}</b>
+                </Link>
+                <small className="muted">{g.blurb}</small>
+                <div className="where-links">
+                  {g.tabs.map((t) => (
+                    <Link key={t.to} to={t.to}>
+                      {t.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
 
       <StopSheet task={open} onClose={() => setOpenKey(null)} />

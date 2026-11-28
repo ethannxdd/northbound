@@ -161,6 +161,8 @@ export interface DestinationPack {
     jobHuntMonths: number
     /** 0 = the city's typical salary */
     salary?: number
+    /** The job you'd aim for there */
+    jobTitle?: string
     landMode: 'saved' | 'date'
     landDate?: string
     tempNights: number
@@ -398,6 +400,7 @@ export function parsePack(input: unknown): { ok: true; pack: DestinationPack } |
     if (!HOUSING.includes(s.housing as Housing)) e.push('scenario.housing should be "room", "studio" or "onebed"')
     num(e, s, 'jobHuntMonths', 'scenario')
     num(e, s, 'salary', 'scenario', true)
+    str(e, s, 'jobTitle', 'scenario', true)
     num(e, s, 'tempNights', 'scenario')
     num(e, s, 'bufferLocal', 'scenario', true)
     num(e, s, 'paperworkMonths', 'scenario', true)

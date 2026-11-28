@@ -10,12 +10,13 @@ const NEW = '__new'
 const GROUP_SHORT: Record<GroupId, string> = { paper: 'Paperwork', move: 'Getting there', runway: 'Runway' }
 
 /**
- * Add my quote: pick a cost (or add your own), the amount in £ or R, where and when you found it.
- * Older quotes stay as history under the form, and can be deleted there.
+ * My quote for a cost: pick a cost (or add your own), the amount in £ or R, where and when you found it.
+ * Opening a cost that already has a quote changes that quote, to any amount. You can instead add a new
+ * price and keep the old one as history.
  */
 export default function QuoteSheet({ open, itemKey, onClose }: { open: boolean; itemKey?: string; onClose: () => void }) {
   return (
-    <Sheet open={open} onClose={onClose} label="Add my quote">
+    <Sheet open={open} onClose={onClose} label="My quote">
       {open && <QuoteForm key={itemKey ?? ''} initial={itemKey} onClose={onClose} />}
     </Sheet>
   )
@@ -23,7 +24,7 @@ export default function QuoteSheet({ open, itemKey, onClose }: { open: boolean; 
 
 function QuoteForm({ initial, onClose }: { initial?: string; onClose: () => void }) {
   const { totals, quotes, input, today, active, cur } = useApp()
-  const { addQuote, removeQuote, removeCustom } = useActions()
+  const { addQuote, updateQuote, removeQuote, removeCustom } = useActions()
   const lines = useMemo(() => totals.groups.flatMap((g) => g.lines.map((l) => ({ ...l, group: g.id }))), [totals])
   const startKey = initial === 'new' ? NEW : initial && lines.some((l) => l.key === initial) ? initial : (lines.find((l) => l.mineGbp === null && !l.custom)?.key ?? lines[0]?.key ?? NEW)
   const [item, setItem] = useState(startKey)
@@ -36,41 +37,56 @@ function QuoteForm({ initial, onClose }: { initial?: string; onClose: () => void
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** The quote being changed, or null when adding a new one */
+  const [editing, setEditing] = useState<Id<'quotes'> | null>(null)
 
   const line = lines.find((l) => l.key === item) ?? null
-  const amount = Number(amountText.replace(/[^\d.]/g, ''))
-  const hasAmount = amountText.trim() !== '' && Number.isFinite(amount)
+  const amount = Number(amountText.replace(/[\s,]/g, '').replace(/[^\d.]/g, ''))
+  const hasAmount = /\d/.test(amountText) && Number.isFinite(amount)
   const amountGbp = hasAmount ? quoteGbp({ amount, currency }, input.rate) : null
   const history = useMemo(() => sortQuotes(quotes.filter((q) => q.itemKey === item)), [quotes, item])
+  const current = history[0] ?? null
+  const editingQuote = editing ? (history.find((q) => q._id === editing) ?? null) : null
+
+  const load = (q: QuoteDoc | null) => {
+    setEditing(q?._id ?? null)
+    setAmountText(q ? String(q.amount) : '')
+    setCurrency(q?.currency ?? 'GBP')
+    setSourceUrl(q?.sourceUrl ?? '')
+    setFoundOn(q?.foundOn ?? today)
+    setNote(q?.note ?? '')
+  }
+
+  // Opening a cost that already has a quote: change that quote, rather than start from nothing.
+  useEffect(() => {
+    load(history[0] ?? null)
+    // Only when you pick another cost, not when its quotes update.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item])
 
   useEffect(() => setError(null), [item, amountText])
+  const wontCount = !editing && !!current && foundOn < current.foundOn
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!hasAmount) return setError('Enter the amount you found.')
+    if (amount > 10_000_000) return setError('That amount is too big. Check for extra zeros.')
     if (item === NEW && !label.trim()) return setError('Give your cost a name.')
     setBusy(true)
     try {
-      const key = await addQuote({
-        scenarioId: active._id,
-        itemKey: item === NEW ? undefined : item,
-        newCost: item === NEW ? { label: label.trim(), group } : undefined,
-        amount,
-        currency,
-        sourceUrl: sourceUrl.trim() || undefined,
-        foundOn,
-        note: note.trim() || undefined,
-      })
-      setAmountText('')
-      setSourceUrl('')
-      setNote('')
-      if (item === NEW) {
-        setItem(key)
-        setLabel('')
+      const fields = { amount, currency, sourceUrl: sourceUrl.trim() || undefined, foundOn, note: note.trim() || undefined }
+      if (editing) {
+        await updateQuote({ id: editing, ...fields })
+      } else {
+        const key = await addQuote({ scenarioId: active._id, itemKey: item === NEW ? undefined : item, newCost: item === NEW ? { label: label.trim(), group } : undefined, ...fields })
+        if (item === NEW) {
+          setItem(key)
+          setLabel('')
+        }
       }
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message.replace(/^.*Uncaught Error: /, '').split('\n')[0] : 'Could not save. Try again.')
+      setError(friendlyError(err))
     } finally {
       setBusy(false)
     }
@@ -79,7 +95,7 @@ function QuoteForm({ initial, onClose }: { initial?: string; onClose: () => void
   return (
     <form className="quote-form" onSubmit={submit} aria-labelledby="quote-title">
       <h2 id="quote-title" className="h2">
-        Add my quote
+        {editing ? 'Change my quote' : 'Add my quote'}
       </h2>
 
       <div className="field">
@@ -98,6 +114,20 @@ function QuoteForm({ initial, onClose }: { initial?: string; onClose: () => void
           <option value={NEW}>+ My own cost (not in the baseline)</option>
         </select>
       </div>
+
+      {current && item !== NEW && (
+        <div className="quote-mode">
+          <div className="seg mini" role="group" aria-label="Change or add">
+            <button type="button" aria-pressed={!!editing} onClick={() => load(editingQuote ?? current)}>
+              Change {editingQuote && editingQuote._id !== current._id ? 'this' : 'my'} quote
+            </button>
+            <button type="button" aria-pressed={!editing} onClick={() => load(null)}>
+              Add a new price
+            </button>
+          </div>
+          <span className="faint tiny">{editing ? 'Any amount, higher or lower. It replaces this quote.' : 'Your current quote stays in the history below.'}</span>
+        </div>
+      )}
 
       {item === NEW && (
         <div className="two-col">
@@ -164,6 +194,12 @@ function QuoteForm({ initial, onClose }: { initial?: string; onClose: () => void
         <textarea id="q-note" className="input" rows={2} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Vox Trentham Street, studio, 12-month tenancy" />
       </div>
 
+      {wontCount && (
+        <p className="note warn" role="status" style={{ margin: 0 }}>
+          This price is dated before your current quote ({dayMonthYear(current.foundOn)}), so the current one would keep counting. Change the date, or change your current quote instead.
+        </p>
+      )}
+
       {error && (
         <p className="error" role="alert">
           {error}
@@ -175,18 +211,20 @@ function QuoteForm({ initial, onClose }: { initial?: string; onClose: () => void
           Cancel
         </button>
         <button type="submit" className="btn primary lg" style={{ flex: 2 }} disabled={busy}>
-          {busy ? 'Saving…' : 'Save quote'}
+          {busy ? 'Saving…' : editing ? 'Save changes' : 'Save quote'}
         </button>
       </div>
-      <p className="faint tiny" style={{ margin: 0, textAlign: 'center' }}>
-        Older quotes for this item stay in its history.
-      </p>
 
       {(history.length > 0 || line?.custom) && (
         <History
           history={history}
           rate={input.rate}
-          onDelete={(id) => void removeQuote({ id })}
+          editing={editing}
+          onEdit={load}
+          onDelete={(id) => {
+            if (id === editing) load(null)
+            void removeQuote({ id })
+          }}
           customId={line?.custom ? (line.key as Id<'customCosts'>) : null}
           onRemoveCustom={async (id) => {
             if (!window.confirm(`Remove "${line?.label}" and its quotes from this scenario?`)) return
@@ -199,18 +237,22 @@ function QuoteForm({ initial, onClose }: { initial?: string; onClose: () => void
   )
 }
 
-function History({
+export function History({
   history,
   rate,
+  editing,
+  onEdit,
   onDelete,
   customId,
   onRemoveCustom,
 }: {
   history: QuoteDoc[]
   rate: number
+  editing?: Id<'quotes'> | null
+  onEdit?: (q: QuoteDoc) => void
   onDelete: (id: Id<'quotes'>) => void
-  customId: Id<'customCosts'> | null
-  onRemoveCustom: (id: Id<'customCosts'>) => void
+  customId?: Id<'customCosts'> | null
+  onRemoveCustom?: (id: Id<'customCosts'>) => void
 }) {
   return (
     <section className="quote-history" aria-labelledby="q-hist">
@@ -218,38 +260,55 @@ function History({
         History for this item
       </h3>
       <ul>
-        {history.map((q, i) => (
-          <li key={q._id}>
-            <div className="qh-main">
-              <b>{q.currency === 'GBP' ? gbp(q.amount) : zar(q.amount)}</b>
-              <small>
-                {q.currency === 'GBP' ? zar(q.amount * rate) : gbp(q.amount / rate)} · found {dayMonthYear(q.foundOn)}
-                {q.sourceUrl ? (
-                  <>
-                    {' · '}
-                    <a href={q.sourceUrl} target="_blank" rel="noreferrer noopener">
-                      {hostOf(q.sourceUrl)}
-                    </a>
-                  </>
-                ) : null}
-              </small>
-              {q.note && <small className="qh-note">{q.note}</small>}
-            </div>
-            {i === 0 ? <span className="tag mine">Counts</span> : <span className="tag">Older</span>}
-            <button type="button" className="btn quiet sm danger" onClick={() => onDelete(q._id)} aria-label={`Delete the ${q.currency === 'GBP' ? gbp(q.amount) : zar(q.amount)} quote from ${dayMonthYear(q.foundOn)}`}>
-              Delete
-            </button>
-          </li>
-        ))}
+        {history.map((q, i) => {
+          const shown = q.currency === 'GBP' ? gbp(q.amount) : zar(q.amount)
+          return (
+            <li key={q._id} className={q._id === editing ? 'on' : undefined}>
+              <div className="qh-main">
+                <b>{shown}</b>
+                <small>
+                  {q.currency === 'GBP' ? zar(q.amount * rate) : gbp(q.amount / rate)} · found {dayMonthYear(q.foundOn)}
+                  {q.sourceUrl ? (
+                    <>
+                      {' · '}
+                      <a href={q.sourceUrl} target="_blank" rel="noreferrer noopener">
+                        {hostOf(q.sourceUrl)}
+                      </a>
+                    </>
+                  ) : null}
+                </small>
+                {q.note && <small className="qh-note">{q.note}</small>}
+              </div>
+              {i === 0 ? <span className="tag mine">Counts</span> : <span className="tag">Older</span>}
+              {onEdit && (
+                <button type="button" className="btn quiet sm" onClick={() => onEdit(q)} disabled={q._id === editing} aria-label={`Change the ${shown} quote from ${dayMonthYear(q.foundOn)}`}>
+                  {q._id === editing ? 'Editing' : 'Change'}
+                </button>
+              )}
+              <button type="button" className="btn quiet sm danger" onClick={() => onDelete(q._id)} aria-label={`Delete the ${shown} quote from ${dayMonthYear(q.foundOn)}`}>
+                Delete
+              </button>
+            </li>
+          )
+        })}
       </ul>
-      {history.length > 1 && <p className="faint tiny" style={{ margin: 0 }}>Delete the newest and the one before it counts again.</p>}
-      {customId && (
+      {history.length > 1 && <p className="faint tiny" style={{ margin: 0 }}>The newest-dated quote counts. Delete it and the one before it counts again.</p>}
+      {customId && onRemoveCustom && (
         <button type="button" className="btn link danger" style={{ alignSelf: 'flex-start' }} onClick={() => onRemoveCustom(customId)}>
           Remove this cost
         </button>
       )}
     </section>
   )
+}
+
+/** Convex wraps server errors in request details. Keep the sentence meant for people. */
+function friendlyError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : ''
+  const m = msg.match(/Uncaught Error: ([^\n]+)/)
+  if (m) return m[1]
+  if (/ArgumentValidationError|does not match validator/i.test(msg)) return "That amount couldn't be saved. Use numbers only, like 640 or 640.50."
+  return "Couldn't save the quote. Check your connection and try again."
 }
 
 function hostOf(url: string): string {

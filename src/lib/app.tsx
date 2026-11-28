@@ -244,6 +244,7 @@ export function useActions() {
     revokeShare: useMutation(api.shares.revoke),
     unlinkLoot: useMutation(api.account.unlinkLoot),
     addQuote: useMutation(api.quotes.add),
+    updateQuote: useMutation(api.quotes.update),
     removeQuote: useMutation(api.quotes.remove),
     removeCustom: useMutation(api.quotes.removeCustom),
     importPlan: useMutation(api.plans.importPlan),

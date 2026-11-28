@@ -10,19 +10,39 @@ import { gbp, zar } from '../lib/format'
 /** Claude's detail on one item: what it is, why you need it, how to get it, and what catches people out. */
 export function ItemDetailView({ detail, open = false }: { detail: ItemDetail | undefined; open?: boolean }) {
   if (!detail || !hasDetail(detail)) return null
-  const facts = [
-    detail.forWho && { k: 'For', v: detail.forWho },
-    detail.validFor && { k: 'Valid for', v: detail.validFor },
-    detail.cost && { k: 'Cost', v: detail.cost },
-    detail.takes && { k: 'Takes', v: detail.takes },
-  ].filter(Boolean) as { k: string; v: string }[]
   return (
     <details className="idetail" open={open}>
       <summary>
         <span>Full detail</span>
         <span className="tag mine">From Claude</span>
       </summary>
-      <div className="idetail-body">
+      <DetailBody detail={detail} />
+    </details>
+  )
+}
+
+const CONFIDENCE: Record<NonNullable<ItemDetail['confidence']>, string> = { official: 'Official fee', quoted: 'A real quote', estimate: 'An estimate' }
+
+/** Every field of Claude's detail, in the order you'd want to read it. */
+export function DetailBody({ detail, rate }: { detail: ItemDetail; rate?: number }) {
+  const { input } = useApp()
+  const r = rate ?? input.rate
+  const money = (n: number, c: 'ZAR' | 'local') => (c === 'ZAR' ? zar(n) : gbp(n))
+  const other = (n: number, c: 'ZAR' | 'local') => (c === 'ZAR' ? gbp(n / r) : zar(n * r))
+  const facts = [
+    detail.confidence && { k: 'How sure', v: CONFIDENCE[detail.confidence] },
+    detail.range && { k: 'Expect to pay', v: `${money(detail.range.low, detail.range.currency)} to ${money(detail.range.high, detail.range.currency)}` },
+    detail.cost && { k: 'Cost', v: detail.cost },
+    detail.whenToPay && { k: 'When', v: detail.whenToPay },
+    detail.payTo && { k: 'Pay to', v: detail.payTo },
+    detail.refundable && { k: 'Refundable', v: detail.refundable },
+    detail.takes && { k: 'Takes', v: detail.takes },
+    detail.validFor && { k: 'Valid for', v: detail.validFor },
+    detail.forWho && { k: 'For', v: detail.forWho },
+  ].filter(Boolean) as { k: string; v: string }[]
+  const bTotal = detail.breakdown?.reduce((a, b) => a + (b.currency === 'ZAR' ? b.amount / r : b.amount), 0) ?? 0
+  return (
+    <div className="idetail-body">
         {detail.summary && <p>{detail.summary}</p>}
         {detail.why && (
           <p>
@@ -39,8 +59,49 @@ export function ItemDetailView({ detail, open = false }: { detail: ItemDetail | 
             ))}
           </dl>
         )}
+        {detail.breakdown?.length ? (
+          <div>
+            <h4>What it's made of</h4>
+            <table className="breakdown">
+              <tbody>
+                {detail.breakdown.map((b, i) => (
+                  <tr key={`${b.label}-${i}`}>
+                    <th scope="row">
+                      {b.label}
+                      {b.note && <small>{b.note}</small>}
+                    </th>
+                    <td>
+                      <b>{money(b.amount, b.currency)}</b>
+                      <small>{other(b.amount, b.currency)}</small>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              {detail.breakdown.length > 1 && (
+                <tfoot>
+                  <tr>
+                    <th scope="row">Total</th>
+                    <td>
+                      <b>{gbp(bTotal)}</b>
+                      <small>{zar(bTotal * r)}</small>
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        ) : null}
+        <DList title="Do these first" items={detail.dependsOn} />
         <DList title="How to do it" items={detail.how} ordered />
         <DList title="Have ready" items={detail.bring} />
+        <DList title="Ways to pay less" items={detail.saveMoney} />
+        <DList title="Alternatives" items={detail.alternatives} />
+        {detail.ifSkipped && (
+          <div className="idetail-warn">
+            <h4>If you skip it or get it wrong</h4>
+            <p style={{ margin: 0 }}>{detail.ifSkipped}</p>
+          </div>
+        )}
         <DList title="Watch out for" items={detail.watchOut} warn />
         <DList title="Tips" items={detail.tips} />
         {detail.sources?.length ? (
@@ -57,8 +118,7 @@ export function ItemDetailView({ detail, open = false }: { detail: ItemDetail | 
             ))}
           </p>
         ) : null}
-      </div>
-    </details>
+    </div>
   )
 }
 
@@ -149,7 +209,7 @@ export function RemovedList({ kind }: { kind: Kind }) {
       {(kind === 'cost' || kind === 'month') && (
 
         <p className="faint small" style={{ margin: '8px 0 0' }}>
-          {kind === 'cost' ? "Removed costs don't count towards your number." : "Removed monthly costs don't count in a month there, or in your runway."} <Link to="/settings/update">Ask Claude to update this scenario</Link> to check what you really need.
+          {kind === 'cost' ? "Removed costs don't count towards your number." : "Removed monthly costs don't count in a month there, or in your runway."} <Link to="/scenarios/update">Ask Claude to update this scenario</Link> to check what you really need.
         </p>
       )}
     </details>
@@ -182,7 +242,7 @@ export function DetailToggle({ refKey, label, basis, removable = true, removeNot
             <ItemDetailView detail={detail} open />
           ) : (
             <p className="faint small" style={{ margin: 0 }}>
-              No detail from Claude yet. <Link to="/settings/update">Update Plan/Scenario</Link> to get it.
+              No detail from Claude yet. <Link to="/scenarios/update">Update Plan/Scenario</Link> to get it.
             </p>
           )}
           {removable ? (

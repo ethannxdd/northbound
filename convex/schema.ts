@@ -32,6 +32,8 @@ export const scenarioFields = {
   hidden: v.optional(v.array(v.string())),
   /** This scenario's own Loot goal. Missing means it follows the profile's default goal. */
   lootGoalId: v.optional(v.string()),
+  /** The job you're aiming for under this scenario, e.g. "IT support analyst" */
+  jobTitle: v.optional(v.string()),
 }
 
 export const docStatus = v.union(v.literal('todo'), v.literal('ordered'), v.literal('arrived'), v.literal('checked'))

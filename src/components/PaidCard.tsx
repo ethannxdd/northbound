@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
-import { monthlyBudget, salaryFor, takeHomeFor } from '@shared/engine'
+import { monthlyBudget, salaryFor, takeHomeFor, targetJob } from '@shared/engine'
 import type { ScenarioInput } from '@shared/types'
 import type { RuleOverrides } from '@shared/rules'
 import { useApp } from '../lib/app'
 import { gbp } from '../lib/format'
-import { DetailToggle, RemovedList } from './DetailBits'
+import { detailFor, hasDetail } from '@shared/details'
+import { RemovedList } from './DetailBits'
 
 const HOUSING: Record<string, string> = { room: 'a room in a share', studio: 'a studio', onebed: 'a 1-bed flat' }
 const KEEP = 300
@@ -47,6 +48,7 @@ export default function PaidCard() {
         <div>
           <span>Salary</span>
           <b>{gbp(salaryFor(input))}</b>
+          <small>{targetJob(input).title}</small>
         </div>
         <div>
           <span>Income tax</span>
@@ -75,7 +77,11 @@ export default function PaidCard() {
               <i style={{ width: `${(i.gbp / max) * 100}%` }} />
             </span>
             <b>{gbp(i.gbp)}</b>
-            {!i.key.endsWith('Repay') && <DetailToggle refKey={`month:${i.key}`} label={i.label} basis={i.basis} />}
+            {!i.key.endsWith('Repay') && (
+              <Link to={`/life/item/${i.key}`} className="dt-btn" aria-label={`Everything about ${i.label}`}>
+                Details{hasDetail(detailFor(input.details, `month:${i.key}`)) ? <span className="dt-dot" aria-label=", from Claude" /> : null}
+              </Link>
+            )}
           </li>
         ))}
       </ul>

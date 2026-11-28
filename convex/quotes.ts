@@ -11,6 +11,14 @@ async function ownScenario(ctx: MutationCtx, uid: string, id: Id<'scenarios'>) {
   return s
 }
 
+/** Keys of Northbound's own items, plus items from imported plans (x-…, doc-…) and Claude's details (d-…). */
+const ITEM_KEY = /^[A-Za-z0-9][A-Za-z0-9_-]{1,80}$/
+
+function checkQuote(a: { amount: number; foundOn: string }) {
+  if (!Number.isFinite(a.amount) || a.amount < 0 || a.amount > 10_000_000) throw new Error('Enter an amount of 0 or more')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(a.foundOn)) throw new Error('Pick the date you found it')
+}
+
 function clean(text: string | undefined, max: number): string | undefined {
   const t = text?.trim()
   return t ? t.slice(0, max) : undefined
@@ -34,8 +42,7 @@ export const add = mutation({
   handler: async (ctx, a) => {
     const uid = await requireKey(ctx)
     await ownScenario(ctx, uid, a.scenarioId)
-    if (!Number.isFinite(a.amount) || a.amount < 0 || a.amount > 10_000_000) throw new Error('Enter an amount')
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(a.foundOn)) throw new Error('Pick the date you found it')
+    checkQuote(a)
     const url = clean(a.sourceUrl, 2000)
     if (url && !/^https?:\/\//i.test(url)) throw new Error('The link should start with http:// or https://')
 
@@ -50,7 +57,7 @@ export const add = mutation({
       if (customId) {
         const c = await ctx.db.get(customId)
         if (!c || c.userId !== uid || c.scenarioId !== a.scenarioId) throw new Error('Cost not found')
-      } else if (!/^[a-zA-Z0-9]{2,30}$/.test(itemKey)) throw new Error('Pick a cost')
+      } else if (!ITEM_KEY.test(itemKey)) throw new Error('Pick a cost')
     }
     if (!itemKey) throw new Error('Pick a cost')
 
@@ -66,6 +73,27 @@ export const add = mutation({
       createdAt: Date.now(),
     })
     return itemKey
+  },
+})
+
+/** Changes a quote you already saved: the amount, currency, link, date or note. */
+export const update = mutation({
+  args: {
+    id: v.id('quotes'),
+    amount: v.number(),
+    currency: v.union(v.literal('GBP'), v.literal('ZAR')),
+    sourceUrl: v.optional(v.string()),
+    foundOn: v.string(),
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, a) => {
+    const uid = await requireKey(ctx)
+    const q = await ctx.db.get(a.id)
+    if (!q || q.userId !== uid) throw new Error('Quote not found')
+    checkQuote(a)
+    const url = clean(a.sourceUrl, 2000)
+    if (url && !/^https?:\/\//i.test(url)) throw new Error('The link should start with http:// or https://')
+    await ctx.db.replace(a.id, { userId: q.userId, scenarioId: q.scenarioId, itemKey: q.itemKey, createdAt: q.createdAt, amount: a.amount, currency: a.currency, sourceUrl: url, foundOn: a.foundOn, note: clean(a.note, 500) })
   },
 })
 

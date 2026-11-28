@@ -28,6 +28,8 @@ const PATHS: Record<string, string> = {
   docs: 'M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h4',
   flag: 'M5 21V4h11l-1 4 1 4H5',
   rand: 'M7 20V4h5a4 4 0 0 1 0 8H7M11 12l5 8',
+  search: 'M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14zM16 16l4.5 4.5',
+  job: 'M4 8h16v11H4zM9 8V5h6v3M4 13h16',
 }
 
 export type IconName = keyof typeof PATHS

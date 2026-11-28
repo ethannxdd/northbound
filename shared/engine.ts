@@ -70,12 +70,62 @@ export function packCity(pack: DestinationPack, id: string | undefined) {
 }
 
 export function cityOf(s: ScenarioInput): CityView {
+  const fromClaude = claudeJob(s)
   if (s.pack) {
     const c = packCity(s.pack, s.destCity)
-    return { ...c, salary: c.typicalSalary, areas: c.areas ?? [] }
+    return { ...c, salary: fromClaude?.salary ?? c.typicalSalary, areas: c.areas ?? [] }
   }
   const c = CITIES[s.city]
-  return { ...c, salary: c.itSupportSalary, areas: AREAS[s.city] }
+  return { ...c, salary: fromClaude?.salary ?? c.itSupportSalary, areas: AREAS[s.city] }
+}
+
+export const DEFAULT_JOB = 'IT technical support'
+
+const sameJob = (a: string, b: string) => a.trim().toLowerCase().replace(/\s+/g, ' ') === b.trim().toLowerCase().replace(/\s+/g, ' ')
+
+/** Claude's research on the job, if it was done for the job this scenario targets now. */
+function claudeJob(s: ScenarioInput) {
+  const j = s.details?.job
+  if (!j || !(j.salary > 0)) return undefined
+  return !s.jobTitle || sameJob(j.title, s.jobTitle) ? j : undefined
+}
+
+export interface TargetJob {
+  /** The job title this scenario aims for */
+  title: string
+  /** The salary the plan uses, yearly, in the destination currency */
+  salary: number
+  /** True when you set the salary yourself */
+  yours: boolean
+  /** The typical salary for the job in this city */
+  typical: number
+  range?: { low: number; high: number }
+  /** Where the typical figure comes from */
+  source: 'claude' | 'plan' | 'northbound'
+  basis?: string
+  /** The date the research was done, when it's from Claude */
+  researchedOn?: string
+  /** You changed the job title after Claude's research, so its salary isn't used */
+  stale: boolean
+}
+
+/** The job this scenario targets, with the salary the plan uses and where that figure comes from. */
+export function targetJob(s: ScenarioInput): TargetJob {
+  const title = s.jobTitle?.trim() || s.details?.job?.title || DEFAULT_JOB
+  const fromClaude = claudeJob(s)
+  const typical = cityOf(s).salary
+  const stale = !!s.details?.job && !fromClaude
+  return {
+    title,
+    salary: s.ukSalary > 0 ? s.ukSalary : typical,
+    yours: s.ukSalary > 0,
+    typical,
+    range: fromClaude?.range,
+    source: fromClaude ? 'claude' : s.pack ? 'plan' : 'northbound',
+    basis: fromClaude?.basis ?? (s.pack ? `The typical salary in your plan "${s.pack.title}"` : `Northbound's typical IT support salary in ${CITIES[s.city].name}`),
+    researchedOn: fromClaude ? s.details?.createdOn : undefined,
+    stale,
+  }
 }
 
 /** Rent for the scenario's housing, scaled to the neighbourhood if one is picked. */
@@ -366,7 +416,7 @@ function packUpfrontCosts(s: ScenarioInput, pack: DestinationPack, landDate: str
   const living = monthlyBudget(s, landDate)
   const rent = rentOf(s)
   const move: LineItem[] = [
-    { key: 'flight', label: `One-way flight${two}`, gbp: pack.move.flightPerPerson * p, basis: `Cape Town to ${c.name}, ${m(pack.move.flightPerPerson)}${times}` },
+    { key: 'flight', label: `One-way flight${two}`, gbp: (s.flightGbp || pack.move.flightPerPerson) * p, basis: `Cape Town to ${c.name}, ${m(s.flightGbp || pack.move.flightPerPerson)}${times}` },
     { key: 'monthlyLet', label: `Short let, first ${s.tempNights} nights`, gbp: s.tempNights * c.tempNightly, basis: `${s.tempNights} nights at ${m(c.tempNightly)} while you find a place` },
     { key: 'deposit', label: `Deposit (${pack.move.depositMonths} month${pack.move.depositMonths === 1 ? '' : 's'})`, gbp: rent * pack.move.depositMonths, basis: `${pack.move.depositMonths} × ${m(rent)} a month rent` },
     { key: 'firstRent', label: "First month's rent", gbp: rent, basis: 'Paid before you get the keys' },

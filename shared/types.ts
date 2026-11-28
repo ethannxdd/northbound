@@ -20,7 +20,7 @@ export interface ScenarioInput {
   partnerSalary: number
   /** Months from landing until you start work */
   jobHuntMonths: number
-  /** Expected UK salary. 0 means use the city's typical IT support salary. */
+  /** Expected salary there. 0 means the typical salary for your job in that city. */
   ukSalary: number
   /** Rand per pound */
   rate: number
@@ -43,6 +43,8 @@ export interface ScenarioInput {
   hidden?: string[]
   /** This scenario's own Loot goal. Missing means it follows the default goal on your profile. */
   lootGoalId?: string
+  /** The job you're aiming for under this scenario. Missing on older scenarios: IT technical support. */
+  jobTitle?: string
   /** Claude's details file for this scenario, attached at runtime. Never saved on the scenario. */
   details?: ScenarioDetails
 }
@@ -72,4 +74,5 @@ export const DEFAULT_SCENARIO: ScenarioInput = {
   flightGbp: 520,
   bufferGbp: 0,
   rateMode: 'live',
+  jobTitle: 'IT technical support',
 }

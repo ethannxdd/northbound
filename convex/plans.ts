@@ -64,6 +64,7 @@ export const importPlan = mutation({
         partner: !!sc.partner,
         jobHuntMonths: sc.jobHuntMonths,
         ukSalary: sc.salary ?? 0,
+        jobTitle: sc.jobTitle?.trim().slice(0, 80) || DEFAULT_SCENARIO.jobTitle,
         partnerSalary: Math.round(city.typicalSalary * 0.9),
         rate: pack.currency.zarPerUnit,
         rateMode: 'fixed',

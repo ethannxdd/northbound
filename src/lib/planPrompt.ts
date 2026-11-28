@@ -73,6 +73,7 @@ Format (version 1). Fields marked ? are optional:
   "route?": [{ "at": 0.5, "name": "the Sahel" }],                 // places along the flight, 0 = Cape Town, 1 = the city
   "facts?": { "timeDifference?": "2 hours behind", "language?": "English" },
   "scenario": { "city": "dublin", "housing": "room" | "studio" | "onebed", "partner?": false,
+                "jobTitle?": "IT support analyst",                // the job I'd aim for there, as it's advertised
                 "jobHuntMonths": 2, "salary?": 0,                  // 0 = the city's typicalSalary
                 "landMode": "saved" | "date", "landDate?": "YYYY-MM-DD",
                 "tempNights": 21, "bufferLocal?": 0, "paperworkMonths?": 3 },

@@ -28,6 +28,43 @@ export interface ItemDetail {
   /** Mistakes that get applications refused, things that catch people out */
   watchOut?: string[]
   tips?: string[]
+  /** What the cost is made of, line by line */
+  breakdown?: { label: string; amount: number; currency: 'ZAR' | 'local'; note?: string }[]
+  /** The cheapest and dearest you should expect to pay */
+  range?: { low: number; high: number; currency: 'ZAR' | 'local' }
+  /** When to pay or book it, relative to landing */
+  whenToPay?: string
+  /** Who you pay, and how (card, EFT, cash) */
+  payTo?: string
+  /** Whether you get it back, and when (a deposit, a refundable fee) */
+  refundable?: string
+  /** What has to be done first */
+  dependsOn?: string[]
+  /** Ways to pay less */
+  saveMoney?: string[]
+  /** Other ways to cover the same need */
+  alternatives?: string[]
+  /** What happens if you skip it or get it wrong */
+  ifSkipped?: string
+  /** How sure the figure is */
+  confidence?: 'official' | 'quoted' | 'estimate'
+  sources?: Source[]
+}
+
+/** The job this scenario aims for, and what it pays in the city. */
+export interface JobDetail {
+  title: string
+  /** Typical yearly gross salary, in the destination currency */
+  salary: number
+  range?: { low: number; high: number }
+  /** Where the salary figure comes from */
+  basis?: string
+  /** How easy it is to get hired, and what employers look for */
+  demand?: string
+  /** Other titles the same job is advertised under */
+  otherTitles?: string[]
+  /** Job sites, agencies and employers to try */
+  whereToLook?: string[]
   sources?: Source[]
 }
 
@@ -51,6 +88,8 @@ export interface ScenarioDetails {
   createdOn?: string
   /** A short overview of the whole move under this scenario */
   summary?: string
+  /** The job this scenario aims for, with its salary in the city */
+  job?: JobDetail
   items: DetailItem[]
   addDocuments?: (PackDocument & { detail?: ItemDetail })[]
   addSteps?: (PackStep & { detail?: ItemDetail })[]
@@ -92,10 +131,47 @@ function sources(e: Errors, o: Record<string, unknown>, w: string) {
   })
 }
 
+const CUR = (c: unknown) => c === 'ZAR' || c === 'local'
+
+function range(e: Errors, o: Record<string, unknown>, w: string, needCurrency: boolean) {
+  const r = o.range
+  if (r === undefined) return
+  if (!isObj(r)) return e.push(`${w}.range should be an object with low and high`)
+  amount(e, r, 'low', `${w}.range`, false)
+  amount(e, r, 'high', `${w}.range`, false)
+  if (typeof r.low === 'number' && typeof r.high === 'number' && r.low > r.high) e.push(`${w}.range.low should not be more than range.high`)
+  if (needCurrency && !CUR(r.currency)) e.push(`${w}.range.currency should be "ZAR" or "local"`)
+}
+
 function detail(e: Errors, o: Record<string, unknown>, w: string) {
-  for (const k of ['summary', 'why', 'cost', 'takes', 'validFor', 'forWho']) text(e, o, k, w)
-  for (const k of ['how', 'bring', 'watchOut', 'tips']) list(e, o, k, w)
+  for (const k of ['summary', 'why', 'cost', 'takes', 'validFor', 'forWho', 'whenToPay', 'payTo', 'refundable', 'ifSkipped']) text(e, o, k, w)
+  for (const k of ['how', 'bring', 'watchOut', 'tips', 'dependsOn', 'saveMoney', 'alternatives']) list(e, o, k, w)
+  if (o.confidence !== undefined && !['official', 'quoted', 'estimate'].includes(o.confidence as string)) e.push(`${w}.confidence should be "official", "quoted" or "estimate"`)
+  if (o.breakdown !== undefined) {
+    if (!Array.isArray(o.breakdown)) e.push(`${w}.breakdown should be a list`)
+    else
+      o.breakdown.forEach((b, i) => {
+        const bw = `${w}.breakdown[${i}]`
+        if (!isObj(b)) return e.push(`${bw} should be an object`)
+        text(e, b, 'label', bw, false)
+        amount(e, b, 'amount', bw, false)
+        if (!CUR(b.currency)) e.push(`${bw}.currency should be "ZAR" or "local"`)
+        text(e, b, 'note', bw)
+      })
+  }
+  range(e, o, w, true)
   sources(e, o, w)
+}
+
+function job(e: Errors, o: unknown) {
+  if (o === undefined) return
+  if (!isObj(o)) return e.push('job should be an object')
+  text(e, o, 'title', 'job', false)
+  amount(e, o, 'salary', 'job', false)
+  range(e, o, 'job', false)
+  for (const k of ['basis', 'demand']) text(e, o, k, 'job')
+  for (const k of ['otherTitles', 'whereToLook']) list(e, o, k, 'job')
+  sources(e, o, 'job')
 }
 
 function amount(e: Errors, o: Record<string, unknown>, k: string, w: string, opt: boolean) {
@@ -126,6 +202,7 @@ export function parseDetails(input: unknown, refs?: Set<string>): { ok: true; de
   if (typeof p.version !== 'number' || p.version > DETAILS_VERSION) e.push(`version should be ${DETAILS_VERSION}`)
   text(e, p, 'scenarioId', 'details', false)
   text(e, p, 'summary', 'details')
+  job(e, p.job)
 
   if (!Array.isArray(p.items)) e.push('items should be a list')
   else {
@@ -235,7 +312,10 @@ export function detailFor(d: ScenarioDetails | undefined, ref: string): ItemDeta
 
 export function hasDetail(x: ItemDetail | undefined): boolean {
   if (!x) return false
-  return !!(x.summary || x.why || x.how?.length || x.bring?.length || x.validFor || x.forWho || x.watchOut?.length || x.tips?.length || x.sources?.length)
+  return !!(
+    x.summary || x.why || x.how?.length || x.bring?.length || x.validFor || x.forWho || x.watchOut?.length || x.tips?.length || x.sources?.length ||
+    x.breakdown?.length || x.range || x.whenToPay || x.payTo || x.refundable || x.dependsOn?.length || x.saveMoney?.length || x.alternatives?.length || x.ifSkipped
+  )
 }
 
 /** Refs that can't be removed: the map is built around them. */

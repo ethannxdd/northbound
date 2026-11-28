@@ -213,6 +213,7 @@ function Preview({ pack, savedZar, monthlyZar, today, replacing }: { pack: Desti
     landMode: sc.landMode,
     landDate: sc.landDate ?? DEFAULT_SCENARIO.landDate,
     ukSalary: sc.salary ?? 0,
+    jobTitle: sc.jobTitle ?? DEFAULT_SCENARIO.jobTitle,
     bufferGbp: sc.bufferLocal ?? 0,
   }
   const p = planOf(s, { savedZar, monthlyZar }, today)

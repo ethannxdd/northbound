@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { CITIES } from '@shared/cities'
-import { addMonths, longMonthYear, monthYear, todayIso } from '@shared/dates'
-import { cityOf, currencyOf, monthlyBudget, partnerCanCome, rentOf, plan as planOf, planTotal, upfrontCosts, type GroupId } from '@shared/engine'
+import { addMonths, dayMonthYear, longMonthYear, monthYear, todayIso } from '@shared/dates'
+import { DEFAULT_JOB, cityOf, currencyOf, monthlyBudget, partnerCanCome, rentOf, plan as planOf, planTotal, targetJob, upfrontCosts, type GroupId } from '@shared/engine'
 import type { ScenarioInput } from '@shared/types'
 import { toInput, useActions, useApp, type Id } from '../lib/app'
 import { cur as fmtCur, zar } from '../lib/format'
@@ -49,6 +49,7 @@ export default function Editor() {
   const gbp = (n: number, roundTo = 1) => fmtCur(n, dcur.symbol, roundTo)
   const city = cityOf(eff)
   const typical = city.salary
+  const job = targetJob(eff)
 
   async function save() {
     if (!draft.name.trim()) return setError('Give this scenario a name.')
@@ -185,6 +186,17 @@ export default function Editor() {
 
           <Section title="Money and timing">
             <Slider id="hunt" label="Time to find work" value={draft.jobHuntMonths} min={0} max={9} step={1} show={(v) => (v === 0 ? 'Job lined up' : `${v} month${v === 1 ? '' : 's'}`)} hint="Living costs for these months are in your runway" onChange={(v) => set('jobHuntMonths', v)} />
+            <div className="field">
+              <label htmlFor="job">Job you're targeting</label>
+              <input id="job" className="input" value={draft.jobTitle ?? ''} maxLength={80} placeholder={DEFAULT_JOB} onChange={(e) => set('jobTitle', e.target.value)} />
+              <p className="hint">
+                {job.stale
+                  ? `Claude researched "${eff.details?.job?.title}". Update this scenario with Claude to get the salary for "${job.title}".`
+                  : job.source === 'claude'
+                    ? `Claude's research: about ${gbp(job.typical)} a year in ${city.name}${job.range ? ` (${gbp(job.range.low)} to ${gbp(job.range.high)})` : ''}${job.researchedOn ? `, ${dayMonthYear(job.researchedOn)}` : ''}.`
+                    : 'Saved with the scenario, so you can see what each plan was made for. Update the scenario with Claude to get this job\'s salary.'}
+              </p>
+            </div>
             <Slider
               id="salary"
               label={pack ? `Your salary in ${pack.country.name}` : 'Your UK salary'}
@@ -192,10 +204,16 @@ export default function Editor() {
               min={Math.round((typical * 0.5) / 1000) * 1000}
               max={Math.round((typical * 2.5) / 1000) * 1000}
               step={typical >= 20000 ? 500 : Math.max(1, Math.round(typical / 100))}
+              prefix={dcur.symbol}
               show={(v) => (draft.ukSalary ? gbp(v) : `${gbp(v)}, typical`)}
-              hint={pack ? `A typical salary for your job in ${city.name} is ${gbp(typical)}, from your plan` : `A typical IT support salary in ${city.name} is ${gbp(typical)}`}
+              hint={`A typical salary for ${job.title} in ${city.name} is ${gbp(typical)}${job.source === 'claude' ? ', from Claude' : job.source === 'plan' ? ', from your plan' : ''}`}
               onChange={(v) => set('ukSalary', v === typical ? 0 : v)}
             />
+            {draft.ukSalary > 0 && (
+              <button type="button" className="btn link" style={{ alignSelf: 'flex-start', marginTop: -8 }} onClick={() => set('ukSalary', 0)}>
+                Use the typical salary instead
+              </button>
+            )}
             {pack ? (
               <Slider
                 id="rate"
@@ -230,8 +248,8 @@ export default function Editor() {
             />
             <Slider id="certs" label={pack ? 'Paperwork before you can apply' : 'Wait for SA certificates'} value={draft.certLeadMonths} min={pack ? 0 : 2} max={18} step={1} show={(v) => `${v} months`} hint={pack ? 'Time to gather the documents on your Paperwork list' : 'Home Affairs is often slower than it says'} onChange={(v) => set('certLeadMonths', v)} />
             <Slider id="nights" label="Monthly let before you find a place" value={draft.tempNights} min={0} max={45} step={1} show={(v) => `${v} nights`} onChange={(v) => set('tempNights', v)} />
-            <Slider id="flight" label="Flight, per person" value={draft.flightGbp} min={pack ? Math.round(pack.move.flightPerPerson * 0.4) : 250} max={pack ? Math.round(pack.move.flightPerPerson * 2.5) : 1500} step={10} show={(v) => gbp(v)} onChange={(v) => set('flightGbp', v)} />
-            <Slider id="buffer" label="Extra safety buffer" value={draft.bufferGbp} min={0} max={5000} step={100} show={(v) => (v ? gbp(v) : 'None')} onChange={(v) => set('bufferGbp', v)} />
+            <Slider id="flight" label="Flight, per person" value={draft.flightGbp} min={0} max={pack ? Math.round(pack.move.flightPerPerson * 2.5) : 1500} step={10} prefix={dcur.symbol} show={(v) => gbp(v)} hint={ex.quotes?.some((q) => q.itemKey === 'flight') ? 'Your flight quote is used in the plan instead of this estimate. Change the quote on Money.' : 'Found a real fare? Add it as a quote on Money, and keep this as the estimate'} onChange={(v) => set('flightGbp', v)} />
+            <Slider id="buffer" label="Extra safety buffer" value={draft.bufferGbp} min={0} max={5000} step={100} prefix={dcur.symbol} show={(v) => (v ? gbp(v) : 'None')} onChange={(v) => set('bufferGbp', v)} />
           </Section>
 
           <Section title="Loans and credit">
@@ -341,13 +359,46 @@ function SegRow({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-function Slider({ id, label, value, min, max, step, show, hint, onChange }: { id: string; label: string; value: number; min: number; max: number; step: number; show: (v: number) => string; hint?: string; onChange: (v: number) => void }) {
+/**
+ * A slider for quick changes, with a box to type an exact figure. The box takes any value from 0 up,
+ * even outside the slider's range, so nothing is stuck at the slider's ends.
+ */
+function Slider({ id, label, value, min, max, step, show, hint, onChange, prefix, typeable = true }: { id: string; label: string; value: number; min: number; max: number; step: number; show: (v: number) => string; hint?: string; onChange: (v: number) => void; prefix?: string; typeable?: boolean }) {
+  const [text, setText] = useState(String(value))
+  const [focused, setFocused] = useState(false)
+  const shown = focused ? text : String(Math.round(value * 100) / 100)
+  const lo = Math.min(min, value)
+  const hi = Math.max(max, value)
   return (
     <div className="field slider">
-      <label htmlFor={id}>
-        {label} <output htmlFor={id}>{show(value)}</output>
-      </label>
-      <input id={id} type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} />
+      <div className="slider-top">
+        <label htmlFor={id}>
+          {label} <output htmlFor={id}>{show(value)}</output>
+        </label>
+        {typeable && (
+          <span className="slider-box">
+            {prefix && <span aria-hidden="true">{prefix}</span>}
+            <input
+              className="input"
+              inputMode="decimal"
+              aria-label={`${label}, exact value`}
+              value={shown}
+              onFocus={() => {
+                setText(String(Math.round(value * 100) / 100))
+                setFocused(true)
+              }}
+              onBlur={() => setFocused(false)}
+              onChange={(e) => {
+                const t = e.target.value.replace(/[^\d.]/g, '')
+                setText(t)
+                const n = Number(t)
+                if (t !== '' && Number.isFinite(n)) onChange(n)
+              }}
+            />
+          </span>
+        )}
+      </div>
+      <input id={id} type="range" min={lo} max={hi} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} />
       {hint && <p className="hint">{hint}</p>}
     </div>
   )

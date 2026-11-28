@@ -6,26 +6,22 @@ import { useActions, useApp } from '../lib/app'
 import { plural, zar } from '../lib/format'
 import { Sheet, useWide } from '../lib/ui'
 import Icon from './Icon'
-
-const TOP_NAV = [
-  { to: '/', label: 'Trip' },
-  { to: '/map', label: 'Map' },
-  { to: '/money', label: 'Money' },
-  { to: '/progress', label: 'Progress' },
-  { to: '/paperwork', label: 'Paperwork' },
-  { to: '/life', label: 'Life' },
-  { to: '/compare', label: 'Compare' },
-]
+import { GROUPS, SubNav } from './Nav'
+import { SearchButton } from './Search'
 
 const TITLES: Record<string, string> = {
-  '/': 'Your trip',
-  '/map': 'Map',
-  '/money': 'Money',
-  '/life': 'Life',
-  '/compare': 'Compare',
-  '/progress': 'Progress',
+  '/': 'Home',
+  '/map': 'Route map',
+  '/money': 'Costs',
+  '/money/quotes': 'All my quotes',
+  '/life': 'A month there',
+  '/scenarios': 'Compare scenarios',
+  '/scenarios/list': 'My scenarios',
+  '/scenarios/update': 'Update with Claude',
+  '/scenarios/plans': 'Other countries',
+  '/progress': 'Saving progress',
   '/paperwork': 'Paperwork',
-  '/settlement': 'Settling',
+  '/settlement': 'Settling for good',
   '/profile': 'Profile',
 }
 
@@ -57,14 +53,30 @@ export function BrandMark({ size = 34 }: { size?: number }) {
 }
 
 export default function Shell({ children }: { children: ReactNode }) {
-  const { pathname } = useLocation()
+  const { pathname, hash } = useLocation()
   const section = pathname.split('/')[1]
   const nav = useRef<HTMLElement>(null)
 
   useEffect(() => {
-    const base = TITLES[pathname] ?? (pathname.startsWith('/settings') ? 'Settings' : pathname.startsWith('/scenario') ? 'Scenario' : pathname.startsWith('/money') ? 'Money' : '')
+    const base = TITLES[pathname] ?? (pathname.startsWith('/settings') ? 'Settings' : pathname.startsWith('/scenario') ? 'Scenario' : pathname.includes('/item/') ? 'Item' : pathname.startsWith('/money') ? 'Money' : '')
     document.title = base ? `${base} · Northbound` : 'Northbound'
   }, [pathname])
+
+  // Links like /paperwork#doc-passport (from search) scroll to that item and flash it once it's on screen.
+  useEffect(() => {
+    if (!hash || pathname.startsWith('/settings')) return
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(decodeURIComponent(hash.slice(1)))
+      if (!el) return
+      el.closest('details')?.setAttribute('open', '')
+      el.scrollIntoView({ block: 'center' })
+      const box = el.closest<HTMLElement>('.card, li, section') ?? el
+      box.classList.remove('flash')
+      void box.offsetWidth
+      box.classList.add('flash')
+    }, 120)
+    return () => window.clearTimeout(t)
+  }, [hash, pathname])
 
   // New screen: back to the top, and on a phone bring its tab into view. Sheets on the same screen (/money/quote) don't count.
   useEffect(() => {
@@ -83,19 +95,21 @@ export default function Shell({ children }: { children: ReactNode }) {
             northbound
           </Link>
           <nav aria-label="Main" className="pills" ref={nav}>
-            {TOP_NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
-                {n.label}
+            {GROUPS.map((g) => (
+              <NavLink key={g.id} to={g.to} end={g.to === '/'} className={() => (g.match(pathname) ? 'active' : '')} aria-current={g.match(pathname) ? 'page' : undefined}>
+                {g.label}
               </NavLink>
             ))}
           </nav>
           <div className="topbar-right">
+            <SearchButton />
             <RateChip />
             <AccountButton />
           </div>
         </div>
       </header>
       <main className="page">
+        <SubNav />
         {/* Keyed on the first segment, so opening a sheet route (/money/quote) doesn't replay the screen's opening. */}
         <div key={pathname.split('/')[1]} className="rise">
           {children}
